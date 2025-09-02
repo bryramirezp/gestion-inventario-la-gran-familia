@@ -62,7 +62,7 @@ El objetivo de esta fase es formalizar la planificación y construir la base de 
 |-------|----------------|-----------------|--------------|-------------------------|
 | **1.1** Detallar la documentación inicial | Equipo | 02/sep | 09/sep | Definición final de tablas y políticas de seguridad |
 | **1.2** Crear y configurar el proyecto en Supabase | Equipo | 10/sep | 16/sep | Proyecto en Supabase creado |
-| **1.3** Diseñar e implementar las tablas (`articulos`, `movimientos`, etc.) | Equipo | 17/sep | 23/sep | Estructura de la base de datos finalizada |
+| **1.3** Diseñar e implementar las tablas (`donadores`, `donativos`, etc.) | Equipo | 17/sep | 23/sep | Estructura de la base de datos finalizada |
 | **1.4** **Implementar Seguridad (RLS)** | Equipo | 24/sep | 07/oct | Políticas de acceso y seguridad implementadas |
 
 ### **Fase 2: Desarrollo del Frontend y Lógica Principal** *(8 de octubre - 28 de octubre)*
