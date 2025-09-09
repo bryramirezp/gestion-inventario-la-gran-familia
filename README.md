@@ -50,44 +50,58 @@ En resumen, no quieren un sistema complejo y caro como un ERP. Buscan una herram
 
 ## **Cronograma del Proyecto**
 
-**Duración Total Estimada:** 2 de septiembre - 18 de noviembre
+**Duración Total:** 26 de agosto - 11 de noviembre (2024)
 
-Este cronograma está diseñado para cumplir con todos los entregables del curso, dividiendo el trabajo técnico en fases lógicas que permiten un desarrollo progresivo y la generación de los reportes necesarios en cada hito.
+Este cronograma refleja las actividades realmente ejecutadas en el proyecto, divididas en tres fases principales que incluyen todos los entregables académicos requeridos.
 
-### **Fase 1: Planificación y Configuración del Backend** *(2 de septiembre - 7 de octubre)*
+### **Fase 1: Diagnóstico y Planificación Inicial** *(26 de agosto - 9 de septiembre)*
 
-El objetivo de esta fase es formalizar la planificación y construir la base de datos y la seguridad del sistema.
+Esta fase se enfocó en establecer el contacto con la ONG, realizar el diagnóstico de necesidades y formalizar la colaboración.
 
-| Tarea | Responsable(s) | Fecha de Inicio | Fecha de Fin | Hito / Entregable Clave |
-|-------|----------------|-----------------|--------------|-------------------------|
-| **1.1** Detallar la documentación inicial | Equipo | 02/sep | 09/sep | Definición final de tablas y políticas de seguridad |
-| **1.2** Crear y configurar el proyecto en Supabase | Equipo | 10/sep | 16/sep | Proyecto en Supabase creado |
-| **1.3** Diseñar e implementar las tablas (`donadores`, `donativos`, etc.) | Equipo | 17/sep | 23/sep | Estructura de la base de datos finalizada |
-| **1.4** **Implementar Seguridad (RLS)** | Equipo | 24/sep | 07/oct | Políticas de acceso y seguridad implementadas |
+| N° | Actividad | Responsable | Fecha de Inicio | Fecha de Fin | Entregable |
+|----|-----------|-------------|-----------------|--------------|------------|
+| **1.1** | Detallar la documentación inicial | Equipo | 26/ago | 02/sep | Diagnóstico completado |
+| **1.2** | Realizar diagnóstico con la ONG | Equipo | 26/ago | 09/sep | Definición final de tablas y políticas de seguridad |
+| **1.3** | Entregar formato de acuerdo | Equipo | 02/sep | 09/sep | 📋 **Formato de acuerdo de colaboración firmado** |
 
-### **Fase 2: Desarrollo del Frontend y Lógica Principal** *(8 de octubre - 28 de octubre)*
+### **Fase 2: Desarrollo y Configuración del Sistema** *(10 de septiembre - 21 de octubre)*
 
-Con el backend listo, el equipo se enfocará en construir la interfaz con la que interactuará el usuario y conectar los sistemas. Esta fase culmina con dos entregables importantes.
+Con el diagnóstico completado, el equipo se enfocó en construir la infraestructura técnica del sistema y desarrollar las funcionalidades principales.
 
-| Tarea | Responsable(s) | Fecha de Inicio | Fecha de Fin | Hito / Entregable Clave |
-|-------|----------------|-----------------|--------------|-------------------------|
-| **2.1** Configurar el entorno de desarrollo (Vue/React) | Equipo | 08/oct | 14/oct | Repositorio en GitHub creado y entorno local funcional |
-| **2.2** Conectar frontend con Supabase | Equipo | 15/oct | 17/oct | Conexión exitosa a la API de Supabase |
-| **2.3** Desarrollar componentes UI (Formularios, Tablas) | Equipo | 18/oct | 24/oct | Vistas para registrar entradas/salidas y ver inventario |
-| **2.4** Preparar y entregar documentación | Equipo | 15/oct | 21/oct | 📋 **Project Charter (Martes, 21 de octubre)** |
-| **2.5** Preparar y entregar reporte de avance | Equipo | 22/oct | 28/oct | 📋 **Reporte de estado del proyecto (Martes, 28 de octubre)** |
+| N° | Actividad | Responsable | Fecha de Inicio | Fecha de Fin | Entregable |
+|----|-----------|-------------|-----------------|--------------|------------|
+| **2.1** | Configurar entorno de desarrollo | Equipo | 10/sep | 16/sep | Repositorio en GitHub y entorno local |
+| **2.2** | Crear y configurar proyecto en Supabase | Equipo | 10/sep | 23/sep | Proyecto en Supabase creado |
+| **2.3** | Conectar frontend con Supabase | Equipo | 17/sep | 30/sep | Conexión exitosa a la API |
+| **2.4** | Diseñar e implementar base de datos | Equipo | 24/sep | 07/oct | Estructura de la base de datos finalizada |
+| **2.5** | Desarrollar componentes UI | Equipo | 01/oct | 14/oct | Vistas para registrar y ver inventario |
+| **2.6** | Implementar Seguridad (RLS) | Equipo | 08/oct | 21/oct | Políticas de acceso implementadas |
+| **2.7** | Preparar Project Charter | Equipo | 15/oct | 21/oct | Project Charter |
+| **2.8** | Entregar Project Charter | Equipo | 21/oct | 21/oct | 📋 **Project Charter (21 de octubre)** |
 
-### **Fase 3: Pruebas, Despliegue y Cierre** *(29 de octubre - 18 de noviembre)*
+### **Fase 3: Pruebas, Despliegue y Cierre** *(22 de octubre - 11 de noviembre)*
 
-En la fase final, el enfoque es estabilizar la aplicación, hacerla accesible en la nube y preparar toda la documentación de cierre del proyecto.
+La fase final se centró en validar el sistema, desplegarlo en producción y completar toda la documentación de cierre del proyecto.
 
-| Tarea | Responsable(s) | Fecha de Inicio | Fecha de Fin | Hito / Entregable Clave |
-|-------|----------------|-----------------|--------------|-------------------------|
-| **3.1** Realizar pruebas funcionales | Equipo | 29/oct | 04/nov | Funcionalidades de registro y consulta validadas |
-| **3.2** **Desplegar la aplicación en Vercel** | Equipo | 05/nov | 10/nov | Aplicación funcionando en una URL pública |
-| **3.3** Elaborar documentación final | Equipo | 05/nov | 11/nov | 📋 **Evaluación del servicio y Lecciones aprendidas (Martes, 11 de noviembre)** |
-| **3.4** Preparar y consolidar el informe de cierre | Equipo | 12/nov | 18/nov | 📋 **Informe de cierre del proyecto (Martes, 18 de noviembre)** |
-| **3.5** Preparar la presentación final | Equipo | 12/nov | 18/nov | 🎯 **Presentación de resultados (Fecha examen final)** |
+| N° | Actividad | Responsable | Fecha de Inicio | Fecha de Fin | Entregable |
+|----|-----------|-------------|-----------------|--------------|------------|
+| **3.1** | Realizar pruebas funcionales | Equipo | 22/oct | 28/oct | Funcionalidades validadas |
+| **3.2** | Preparar reporte de avance | Equipo | 29/oct | 04/nov | Reporte de estado del proyecto |
+| **3.3** | Desplegar la aplicación | Equipo | 22/oct | 11/nov | Aplicación en URL pública |
+| **3.4** | Elaborar documentación final | Equipo | 05/nov | 11/nov | 📋 **Evaluación del servicio y Lecciones aprendidas (11 de noviembre)** |
+| **3.5** | Preparar informe de cierre | Equipo | 05/nov | 11/nov | Informe de cierre del proyecto |
+| **3.6** | Preparar la presentación final | Equipo | 05/nov | 11/nov | 🎯 **Presentación de resultados (Fecha examen final)** |
+
+### **Hitos Clave del Proyecto**
+
+| Hito | Fecha | Estado |
+|------|-------|--------|
+| ⭐ Inicio de contacto con la ONG | 26 de agosto | ✅ Completado |
+| 📋 Formato de acuerdo de colaboración | 9 de septiembre | ✅ Entregado |
+| 📋 Project Charter | 21 de octubre | 🔄 En ejecución |
+| 🚀 Despliegue del proyecto | 22 octubre - 9 noviembre | 📅 Programado |
+| 📋 Evaluación del servicio | 11 de noviembre | 📅 Programado |
+| 🎯 Presentación final | Fecha examen final | 📅 Programado |
 
 ## 📜 Tecnologías Principales
 
