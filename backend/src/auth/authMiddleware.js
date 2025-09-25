@@ -13,7 +13,7 @@ export const authenticateJWT = async (req, res, next) => {
 
     // Verificar si usuario sigue activo
     const { data, error } = await supabase
-      .from("Usuarios")
+      .from("usuarios")
       .select("activo, rol")
       .eq("usuario_id", decoded.usuario_id)
       .single();
