@@ -3,9 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/useAuth';
+import { cn } from '@/lib/utils';
 import {
   Package,
   Home,
@@ -22,7 +21,9 @@ import {
   Gift,
   MoveHorizontal,
 } from 'lucide-react';
+import { useAuthContext } from '@/hooks/AuthProvider'; // ✅ usamos el AuthProvider
 
+// Menú principal
 const navigationItems = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
   { name: 'Almacenes', href: '/warehouses', icon: Warehouse },
@@ -36,23 +37,32 @@ const navigationItems = [
   { name: 'KPIs', href: '/kpis', icon: FileText },
 ];
 
+// Menú solo para admin
 const adminOnlyItems = [
   { name: 'Usuarios', href: '/users', icon: Users },
   { name: 'Configuración', href: '/settings', icon: Settings },
 ];
 
 export function Sidebar() {
+  const { user, loading } = useAuthContext(); // ✅ datos reales del usuario
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const pathname = usePathname();
-  const { user, logout } = useAuth();
 
-  const isAdmin = user?.role === 'super_admin';
+  if (loading) return <p className="p-4">Cargando usuario...</p>;
 
+  // Determinar si el usuario es admin
+  const adminEmails = ['lorena@fundacion.org', 'lilith@fundacion.org'];
+  const isAdmin = user?.rol === 'admin' || adminEmails.includes(user?.email || '');
   const allItems = [...navigationItems, ...(isAdmin ? adminOnlyItems : [])];
+
+  const logout = async () => {
+    // Opcional: podrías llamar a la función logout del contexto
+    window.location.href = '/login';
+  };
 
   return (
     <>
-      {/* Mobile menu button */}
+      {/* Botón menú móvil */}
       <Button
         variant="ghost"
         size="icon"
@@ -74,29 +84,29 @@ export function Sidebar() {
           <div className="flex items-center px-6 py-4 bg-gradient-to-r from-foundation-orange to-foundation-gold">
             <Package className="h-8 w-8 text-white" />
             <div className="ml-3">
-              <h1 className="text-lg font-semibold text-white">Fundación</h1>
+              <h1 className="text-lg font-semibold text-white">La Gran Familia</h1>
               <p className="text-foundation-cream text-sm">Sistema de Inventario</p>
             </div>
           </div>
 
-          {/* User info */}
+          {/* Info usuario */}
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex items-center">
               <div className="w-10 h-10 bg-foundation-bronze rounded-full flex items-center justify-center">
                 <span className="text-white font-semibold">
-                  {user?.name.charAt(0).toUpperCase()}
+                  {user?.nombre?.charAt(0).toUpperCase() || '?'}
                 </span>
               </div>
               <div className="ml-3">
-                <p className="text-sm font-medium text-gray-900">{user?.name}</p>
+                <p className="text-sm font-medium text-gray-900">{user?.nombre || 'Usuario'}</p>
                 <p className="text-xs text-gray-500">
-                  {user?.role === 'super_admin' ? 'Administrador' : 'Empleado'}
+                  {isAdmin ? 'Administrador' : 'Empleado'}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Navigation */}
+          {/* Navegación */}
           <nav className="flex-1 px-4 py-4 space-y-1">
             {allItems.map((item) => {
               const isActive = pathname === item.href;
@@ -113,10 +123,7 @@ export function Sidebar() {
                   onClick={() => setIsMobileOpen(false)}
                 >
                   <item.icon
-                    className={cn(
-                      'mr-3 h-5 w-5',
-                      isActive ? 'text-white' : 'text-gray-400'
-                    )}
+                    className={cn('mr-3 h-5 w-5', isActive ? 'text-white' : 'text-gray-400')}
                   />
                   {item.name}
                 </Link>
@@ -138,7 +145,7 @@ export function Sidebar() {
         </div>
       </div>
 
-      {/* Mobile overlay */}
+      {/* Overlay móvil */}
       {isMobileOpen && (
         <div
           className="fixed inset-0 z-30 bg-black bg-opacity-50 md:hidden"

@@ -11,6 +11,10 @@ import reportsRoutes from "./reports.routes.js";
 import importRoutes from "./import.routes.js";
 import archiveRoutes from "./archive.routes.js";
 import authRoutes from "./auth.routes.js";
+import warehouseRoutes from "./warehouse.routes.js";
+import movementRoutes from "./movement.routes.js";
+import kpiRoutes from "./kpi.routes.js";
+import permissionRoutes from "./permission.routes.js";
 
 const router = express.Router();
 
@@ -26,5 +30,9 @@ router.use("/reports", reportsRoutes);
 router.use("/import", importRoutes);
 router.use("/archive", archiveRoutes);
 router.use("/auth", authRoutes);
+router.use("/warehouses", warehouseRoutes);
+router.use("/movements", movementRoutes);
+router.use("/kpis", kpiRoutes);
+router.use("/permissions", permissionRoutes);
 
 export default router;

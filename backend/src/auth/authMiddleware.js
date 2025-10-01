@@ -3,10 +3,19 @@ import { supabase } from "../db/supabaseClient.js";
 
 // Middleware para verificar JWT
 export const authenticateJWT = async (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ error: "No token provided" });
+  let token = null;
 
-  const token = authHeader.split(" ")[1];
+  // Primero revisa header Authorization
+  if (req.headers.authorization) {
+    token = req.headers.authorization.split(" ")[1];
+  }
+  // Luego revisa cookie
+  else if (req.cookies?.token) {
+    token = req.cookies.token;
+  }
+
+  if (!token) return res.status(401).json({ error: "No token provided" });
+
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
@@ -20,8 +29,8 @@ export const authenticateJWT = async (req, res, next) => {
 
     if (error || !data.activo)
       return res.status(403).json({ error: "Usuario inactivo" });
-    req.user.rol = data.rol;
 
+    req.user.rol = data.rol;
     next();
   } catch (err) {
     return res.status(403).json({ error: "Token inválido" });

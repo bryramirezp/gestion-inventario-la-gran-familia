@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthContext } from '@/hooks/AuthProvider';
 import { Sidebar } from './Sidebar';
 import { Toaster } from '@/components/ui/toaster';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
@@ -11,14 +11,14 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { user, isLoading } = useAuth();
+  const { user, loading } = useAuthContext(); // <-- aquí usamos "loading"
 
-  if (isLoading) {
+  if (loading) {
     return <PageLoading message="Cargando sistema..." />;
   }
 
   if (!user) {
-    return null; // Middleware will redirect to login
+    return null; // Middleware o redirección de login
   }
 
   return (
@@ -30,7 +30,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           <div className="mb-6">
             <Breadcrumbs />
           </div>
-          
+
           {/* Page Content */}
           <div className="transition-all duration-200 ease-in-out">
             {children}
