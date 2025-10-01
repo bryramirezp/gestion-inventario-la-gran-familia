@@ -88,11 +88,9 @@ const processExcel = (filePath) => {
 };
 
 // --------------------- MAIN FUNCTION ---------------------
-// --------------------- MAIN FUNCTION ---------------------
-
+// --------------------- MAIN FUNCTION ---------------------// --------------------- MAIN FUNCTION CORREGIDA ---------------------
 export const uploadDonativos = async (req, res) => {
   const filePath = req.file.path;
-
   const donadorCache = new Map();
   const productoCache = new Map();
   const errors = [];
@@ -105,219 +103,282 @@ export const uploadDonativos = async (req, res) => {
     });
   };
 
+  // MAPEO CORREGIDO según tu base de datos real
+  const TIPOS_BENEFACTOR_CORREGIDO = {
+    aportaciones_por_familia: 1, // Mapea a 'Individual'
+    empresas_con_recibo: 2, // Mapea a 'Empresa'
+    empresas_sin_recibo: 2, // Mapea a 'Empresa'
+    particulares: 1, // Mapea a 'Individual'
+    fundaciones: 3, // Mapea a 'ONG'
+    universidades: 3, // Mapea a 'ONG'
+    gobierno: 3, // Mapea a 'ONG'
+  };
+
+  // Primero, asegurarnos de que las categorías existan en la DB
+  const asegurarCategorias = async () => {
+    const categoriasNecesarias = [
+      "alimentos",
+      "art. limp.",
+      "art. aseo per",
+      "Papelería",
+      "Art. de vestir",
+      "juguetes y recreación",
+      "decoración y blancos",
+      "mob y equipo",
+    ];
+
+    for (const categoriaNombre of categoriasNecesarias) {
+      const { data: existingCategoria } = await supabase
+        .from("categoriasproductos")
+        .select("categoria_producto_id")
+        .eq("nombre", categoriaNombre)
+        .single();
+
+      if (!existingCategoria) {
+        await supabase
+          .from("categoriasproductos")
+          .insert([{ nombre: categoriaNombre }]);
+        console.log(`Categoría creada: ${categoriaNombre}`);
+      }
+    }
+  };
+
+  // Mapeo de categorías según nombres reales de la DB
+  const MAPEO_CATEGORIAS = {
+    alimentos: "alimentos",
+    art_limp: "art. limp.",
+    art_aseo_per: "art. aseo per",
+    papeleria: "Papelería",
+    art_de_vestir: "Art. de vestir",
+    juguetes_y_recreacion: "juguetes y recreación",
+    decoracion_y_blancos: "decoración y blancos",
+    mob_y_equipo: "mob y equipo",
+  };
+
   try {
-    const rows = processExcel(filePath);
-    console.log(`Número de filas a procesar: ${rows.length}`);
+    const workbook = XLSX.readFile(filePath);
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
 
-    // -------- Precargar Donadores --------
-    const { data: donadores, error: donadoresError } = await supabase
-      .from("donadores")
-      .select("*");
+    const rowsRaw = XLSX.utils.sheet_to_json(worksheet, {
+      header: 1,
+      defval: null,
+    });
 
-    if (donadoresError) {
-      console.error("Error cargando donadores:", donadoresError);
-    } else {
-      donadores?.forEach((d) => {
-        const key = d.nombre_completo?.trim().toLowerCase();
-        if (key) donadorCache.set(key, d.donador_id);
+    // Encontrar fila de encabezados
+    const headerRowIndex = rowsRaw.findIndex((row) =>
+      row.some(
+        (cell) =>
+          cell && cell.toString().toLowerCase().includes("nombre completo")
+      )
+    );
 
-        // También cachear por email si existe
-        if (d.correo) {
-          const emailKey = d.correo.trim().toLowerCase();
-          donadorCache.set(emailKey, d.donador_id);
-        }
-      });
+    if (headerRowIndex === -1) {
+      throw new Error("No se encontró la fila de encabezados en el Excel");
     }
 
-    // -------- Precargar Productos --------
-    const { data: productos, error: productosError } = await supabase
-      .from("productos")
-      .select("*");
+    const headers = rowsRaw[headerRowIndex].map(normalizeHeader);
+    const dataRows = rowsRaw
+      .slice(headerRowIndex + 1)
+      .filter((row) => row.length > 0);
 
-    if (productosError) {
-      console.error("Error cargando productos:", productosError);
-    } else {
-      productos?.forEach((p) => {
-        const key = p.nombre?.trim().toLowerCase();
-        if (key) productoCache.set(key, p.producto_id);
-      });
-    }
+    console.log(`Encabezados encontrados (${headers.length}):`, headers);
+    console.log(`Número de filas de datos: ${dataRows.length}`);
+
+    // Asegurar que las categorías existan
+    await asegurarCategorias();
+
+    // Precargar caches CON LOS NOMBRES CORRECTOS
+    const [{ data: donadores }, { data: productos }, { data: categorias }] =
+      await Promise.all([
+        supabase.from("donadores").select("*"),
+        supabase.from("productos").select("*"),
+        supabase.from("categoriasproductos").select("*"),
+      ]);
+
+    donadores?.forEach((d) => {
+      const key = d.nombre_completo?.trim().toLowerCase();
+      if (key) donadorCache.set(key, d.donador_id);
+    });
+
+    productos?.forEach((p) => {
+      const key = p.nombre?.trim().toLowerCase();
+      if (key) productoCache.set(key, p.producto_id);
+    });
+
+    // Cache de categorías por nombre CORRECTO
+    const categoriaCache = new Map();
+    categorias?.forEach((c) => {
+      const key = c.nombre?.trim().toLowerCase();
+      if (key) categoriaCache.set(key, c.categoria_producto_id);
+    });
 
     await setCurrentUser(req.user.usuario_id);
 
-    let currentDonativoId = null;
-    let currentFecha = null;
-    let acumuladoDetalles = 0;
-    let detallesBatch = [];
+    // Procesar cada fila
+    for (let i = 0; i < dataRows.length; i++) {
+      const rowArray = dataRows[i];
+      const row = {};
 
-    for (const [index, row] of rows.entries()) {
+      headers.forEach((header, index) => {
+        row[header] = rowArray[index] !== undefined ? rowArray[index] : null;
+      });
+
       try {
+        // Validaciones básicas
+        const nombre = (row["nombre_completo"] || "").toString().trim();
+        const descripcionProducto = (row["descripcion"] || "")
+          .toString()
+          .trim();
         const cantidad = parseNumber(row["cantidad"]);
-        const descripcionProducto = (
-          row["descripcion"] ||
-          row["producto"] ||
-          row["nombre_producto"]
-        )?.trim();
 
-        if (!cantidad || !descripcionProducto) {
-          console.log(`Fila ${index + 1} saltada: sin cantidad o descripción`);
+        if (
+          !nombre ||
+          nombre === "Sin nombre" ||
+          !descripcionProducto ||
+          !cantidad
+        ) {
+          console.log(`Fila ${i + 1} saltada: datos insuficientes`);
           continue;
         }
 
-        const fechaFila = row["fecha"]
-          ? parseDateSafe(row["fecha"])
-          : currentFecha || new Date().toISOString().split("T")[0];
+        // -------- DETERMINAR TIPO DE BENEFACTOR CORREGIDO --------
+        let tipoBenefactorId = 1; // Default: Individual (no Particulares)
 
-        // -------- Donador --------
-        const email = row["correo"]?.trim();
-        const nombre = row["nombre_completo"]?.trim() || "Sin nombre";
+        for (const [colName, tipoId] of Object.entries(
+          TIPOS_BENEFACTOR_CORREGIDO
+        )) {
+          const valor = parseNumber(row[colName]);
+          if (valor && valor > 0) {
+            tipoBenefactorId = tipoId;
+            break;
+          }
+        }
 
-        // Limpiar nombre (quitar apóstrofes problemáticos)
+        // -------- DETERMINAR CATEGORÍA DE PRODUCTO CORREGIDO --------
+        let categoriaProductoId = null;
+
+        for (const [colName, nombreCategoriaReal] of Object.entries(
+          MAPEO_CATEGORIAS
+        )) {
+          const valor = parseNumber(row[colName]);
+          if (valor && valor > 0) {
+            // Buscar por nombre real de la categoría en la DB
+            categoriaProductoId = categoriaCache.get(
+              nombreCategoriaReal.toLowerCase()
+            );
+            break;
+          }
+        }
+
+        // -------- PROCESAR FECHA (igual que antes) --------
+        let fecha = null;
+        if (row["fecha"]) {
+          const fechaStr = row["fecha"].toString();
+          if (fechaStr.includes("-")) {
+            fecha = fechaStr.split(" ")[0];
+          } else {
+            const excelDate = parseFloat(fechaStr);
+            if (!isNaN(excelDate)) {
+              const utcDays = Math.floor(excelDate - 25569);
+              const date = new Date(utcDays * 86400 * 1000);
+              fecha = date.toISOString().split("T")[0];
+            }
+          }
+        }
+
+        if (!fecha) {
+          fecha = new Date().toISOString().split("T")[0];
+        }
+
+        // -------- PROCESAR DONADOR (con tipo corregido) --------
         const nombreLimpio = nombre.replace(/['"]/g, "").trim();
-
-        const keyDonador = email?.toLowerCase() || nombreLimpio.toLowerCase();
-        let donadorId = donadorCache.get(keyDonador);
+        const donadorKey = nombreLimpio.toLowerCase();
+        let donadorId = donadorCache.get(donadorKey);
 
         if (!donadorId) {
-          // Buscar donador existente de manera más robusta
-          let query = supabase.from("donadores").select("*");
-
-          if (email) {
-            query = query.eq("correo", email);
-          } else {
-            query = query.eq("nombre_completo", nombreLimpio);
-          }
-
-          const { data: existing, error: searchError } = await query
+          const { data: existingDonador } = await supabase
+            .from("donadores")
+            .select("donador_id")
+            .ilike("nombre_completo", nombreLimpio)
             .limit(1)
             .single();
 
-          if (searchError) {
-            console.log(`Búsqueda de donador falló:`, searchError);
-          }
-
-          if (existing) {
-            donadorId = existing.donador_id;
-            donadorCache.set(keyDonador, donadorId);
-            console.log(
-              `Donador encontrado: ${nombreLimpio} (ID: ${donadorId})`
-            );
+          if (existingDonador) {
+            donadorId = existingDonador.donador_id;
+            donadorCache.set(donadorKey, donadorId);
           } else {
-            // Crear nuevo donador
+            // Crear donador con tipo CORREGIDO
             const donadorObj = {
               nombre_completo: nombreLimpio,
               telefono: row["celular__telefono"]
                 ? String(row["celular__telefono"])
                 : null,
-              correo: email || null,
-              fecha_nacimiento: row["dia_y_ano_de_nacimiento"]
-                ? parseDateSafe(row["dia_y_ano_de_nacimiento"])
-                : null,
-              direccion: row["direccion"] || null,
-              tipo_donador_id: 1, // Default = Individual
+              correo: row["correo"]?.trim() || null,
+              tipo_donador_id: tipoBenefactorId, // Usa el tipo corregido
               activo: true,
             };
 
-            console.log(`Creando nuevo donador:`, donadorObj);
-
-            const { data: newDonador, error: donadorErr } = await supabase
+            const { data: newDonador, error: donadorError } = await supabase
               .from("donadores")
               .insert([donadorObj])
               .select()
               .single();
 
-            if (donadorErr) {
-              console.error("Error creando donador:", donadorErr);
-              throw new Error(`No se creó el donador: ${donadorErr.message}`);
-            }
-
-            if (!newDonador) {
-              throw new Error("No se creó el donador - respuesta vacía");
-            }
+            if (donadorError)
+              throw new Error(`Error donador: ${donadorError.message}`);
 
             donadorId = newDonador.donador_id;
-            donadorCache.set(keyDonador, donadorId);
-            console.log(
-              `Nuevo donador creado: ${nombreLimpio} (ID: ${donadorId})`
-            );
+            donadorCache.set(donadorKey, donadorId);
           }
         }
 
-        // -------- Donativo --------
-        if (
-          !currentDonativoId ||
-          currentFecha?.getTime?.() !== new Date(fechaFila).getTime()
-        ) {
-          if (currentDonativoId && acumuladoDetalles > 0) {
-            await supabase
-              .from("donativos")
-              .update({
-                total: acumuladoDetalles,
-                total_con_descuento: acumuladoDetalles,
-              })
-              .eq("donativo_id", currentDonativoId);
-          }
-
-          const donativoObj = {
-            donador_id: donadorId,
-            fecha: fechaFila,
-            fecha_recepcion: fechaFila,
-            usuario_id: req.user.usuario_id,
-            total: 0,
-            total_con_descuento: 0,
-            recibido_por: row["nombre_del_que_recibio"] || "",
-            observaciones: row["descripcion"] || "",
-          };
-
-          const { data: newDonativo, error: donativoError } = await supabase
-            .from("donativos")
-            .insert([donativoObj])
-            .select()
-            .single();
-
-          if (donativoError) {
-            console.error("Error creando donativo:", donativoError);
-            throw new Error(`No se creó el donativo: ${donativoError.message}`);
-          }
-
-          if (!newDonativo) {
-            throw new Error("No se creó el donativo - respuesta vacía");
-          }
-
-          currentDonativoId = newDonativo.donativo_id;
-          currentFecha = new Date(fechaFila);
-          acumuladoDetalles = 0;
-          insertedDonativos++;
-          console.log(`Nuevo donativo creado: ID ${currentDonativoId}`);
-        }
-
-        // -------- Producto --------
-        const precioUnitario = parseNumber(row["precio_unitario"]);
-        const precioTotalFila =
+        // -------- CREAR DONATIVO --------
+        const precioUnitario = parseNumber(row["precio_unitario"]) || 0;
+        const precioTotal =
           parseNumber(row["precio_total"]) || cantidad * precioUnitario;
+
+        const donativoObj = {
+          donador_id: donadorId,
+          fecha: fecha,
+          fecha_recepcion: fecha,
+          usuario_id: req.user.usuario_id,
+          total: precioTotal,
+          total_con_descuento: precioTotal,
+          recibido_por: row["nombre_del_que_recibio"] || "",
+          observaciones: descripcionProducto,
+        };
+
+        const { data: newDonativo, error: donativoError } = await supabase
+          .from("donativos")
+          .insert([donativoObj])
+          .select()
+          .single();
+
+        if (donativoError)
+          throw new Error(`Error donativo: ${donativoError.message}`);
+
+        // -------- PROCESAR PRODUCTO CON CATEGORÍA CORREGIDA --------
         const productoKey = descripcionProducto.toLowerCase();
         let productoId = productoCache.get(productoKey);
 
         if (!productoId) {
-          const { data: existingProd, error: prodError } = await supabase
+          const { data: existingProducto } = await supabase
             .from("productos")
-            .select("*")
-            .eq("nombre", descripcionProducto)
+            .select("producto_id")
+            .ilike("nombre", descripcionProducto)
             .limit(1)
             .single();
 
-          if (prodError) {
-            console.log(`Búsqueda de producto falló:`, prodError);
-          }
-
-          if (existingProd) {
-            productoId = existingProd.producto_id;
+          if (existingProducto) {
+            productoId = existingProducto.producto_id;
             productoCache.set(productoKey, productoId);
           } else {
+            // Crear producto con categoría (puede ser null si no se encontró)
             const productoObj = {
               nombre: descripcionProducto,
               descripcion: descripcionProducto,
-              categoria_producto_id: null,
+              categoria_producto_id: categoriaProductoId, // Puede ser null
               unidad_medida_id: 1,
               stock: 0,
               precio_referencia: precioUnitario,
@@ -330,126 +391,69 @@ export const uploadDonativos = async (req, res) => {
               .select()
               .single();
 
-            if (productoError) {
-              console.error("Error creando producto:", productoError);
-              throw new Error(
-                `No se creó el producto: ${productoError.message}`
-              );
-            }
-
-            if (!newProducto) {
-              throw new Error("No se creó el producto - respuesta vacía");
-            }
+            if (productoError)
+              throw new Error(`Error producto: ${productoError.message}`);
 
             productoId = newProducto.producto_id;
             productoCache.set(productoKey, productoId);
           }
         }
 
-        // -------- Detalle Donativo --------
+        // -------- CREAR DETALLE DEL DONATIVO --------
         const detalleObj = {
-          donativo_id: currentDonativoId,
+          donativo_id: newDonativo.donativo_id,
           producto_id: productoId,
           descripcion_producto: descripcionProducto,
-          cantidad,
+          cantidad: cantidad,
           unidad_medida_id: 1,
           precio_unitario: precioUnitario,
-          precio_total: precioTotalFila,
+          precio_total: precioTotal,
           precio_factura: precioUnitario,
         };
 
-        detallesBatch.push(detalleObj);
-        acumuladoDetalles += precioTotalFila;
+        const { error: detalleError } = await supabase
+          .from("detallesdonativos")
+          .insert([detalleObj]);
 
-        if (detallesBatch.length >= 50) {
-          console.log(`Insertando lote de ${detallesBatch.length} detalles`);
-          for (const detalle of detallesBatch) {
-            try {
-              const { error: detalleError } = await supabase
-                .from("detallesdonativos")
-                .insert([detalle]);
+        if (detalleError)
+          throw new Error(`Error detalle: ${detalleError.message}`);
 
-              if (detalleError) {
-                errors.push({ detalle, error: detalleError.message });
-                console.error("Error insertando detalle:", detalleError);
-              }
-            } catch (err) {
-              errors.push({ detalle, error: err.message });
-              console.error("Error insertando detalle:", err);
-            }
-          }
-          detallesBatch = [];
-        }
-
+        insertedDonativos++;
         console.log(
-          `Fila ${
-            index + 1
-          } procesada correctamente: ${nombreLimpio} - ${descripcionProducto}`
+          `Donativo ${insertedDonativos} creado: ${nombreLimpio} - ${descripcionProducto} (Tipo Donador: ${tipoBenefactorId}, Categoría: ${categoriaProductoId})`
         );
-      } catch (rowErr) {
-        console.error(`Error en fila ${index + 1}:`, rowErr);
+      } catch (error) {
+        console.error(`Error en fila ${i + 1}:`, error.message);
         errors.push({
-          fila: index + 1,
-          row: {
+          fila: i + 1,
+          error: error.message,
+          datos: {
             nombre: row["nombre_completo"],
-            producto:
-              row["descripcion"] || row["producto"] || row["nombre_producto"],
+            producto: row["descripcion"],
             cantidad: row["cantidad"],
           },
-          error: rowErr.message,
         });
       }
     }
 
-    // Insertar detalles restantes
-    if (detallesBatch.length > 0) {
-      console.log(`Insertando último lote de ${detallesBatch.length} detalles`);
-      for (const detalle of detallesBatch) {
-        try {
-          const { error: detalleError } = await supabase
-            .from("detallesdonativos")
-            .insert([detalle]);
-
-          if (detalleError) {
-            errors.push({ detalle, error: detalleError.message });
-            console.error("Error insertando detalle final:", detalleError);
-          }
-        } catch (err) {
-          errors.push({ detalle, error: err.message });
-          console.error("Error insertando detalle final:", err);
-        }
-      }
-    }
-
-    // Actualizar último donativo
-    if (currentDonativoId && acumuladoDetalles > 0) {
-      await supabase
-        .from("donativos")
-        .update({
-          total: acumuladoDetalles,
-          total_con_descuento: acumuladoDetalles,
-        })
-        .eq("donativo_id", currentDonativoId);
-    }
-
     res.json({
-      message: "Donativos procesados correctamente",
+      message: "Procesamiento completado con mapeos corregidos",
       total_inserted_donativos: insertedDonativos,
-      total_filas_procesadas: rows.length,
+      total_filas_procesadas: dataRows.length,
       errores: errors.length,
       errors: errors.length > 0 ? errors : undefined,
     });
-  } catch (err) {
-    console.error("Error general:", err);
+  } catch (error) {
+    console.error("Error general:", error);
     res.status(500).json({
       message: "Error procesando archivo",
-      error: err.message,
+      error: error.message,
     });
   } finally {
     try {
       fs.unlinkSync(filePath);
-    } catch (unlinkErr) {
-      console.error("Error eliminando archivo temporal:", unlinkErr);
+    } catch (unlinkError) {
+      console.error("Error eliminando archivo temporal:", unlinkError);
     }
   }
 };
