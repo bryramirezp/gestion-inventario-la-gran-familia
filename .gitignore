@@ -1,0 +1,69 @@
+# ====================
+# Dependencias y builds
+# ====================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Directorios de build
+/dist
+/build
+/.cache
+*.tsbuildinfo
+
+# =============
+# Variables entorno
+# =============
+.env
+.env.local
+.env.*.local
+
+# =================
+# Archivos de IDEs
+# =================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# =========
+# Testing
+# =========
+/coverage
+*.lcov
+
+# ========
+# Logs
+# ========
+/logs
+*.log
+
+# ====================
+# Certificados SSL
+# ====================
+*.pem
+*.key
+*.crt
+
+# =============
+# TypeScript
+# =============
+*.d.ts.map
+
+# =============
+# Husky
+# =============
+.husky/
+
+# =============
+# Metadatos
+# =============
+metadata.json
+
+# ===================
+# Archivos temporales
+# ===================
+/tmp
+/temp
