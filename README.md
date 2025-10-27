@@ -6,7 +6,18 @@ El sistema utiliza un backend serverless a través de Supabase y un frontend rea
 
 ## 🛠️ Tecnologías Utilizadas
 
-![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB) ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white) ![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white) ![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white) ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white) ![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white) ![Node.js](https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
+![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB) ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white) ![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white) ![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white) ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white) ![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white) ![TanStack Query](https://img.shields.io/badge/TanStack_Query-FF4154?style=for-the-badge&logo=react-query&logoColor=white) ![React Router](https://img.shields.io/badge/React_Router-CA4245?style=for-the-badge&logo=react-router&logoColor=white) ![Recharts](https://img.shields.io/badge/Recharts-22B5BF?style=for-the-badge&logo=recharts&logoColor=white) ![ESLint](https://img.shields.io/badge/ESLint-4B32C3?style=for-the-badge&logo=eslint&logoColor=white) ![Prettier](https://img.shields.io/badge/Prettier-F7B93E?style=for-the-badge&logo=prettier&logoColor=black) ![Husky](https://img.shields.io/badge/Husky-4E4E4E?style=for-the-badge&logo=husky&logoColor=white) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
+
+### **Descripción del Stack Tecnológico**
+
+- **Frontend: React 18.3.1 + TypeScript** - Biblioteca para construir interfaces de usuario con componentes reutilizables y tipado fuerte para mayor robustez.
+- **Build Tool: Vite 7.1.12** - Herramienta de construcción rápida y moderna para desarrollo y empaquetado de aplicaciones web.
+- **Styling: Tailwind CSS 3.4.18 + componentes SVG personalizados** - Framework CSS utilitario para estilos rápidos y consistentes, complementado con iconos SVG personalizados.
+- **State Management: TanStack React Query 5.59.16 + Context API** - Gestión de estado del servidor y caché de datos, combinado con Context API para estado global de la aplicación.
+- **Backend: Supabase 2.76.1 (PostgreSQL + Auth + Realtime)** - Plataforma backend-as-a-service con base de datos PostgreSQL, autenticación y actualizaciones en tiempo real.
+- **Routing: React Router DOM 6.30.1** - Manejo de navegación y rutas en la aplicación de una sola página.
+- **Charts: Recharts 2.15.4** - Biblioteca para crear gráficos interactivos y responsivos en React.
+- **Development: ESLint, Prettier, Husky, PWA (Service Worker)** - Herramientas para linting de código, formateo automático, hooks de Git y funcionalidad offline mediante Progressive Web App.
 
 ## **Acerca de La Gran Familia**
 
