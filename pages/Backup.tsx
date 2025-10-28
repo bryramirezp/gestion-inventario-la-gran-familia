@@ -17,7 +17,7 @@ import { Label, Select, Input } from '../components/forms';
 import { DatabaseBackupIcon, ExclamationTriangleIcon } from '../components/icons/Icons';
 import { useAuth } from '../contexts/AuthContext';
 import { useAlerts } from '../contexts/AlertContext';
-import { systemApi } from '../services/api';
+import { supabase } from '../services/supabase';
 
 // This is a global declaration for the SheetJS library loaded from CDN
 declare const XLSX: any;
@@ -36,69 +36,285 @@ const Backup: React.FC = () => {
   const [importFile, setImportFile] = useState<File | null>(null);
   const [isImporting, setIsImporting] = useState(false);
 
-  const handleBackup = async () => {
-    setIsBackupLoading(true);
-    addAlert('Generando respaldo... esto puede tardar un momento.', 'info');
-    try {
-      const token = getToken();
-      if (!token) {
-        addAlert('No se pudo obtener el token de autenticación.', 'error');
-        return;
-      }
-      const data = await systemApi.getDataForExport(token, selectedYear);
+const handleBackup = async () => {
+  setIsBackupLoading(true);
+  addAlert('Generando respaldo completo... esto puede tardar un momento.', 'info');
 
-      const wb = XLSX.utils.book_new();
+  try {
+    const startDate = new Date(selectedYear, 0, 1).toISOString();
+    const endDate = new Date(selectedYear, 11, 31, 23, 59, 59).toISOString();
 
-      const wsSummary = XLSX.utils.json_to_sheet(data.donationSummary);
-      XLSX.utils.book_append_sheet(wb, wsSummary, 'Resumen Donaciones');
+    // 🔹 1. Obtener donaciones con datos relacionados
+    const { data: donations, error: donationsError } = await supabase
+      .from('donation_transactions')
+      .select(`
+        donation_id,
+        donation_date,
+        total_market_value,
+        total_acquired_cost,
+        donor:donors!inner (
+          donor_id,
+          donor_name,
+          phone,
+          email,
+          address,
+          donor_type_id,
+          donor_type:donor_types (
+            donor_type_id,
+            type_name
+          )
+        ),
+        warehouse:warehouses!inner (
+          warehouse_id,
+          warehouse_name,
+          location_description
+        )
+      `)
+      .gte('donation_date', startDate)
+      .lte('donation_date', endDate)
+      .order('donation_date', { ascending: true });
 
-      const wsItems = XLSX.utils.json_to_sheet(data.donationItems);
-      XLSX.utils.book_append_sheet(wb, wsItems, 'Artículos Donados');
+    if (donationsError) throw donationsError;
+    console.log('✅ Donaciones obtenidas:', donations?.length ?? 0);
 
-      const wsLots = XLSX.utils.json_to_sheet(data.stockLotsData);
-      XLSX.utils.book_append_sheet(wb, wsLots, 'Lotes de Inventario');
-
-      const wsKitchen = XLSX.utils.json_to_sheet(data.kitchenRequests);
-      XLSX.utils.book_append_sheet(wb, wsKitchen, 'Solicitudes Cocina');
-
-      const wsKitchenItems = XLSX.utils.json_to_sheet(data.requestItems);
-      XLSX.utils.book_append_sheet(wb, wsKitchenItems, 'Artículos Solicitados');
-
-      XLSX.writeFile(wb, `Respaldo_LaGranFamilia_${selectedYear}.xlsx`);
-
-      addAlert('¡Respaldo generado con éxito!', 'success');
-    } catch (error) {
-      console.error('Failed to generate backup', error);
-      addAlert('Error al generar el respaldo. Por favor, inténtalo de nuevo.', 'error');
-    } finally {
+    if (!donations || donations.length === 0) {
+      addAlert('No hay donaciones en el año seleccionado.', 'warning');
       setIsBackupLoading(false);
+      return;
     }
-  };
 
-  const handleReset = async () => {
-    setIsResetLoading(true);
-    try {
-      const token = getToken();
-      if (!token) {
-        addAlert('No se pudo obtener el token de autenticación.', 'error');
-        return;
+    // 🔹 2. Obtener artículos donados con productos y unidades
+    const donationIds = donations.map(d => d.donation_id);
+    const { data: donationItems, error: itemsError } = await supabase
+      .from('donation_items')
+      .select(`
+        item_id,
+        donation_id,
+        product_id,
+        quantity,
+        market_value_unit_price,
+        acquired_cost_unit_price,
+        expiry_date,
+        product:products!inner (
+          product_id,
+          product_name,
+          category_id,
+          brand_id,
+          official_unit_id,
+          category:categories (
+            category_id,
+            category_name
+          ),
+          brand:brands (
+            brand_id,
+            brand_name
+          ),
+          unit:units (
+            unit_id,
+            unit_name,
+            abbreviation
+          )
+        )
+      `)
+      .in('donation_id', donationIds)
+      .order('donation_id', { ascending: true });
+
+    if (itemsError) throw itemsError;
+    console.log('✅ Artículos donados obtenidos:', donationItems?.length ?? 0);
+
+    // 🔹 3. Mapear tipos de donativo (según tu catálogo)
+    const donorTypeMapping: Record<number, string> = {
+      1: 'Aportaciones por familia',
+      2: 'Empresas con recibo',
+      3: 'Empresas sin recibo',
+      4: 'Particulares',
+      5: 'Fundaciones',
+      6: 'Universidades',
+      7: 'Gobierno',
+      8: 'Anónimo'
+    };
+
+    // 🔹 4. Mapear categorías de productos (según tu ejemplo Excel)
+    const categoryMapping: Record<string, string> = {
+      'Alimentos básicos': 'alimentos',
+      'Enlatados y conservas': 'alimentos',
+      'Productos refrigerados y perecederos': 'alimentos',
+      'Frutas y verduras': 'alimentos',
+      'Panadería y repostería': 'alimentos',
+      'Bebidas': 'alimentos',
+      'Productos de limpieza del hogar': 'art. limp.',
+      'Higiene y cuidado personal': 'art. aseo per',
+      'Papelería y suministros de oficina': 'Papelería',
+      'Material educativo y didáctico': 'Papelería',
+      'Ropa y calzado': 'Art. de vestir',
+      'Accesorios personales': 'Art. de vestir',
+      'Artículos para bebés': 'Art. de vestir',
+      'Regalos y artículos de temporada': 'juguetes y recreación',
+      'Textiles y hogar': 'decoración y blancos',
+      'Electrodomésticos pequeños': 'mob y equipo',
+      'Utensilios de cocina y menaje': 'mob y equipo'
+    };
+
+    // 🔹 5. Construir datos para Excel
+    const excelData = donationItems?.map(item => {
+      const donation = donations.find(d => d.donation_id === item.donation_id);
+      
+      // Extraer datos anidados correctamente
+      const donor = Array.isArray(donation?.donor) ? donation.donor[0] : donation?.donor;
+      const warehouse = Array.isArray(donation?.warehouse) ? donation.warehouse[0] : donation?.warehouse;
+      const product = Array.isArray(item?.product) ? item.product[0] : item?.product;
+      const category = Array.isArray(product?.category) ? product.category[0] : product?.category;
+      const unit = Array.isArray(product?.unit) ? product.unit[0] : product?.unit;
+      
+      // Calcular valores
+      const precioUnitario = item.market_value_unit_price || 0;
+      const cantidad = item.quantity || 0;
+      const precioTotal = precioUnitario * cantidad;
+      
+      // Calcular precio con descuento (si aplicara)
+      const costoAdquisicion = item.acquired_cost_unit_price || 0;
+      const precioConDescuento = costoAdquisicion * cantidad;
+      const porcentajeDescuento = precioUnitario > 0 
+        ? ((precioUnitario - costoAdquisicion) / precioUnitario * 100).toFixed(2)
+        : '0.00';
+
+      // Identificar tipo de donativo
+      const donorTypeId = donor?.donor_type_id || 8; // Default: Anónimo
+      const donorTypeName = donorTypeMapping[donorTypeId] || 'Otros';
+      
+      // Crear columnas para cada tipo de donativo (1-7)
+      const tipoDonativoColumns: Record<string, string> = {};
+      for (let i = 1; i <= 7; i++) {
+        tipoDonativoColumns[i.toString()] = donorTypeId === i ? precioTotal.toFixed(2) : '';
       }
-      await systemApi.resetSystem(token);
-      addAlert(
-        'Sistema reseteado con éxito. Todos los datos transaccionales han sido eliminados.',
-        'success'
-      );
-      setIsResetAlertOpen(false);
-      setResetConfirmationText('');
-      // Optionally, force a reload or redirect
-      window.location.reload();
-    } catch (error) {
-      console.error('Failed to reset system', error);
-      addAlert('Error al resetear el sistema. Por favor, inténtalo de nuevo.', 'error');
-    } finally {
-      setIsResetLoading(false);
-    }
-  };
+
+      // Identificar categoría del producto
+      const categoryName = category?.category_name || '';
+      const mappedCategory = categoryMapping[categoryName] || 'Otros';
+      
+      // Crear columnas para cada categoría de producto
+      const productCategories = [
+        'alimentos', 'art. limp.', 'art. aseo per', 'Papelería',
+        'Art. de vestir', 'juguetes y recreación', 'decoración y blancos', 'mob y equipo'
+      ];
+      const categoryColumns: Record<string, string> = {};
+      productCategories.forEach(cat => {
+        categoryColumns[cat] = cat === mappedCategory ? precioTotal.toFixed(2) : '';
+      });
+
+      return {
+        'Ref': item.item_id,
+        'Nombre Completo': donor?.donor_name || '',
+        'Celular / Telefono': donor?.phone || '',
+        'Correo': donor?.email || '',
+        'Dirección': donor?.address || '',
+        'Fecha': donation?.donation_date 
+          ? new Date(donation.donation_date).toLocaleDateString('es-MX')
+          : '',
+        'Almacén': warehouse?.warehouse_name || '',
+        'Cantidad': cantidad,
+        'Unidad': unit?.abbreviation || unit?.unit_name || '',
+        'Descripción': product?.product_name || '',
+        'Precio Unitario': precioUnitario.toFixed(2),
+        'Precio Total': precioTotal.toFixed(2),
+        'Total con descuento': precioConDescuento.toFixed(2),
+        'Porcentaje Descuento': porcentajeDescuento,
+        'Tipo de Donativo': donorTypeName,
+        // Columnas por tipo de donativo
+        ...tipoDonativoColumns,
+        // Columnas por categoría de producto
+        ...categoryColumns
+      };
+    }) || [];
+
+    // 🔹 6. Crear libro de Excel
+    const wb = XLSX.utils.book_new();
+    
+    // Definir headers personalizados según tu formato
+    const headers = [
+      'Ref',
+      'Nombre Completo',
+      'Celular / Telefono',
+      'Correo',
+      'Dirección',
+      'Fecha',
+      'Almacén',
+      'Cantidad',
+      'Unidad',
+      'Descripción',
+      'Precio Unitario',
+      'Precio Total',
+      'Total con descuento',
+      'Porcentaje Descuento',
+      'Tipo de Donativo',
+      '1', '2', '3', '4', '5', '6', '7', // Tipos de donativo
+      'alimentos',
+      'art. limp.',
+      'art. aseo per',
+      'Papelería',
+      'Art. de vestir',
+      'juguetes y recreación',
+      'decoración y blancos',
+      'mob y equipo'
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(excelData, { header: headers });
+    
+    // Ajustar anchos de columna
+    ws['!cols'] = [
+      { wch: 8 },  // Ref
+      { wch: 25 }, // Nombre
+      { wch: 15 }, // Teléfono
+      { wch: 25 }, // Correo
+      { wch: 30 }, // Dirección
+      { wch: 12 }, // Fecha
+      { wch: 20 }, // Almacén
+      { wch: 10 }, // Cantidad
+      { wch: 10 }, // Unidad
+      { wch: 35 }, // Descripción
+      { wch: 12 }, // Precio Unit
+      { wch: 12 }, // Precio Total
+      { wch: 15 }, // Con descuento
+      { wch: 12 }, // % Desc
+      { wch: 20 }, // Tipo
+      ...Array(15).fill({ wch: 12 }) // Columnas numéricas
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws, `Donativos_${selectedYear}`);
+    XLSX.writeFile(wb, `Respaldo_Completo_LaGranFamilia_${selectedYear}.xlsx`);
+
+    addAlert(`✅ Respaldo generado: ${donationItems?.length || 0} artículos exportados`, 'success');
+  } catch (error) {
+    console.error('❌ Error al generar respaldo:', error);
+    addAlert(`Error: ${error.message}`, 'error');
+  } finally {
+    setIsBackupLoading(false);
+  }
+};
+
+
+
+const handleReset = async () => {
+  setIsResetLoading(true);
+  try {
+    await Promise.all([
+      supabase.from('donaciones').delete().neq('id', 0),
+      supabase.from('articulos_donados').delete().neq('id', 0),
+      supabase.from('solicitudes_cocina').delete().neq('id', 0),
+      supabase.from('articulos_solicitados').delete().neq('id', 0),
+      supabase.from('lotes_stock').delete().neq('id', 0),
+    ]);
+
+    addAlert('Sistema reseteado con éxito.', 'success');
+    window.location.reload();
+  } catch (error) {
+    console.error('Failed to reset system', error);
+    addAlert('Error al resetear el sistema.', 'error');
+  } finally {
+    setIsResetLoading(false);
+  }
+};
+
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -106,61 +322,137 @@ const Backup: React.FC = () => {
     }
   };
 
-  const handleImport = () => {
-    if (!importFile) {
-      addAlert('Por favor, selecciona un archivo de Excel para importar.', 'warning');
-      return;
-    }
-    setIsImporting(true);
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const data = new Uint8Array(e.target!.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: 'array', cellDates: true });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const json = XLSX.utils.sheet_to_json(worksheet);
+const handleImport = () => {
+  if (!importFile) {
+    addAlert('Por favor, selecciona un archivo de Excel para importar.', 'warning');
+    return;
+  }
 
-        const parsedData = json
-          .map((row: any) => ({
-            donorTypeId: row['Ref'],
-            donorName: row['Nombre Completo'],
-            phone: row['Celular / Telefono'],
-            date: row['Fecha'],
-            quantity: row['Cantidad'],
-            unit: row['Unidad'],
-            productName: row['Descripción'],
-            unitPrice: row['Precio Unitario'],
-          }))
-          .filter((r) => r.productName);
+  setIsImporting(true);
+  const reader = new FileReader();
 
-        if (parsedData.length === 0) {
-          addAlert('El archivo parece estar vacío o en un formato incorrecto.', 'warning');
-          return;
-        }
+  reader.onload = async (e) => {
+    try {
+      const data = new Uint8Array(e.target!.result as ArrayBuffer);
+      const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(worksheet);
 
-        const token = getToken();
-        if (!token) {
-          addAlert('No se pudo obtener el token de autenticación.', 'error');
-          return;
-        }
-        const { summary } = await systemApi.importData(token, parsedData);
-        addAlert(summary, 'success');
-      } catch (error) {
-        console.error('Failed to import data', error);
-        addAlert(
-          'Error al analizar o importar el archivo. Por favor, comprueba el formato del archivo y la consola para más detalles.',
-          'error'
-        );
-      } finally {
-        setIsImporting(false);
-        setImportFile(null);
-        const fileInput = document.getElementById('import-file-input') as HTMLInputElement;
-        if (fileInput) fileInput.value = '';
+      // 🔹 Agrupar por nombre de donante
+      const donorsMap = new Map<string, any>();
+
+      for (const row of json) {
+        const donorName = row['Nombre Completo']?.trim() || 'Desconocido';
+        if (!donorsMap.has(donorName)) donorsMap.set(donorName, []);
+        donorsMap.get(donorName).push(row);
       }
-    };
-    reader.readAsArrayBuffer(importFile);
+
+      // 🔹 Iterar sobre cada donante
+      for (const [donorName, donations] of donorsMap.entries()) {
+        // 1️⃣ Verificar o crear el donante
+        const { data: existingDonor } = await supabase
+          .from('donors')
+          .select('donor_id')
+          .eq('donor_name', donorName)
+          .maybeSingle();
+
+        let donorId = existingDonor?.donor_id;
+        if (!donorId) {
+          const { data: newDonor, error: donorError } = await supabase
+            .from('donors')
+            .insert({
+              donor_name: donorName,
+              donor_type_id: 1, // Ej. "Particular"
+              phone: donations[0]['Celular / Telefono'] || null,
+              email: donations[0]['Correo'] || null,
+              address: donations[0]['Dirección'] || null,
+            })
+            .select()
+            .single();
+
+          if (donorError) throw donorError;
+          donorId = newDonor.donor_id;
+        }
+
+        // 2️⃣ Crear transacción de donación
+        const { data: donationTx, error: txError } = await supabase
+          .from('donation_transactions')
+          .insert({
+            donor_id: donorId,
+            warehouse_id: 1, // Puedes ajustar según tu sistema
+            donation_date: donations[0]['Fecha']
+              ? new Date(donations[0]['Fecha'])
+              : new Date(),
+          })
+          .select()
+          .single();
+
+        if (txError) throw txError;
+
+        // 3️⃣ Insertar los artículos donados
+        for (const item of donations) {
+          const productName = item['Descripción']?.trim() || 'Producto desconocido';
+          const unitName = item['Unidad']?.trim() || 'unidad';
+
+          // 🔍 Buscar unidad
+          const { data: unitData } = await supabase
+            .from('units')
+            .select('unit_id')
+            .ilike('unit_name', unitName)
+            .maybeSingle();
+
+          const unitId = unitData?.unit_id || 1; // default
+
+          // 🔍 Buscar producto
+          const { data: existingProduct } = await supabase
+            .from('products')
+            .select('product_id')
+            .ilike('product_name', productName)
+            .maybeSingle();
+
+          let productId = existingProduct?.product_id;
+          if (!productId) {
+            const { data: newProduct, error: productError } = await supabase
+              .from('products')
+              .insert({
+                product_name: productName,
+                category_id: 1,
+                official_unit_id: unitId,
+                description: productName,
+              })
+              .select()
+              .single();
+
+            if (productError) throw productError;
+            productId = newProduct.product_id;
+          }
+
+          // 💾 Insertar item de donación
+          await supabase.from('donation_items').insert({
+            donation_id: donationTx.donation_id,
+            product_id: productId,
+            quantity: parseFloat(item['Cantidad']) || 0,
+            market_value_unit_price: parseFloat(item['Precio Unitario']) || 0,
+            acquired_cost_unit_price: 0,
+          });
+        }
+      }
+
+      addAlert('Importación completada exitosamente.', 'success');
+    } catch (error) {
+      console.error('Error al importar', error);
+      addAlert('Error al importar los datos. Revisa la consola.', 'error');
+    } finally {
+      setIsImporting(false);
+      setImportFile(null);
+      const input = document.getElementById('import-file-input') as HTMLInputElement;
+      if (input) input.value = '';
+    }
   };
+
+  reader.readAsArrayBuffer(importFile);
+};
+
 
   // Generate year options for the dropdown
   const currentYear = new Date().getFullYear();

@@ -913,15 +913,6 @@ export const donationApi = {
         donor_id: donationData.donor_id,
         warehouse_id: donationData.warehouse_id,
         donation_date: new Date().toISOString(),
-        items: donationData.items.map((item) => ({
-          product_id: item.product_id,
-          warehouse_id: donationData.warehouse_id,
-          current_quantity: item.quantity,
-          received_date: new Date().toISOString(),
-          expiry_date: item.expiry_date,
-          unit_price: item.unit_price,
-          discount_percentage: item.discount_percentage,
-        })),
       })
       .select()
       .single();
@@ -948,11 +939,13 @@ export const donationApi = {
     const productMap = new Map((productsRes.data || []).map((p) => [p.product_id, p.product_name]));
 
     const enrichedHistory = donations.map((donation) => {
-      const total_value_before_discount = donation.items.reduce(
+      const safeItems = donation.items || []; // Ensure items is an array
+
+      const total_value_before_discount = safeItems.reduce(
         (acc, item) => acc + (item.unit_price || 0) * item.current_quantity,
         0
       );
-      const total_value_after_discount = donation.items.reduce((acc, item) => {
+      const total_value_after_discount = safeItems.reduce((acc, item) => {
         const itemTotal = (item.unit_price || 0) * item.current_quantity;
         const discount = itemTotal * ((item.discount_percentage || 0) / 100);
         return acc + (itemTotal - discount);
@@ -962,7 +955,7 @@ export const donationApi = {
         ...donation,
         donor_name: donorMap.get(donation.donor_id) || 'Unknown Donor',
         warehouse_name: warehouseMap.get(donation.warehouse_id) || 'Unknown Warehouse',
-        items: donation.items.map((item) => ({
+        items: safeItems.map((item) => ({
           ...item,
           product_name: productMap.get(item.product_id) || 'Unknown Product',
         })),

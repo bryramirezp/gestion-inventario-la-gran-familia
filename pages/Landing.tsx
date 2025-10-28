@@ -137,8 +137,8 @@ const Landing: React.FC = () => {
 
         {/* About Us Section */}
         <Section id="about-us" title={'Sobre La Gran Familia'}>
-          <div className="max-w-4xl mx-auto grid md:grid-cols-5 gap-12 items-center">
-            <div className="md:col-span-3">
+          <div className="max-w-4xl mx-auto grid md:grid-cols-3 gap-12 items-center">
+            <div className="md:col-span-1">
               <Card className="bg-transparent border-none shadow-none">
                 <CardContent className="space-y-4 text-muted-foreground text-base leading-relaxed p-0">
                   <p>

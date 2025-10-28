@@ -29,23 +29,8 @@ const Sidebar: React.FC<{
   const { user, logout } = useAuth();
   const { data: userProfile, isLoading: isProfileLoading } = useUserProfile();
 
-  // Persist collapsed state in localStorage
-  const [persistentCollapsed, setPersistentCollapsed] = useState<boolean>(() => {
-    const saved = localStorage.getItem('sidebar-collapsed');
-    return saved ? JSON.parse(saved) : false;
-  });
-
-  // Sync with parent state and persist changes
-  useEffect(() => {
-    setPersistentCollapsed(isCollapsed);
-  }, [isCollapsed]);
-
-  const handleToggleCollapse = () => {
-    const newCollapsed = !persistentCollapsed;
-    setPersistentCollapsed(newCollapsed);
-    localStorage.setItem('sidebar-collapsed', JSON.stringify(newCollapsed));
-    onToggleCollapse?.(newCollapsed);
-  };
+  // Sidebar is now static (always expanded)
+  const persistentCollapsed = false;
 
   const navigationSections = [
     {
@@ -69,12 +54,6 @@ const Sidebar: React.FC<{
           roles: ['Administrator', 'Warehouse Manager'],
         },
         {
-          name: 'Almacenes',
-          href: '/warehouses',
-          icon: BuildingStorefrontIcon,
-          roles: ['Administrator', 'Warehouse Manager'],
-        },
-        {
           name: 'Donaciones',
           href: '/donations',
           icon: DollarSignIcon,
@@ -84,6 +63,12 @@ const Sidebar: React.FC<{
           name: 'Donantes',
           href: '/donors',
           icon: UserGroupIcon,
+          roles: ['Administrator', 'Warehouse Manager'],
+        },
+        {
+          name: 'Almacenes',
+          href: '/warehouses',
+          icon: BuildingStorefrontIcon,
           roles: ['Administrator', 'Warehouse Manager'],
         },
       ],
@@ -129,20 +114,16 @@ const Sidebar: React.FC<{
   ];
 
   const linkClasses =
-    'flex items-center px-3 py-2 text-muted-foreground dark:text-dark-muted-foreground rounded-md text-sm font-medium hover:bg-accent dark:hover:bg-dark-accent hover:text-accent-foreground dark:hover:text-dark-accent-foreground transition-colors duration-200';
+    'flex items-center px-3 py-2 text-muted-foreground dark:text-dark-muted-foreground rounded-md text-sm font-medium hover:bg-accent dark:hover:bg-dark-accent hover:text-accent-foreground dark:hover:text-dark-accent-foreground transition-all duration-200 hover:translate-x-1';
   const activeLinkClasses =
-    'bg-primary text-primary-foreground dark:bg-primary dark:text-dark-primary-foreground hover:bg-primary/90 hover:text-primary-foreground';
+    'bg-primary text-primary-foreground dark:bg-primary dark:text-dark-primary-foreground hover:bg-primary/90 hover:text-primary-foreground shadow-sm';
 
   const sidebarContent = (
-    <div className={`flex flex-col h-full ${persistentCollapsed ? 'lg:hidden' : ''}`}>
+    <div className="flex flex-col h-full">
       {/* Header Section - Fixed */}
       <div className="flex-shrink-0">
-        <div
-          className={`flex items-center mb-6 px-2 ${persistentCollapsed ? 'justify-center' : 'justify-start'}`}
-        >
-          <div
-            className={`flex items-center overflow-hidden transition-all duration-500 ease-in-out ${persistentCollapsed ? 'w-0' : 'w-auto'}`}
-          >
+        <div className="flex items-center mb-6 px-2 justify-start">
+          <div className="flex items-center overflow-hidden transition-all duration-500 ease-in-out w-auto">
             <div className="bg-primary p-2 rounded-lg flex-shrink-0">
               <img src="/logo-lagranfamilia.png" alt="La Gran Familia" className="w-6 h-6 object-contain" />
             </div>
@@ -154,7 +135,7 @@ const Sidebar: React.FC<{
       </div>
 
       {/* Navigation Section - Scrollable */}
-      <nav className={`flex-1 overflow-y-auto overflow-x-hidden -mr-2 pr-2 transition-all duration-500 ease-in-out ${persistentCollapsed ? 'lg:hidden' : ''}`}>
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden -mr-2 pr-2 transition-all duration-500 ease-in-out">
         <div className="space-y-2">
           {navigationSections.map((section) => {
             const availableItems = section.items.filter((item) => {
@@ -176,10 +157,8 @@ const Sidebar: React.FC<{
 
             return (
               <div key={section.title}>
-                <h3
-                  className={`px-3 text-xs font-semibold uppercase text-muted-foreground/80 tracking-wider mb-1 mt-3 transition-all duration-500 ease-in-out ${persistentCollapsed ? 'text-center' : ''}`}
-                >
-                  <span className={persistentCollapsed ? 'hidden lg:inline-block' : ''}>{section.title}</span>
+                <h3 className="px-3 text-xs font-semibold uppercase text-muted-foreground/80 tracking-wider mb-1 mt-3 transition-all duration-500 ease-in-out">
+                  <span>{section.title}</span>
                 </h3>
                 {availableItems.map((item) => (
                   <NavLink
@@ -187,34 +166,17 @@ const Sidebar: React.FC<{
                     to={item.href}
                     onClick={() => setMobileOpen(false)}
                     className={({ isActive }) =>
-                      `${linkClasses} ${isActive ? activeLinkClasses : ''} ${persistentCollapsed ? 'justify-center' : ''} group relative transition-all duration-300 ease-in-out`
+                      `${linkClasses} ${isActive ? activeLinkClasses : ''} group relative transition-all duration-300 ease-in-out transform-gpu`
                     }
                     onMouseEnter={() => {
                       // Prefetch route on hover for better UX
-                      if (!persistentCollapsed) {
-                        // Only prefetch when sidebar is expanded to avoid unnecessary loads
-                        import(`../pages/${item.name.replace(/\s+/g, '')}.tsx`).catch(() => {
-                          // Ignore prefetch errors
-                        });
-                      }
+                      import(`../pages/${item.name.replace(/\s+/g, '')}.tsx`).catch(() => {
+                        // Ignore prefetch errors
+                      });
                     }}
                   >
                     <item.icon className="w-5 h-5 flex-shrink-0" />
-                    <span
-                      className={`ml-3 whitespace-nowrap transition-all duration-500 ease-in-out ${persistentCollapsed ? 'lg:hidden' : ''}`}
-                    >
-                      {item.name}
-                    </span>
-                    <span
-                      className={`
-                                      absolute left-full ml-4 px-2 py-1 rounded-md text-sm z-20
-                                      bg-card dark:bg-dark-card text-foreground dark:text-dark-foreground
-                                      border border-border dark:border-dark-border shadow-md
-                                      invisible group-hover:visible whitespace-nowrap
-                                      transition-all duration-300 ease-in-out scale-95 opacity-0 group-hover:scale-100 group-hover:opacity-100
-                                      ${!persistentCollapsed ? 'hidden' : ''}
-                                  `}
-                    >
+                    <span className="ml-3 whitespace-nowrap transition-all duration-500 ease-in-out">
                       {item.name}
                     </span>
                   </NavLink>
@@ -225,17 +187,16 @@ const Sidebar: React.FC<{
         </div>
       </nav>
       {/* Footer Section - Fixed */}
-      <div className={`flex-shrink-0 ${persistentCollapsed ? 'lg:hidden' : ''}`}>
+      <div className="flex-shrink-0">
         {user && (
           <div className="border-t border-border dark:border-dark-border pt-4">
             <Button
               variant="ghost"
-              className={`w-full transition-all duration-300 ease-in-out ${persistentCollapsed ? 'justify-center' : ''}`}
+              className="w-full transition-all duration-300 ease-in-out"
               onClick={logout}
-              title={persistentCollapsed ? 'Cerrar Sesión' : undefined}
             >
               <LogoutIcon className="w-5 h-5" />
-              <span className={`ml-2 whitespace-nowrap transition-all duration-500 ease-in-out ${persistentCollapsed ? 'lg:hidden' : ''}`}>
+              <span className="ml-2 whitespace-nowrap transition-all duration-500 ease-in-out">
                 Cerrar Sesión
               </span>
             </Button>
@@ -255,16 +216,16 @@ const Sidebar: React.FC<{
 
       {/* Unified Sidebar */}
       <aside
-        className={`
+        className="
             bg-card dark:bg-dark-card border-r border-border dark:border-dark-border
             flex flex-col flex-shrink-0 p-4
             transition-all duration-500 ease-in-out
             fixed lg:relative inset-y-0 left-0 z-50
             w-64
-            ${persistentCollapsed ? 'lg:w-0 lg:border-r-0 lg:p-0' : 'lg:w-64'}
-            ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
+            lg:w-64
+            translate-x-0
             lg:translate-x-0
-        `}
+        "
       >
         {sidebarContent}
       </aside>

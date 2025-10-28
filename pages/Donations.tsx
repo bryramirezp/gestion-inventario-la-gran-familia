@@ -203,31 +203,43 @@ const Donations: React.FC = () => {
     return filteredHistory.slice(startIndex, startIndex + ITEMS_PER_PAGE_HISTORY);
   }, [filteredHistory, currentPage]);
 
-  const handleAddItem = () => {
-    setItems([
-      ...items,
+  const handleAddItem = useCallback(() => {
+    setItems((prevItems) => [
+      ...prevItems,
       { product_id: null, quantity: 1, expiry_date: null, unit_price: 0, discount_percentage: 0 },
     ]);
-  };
+    // Add micro-interaction feedback
+    setTimeout(() => {
+      const newItemIndex = items.length; // Use current items.length for the new item's index
+      const newItemElement = document.querySelector(`[data-item-index="${newItemIndex}"]`);
+      if (newItemElement) {
+        newItemElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        newItemElement.classList.add('animate-pulse');
+        setTimeout(() => newItemElement.classList.remove('animate-pulse'), 1000);
+      }
+    }, 100);
+  }, [items.length]); // Dependency on items.length to correctly target the new item
 
-  const handleItemChange = (index: number, field: keyof DonationItemForm, value: any) => {
-    const newItems = [...items];
-    newItems[index] = { ...newItems[index], [field]: value };
-    setItems(newItems);
-  };
+  const handleItemChange = useCallback((index: number, field: keyof DonationItemForm, value: any) => {
+    setItems((prevItems) => {
+      const newItems = [...prevItems];
+      newItems[index] = { ...newItems[index], [field]: value };
+      return newItems;
+    });
+  }, []);
 
-  const handleRemoveItem = (index: number) => {
-    setItems(items.filter((_, i) => i !== index));
-  };
+  const handleRemoveItem = useCallback((index: number) => {
+    setItems((prevItems) => prevItems.filter((_, i) => i !== index));
+  }, []);
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setSelectedDonor(null);
     setSelectedWarehouse(null);
     setItems([]);
     setFormErrors({});
-  };
+  }, []);
 
-  const validateForm = () => {
+  const validateForm = useCallback(() => {
     const errors: { general?: string; items?: Record<number, string> } = { items: {} };
     let isValid = true;
     if (!selectedDonor) {
@@ -252,9 +264,9 @@ const Donations: React.FC = () => {
 
     setFormErrors(errors);
     return isValid;
-  };
+  }, [selectedDonor, selectedWarehouse, items]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) {
       addAlert('Por favor, corrige los errores antes de enviar.', 'warning');
@@ -278,7 +290,7 @@ const Donations: React.FC = () => {
       console.error('Failed to register donation', error);
       addAlert('Error al registrar la donación.', 'error');
     }
-  };
+  }, [validateForm, getToken, selectedDonor, selectedWarehouse, items, addAlert, resetForm, fetchData]);
 
   const handleCreateDonor = (name: string) => {
     setNewDonorName(name);
@@ -321,7 +333,7 @@ const Donations: React.FC = () => {
         title="Gestión de Donaciones"
         description="Registra nuevas donaciones y consulta el historial."
       />
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         {/* Donation Form Column */}
         <div className="lg:col-span-2 space-y-6">
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -365,7 +377,8 @@ const Donations: React.FC = () => {
                     <AnimatedWrapper
                       key={index}
                       delay={index * 0.05}
-                      className="rounded-lg border p-4 relative group hover:border-primary/50 transition-colors bg-muted/30"
+                      className="rounded-lg border p-4 relative group hover:border-primary/50 transition-all duration-300 bg-muted/30 hover:bg-muted/50"
+                      data-item-index={index}
                     >
                       <Button
                         type="button"
@@ -488,7 +501,7 @@ const Donations: React.FC = () => {
         </div>
 
         {/* Donation History Column */}
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-1">
           <Card>
             <CardHeader
               renderHeaderActions={() => (

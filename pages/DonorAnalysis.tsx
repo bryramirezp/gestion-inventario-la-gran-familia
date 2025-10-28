@@ -6,7 +6,6 @@ import { DonorAnalysisData, DonorType } from '../types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/Card';
 import { AnimatedWrapper } from '../components/Animated';
 import { Badge } from '../components/Badge';
-import { ProgressBar } from '../components/ProgressBar';
 import { Input } from '../components/forms';
 import useTableState from '../hooks/useTableState';
 import { useAuth } from '../contexts/AuthContext';
@@ -143,8 +142,8 @@ const DonorAnalysis: React.FC = () => {
         title="Análisis de Donantes"
         description="Métricas clave e información sobre las contribuciones de tus donantes."
       />
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-8">
-        <AnimatedWrapper delay={0.1} className="lg:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <AnimatedWrapper delay={0.1} className="lg:col-span-1">
           <Card>
             <CardHeader>
               <CardTitle>Contribución por Tipo de Donante</CardTitle>
@@ -178,7 +177,7 @@ const DonorAnalysis: React.FC = () => {
             </CardContent>
           </Card>
         </AnimatedWrapper>
-        <AnimatedWrapper delay={0.2} className="lg:col-span-3">
+        <AnimatedWrapper delay={0.2} className="lg:col-span-2">
           <Card>
             <CardHeader>
               <CardTitle>Top 5 Donantes por Valor</CardTitle>

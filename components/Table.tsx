@@ -122,7 +122,7 @@ const Table = <T extends { [key: string]: any }>({
 
   return (
     <div className="rounded-lg border border-border dark:border-dark-border overflow-hidden">
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto max-h-[calc(100vh-250px)]"> {/* Added max-height and overflow-y-auto */}
         <table
           className="min-w-full divide-y divide-border dark:divide-dark-border"
           style={{ tableLayout: 'fixed' }}

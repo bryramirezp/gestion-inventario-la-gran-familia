@@ -187,24 +187,6 @@ const DefaultDashboard: React.FC = () => {
   return (
     <AnimatedWrapper>
       <Header title="Tablero" description="Resumen general del estado del inventario." />
-      <div className="mb-8">
-        <AnimatedWrapper delay={0.1}>
-          <Card className="shadow-soft bg-accent text-accent-foreground">
-            <CardHeader>
-              <CardTitle>¡Bienvenido de nuevo, {userProfile?.full_name}!</CardTitle>
-              <CardDescription className="text-accent-foreground/80">
-                Has iniciado sesión como {userProfile?.role_name}.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>
-                Este es tu centro de control para gestionar el inventario. Usa la navegación de la
-                izquierda para comenzar.
-              </p>
-            </CardContent>
-          </Card>
-        </AnimatedWrapper>
-      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Productos Totales"

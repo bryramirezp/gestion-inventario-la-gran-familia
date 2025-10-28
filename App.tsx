@@ -35,12 +35,12 @@ const MainLayout: React.FC = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
     return (
-        <div className="flex h-screen bg-background text-foreground dark:bg-dark-background dark:text-dark-foreground">
+        <div className="flex bg-background text-foreground dark:bg-dark-background dark:text-dark-foreground min-h-screen">
             <Sidebar isCollapsed={isSidebarCollapsed} isMobileOpen={isMobileMenuOpen} setMobileOpen={setIsMobileMenuOpen} />
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 flex flex-col min-w-0">
                 <TopBar onMobileMenuClick={() => setIsMobileMenuOpen(true)} isSidebarCollapsed={isSidebarCollapsed} setIsSidebarCollapsed={setIsSidebarCollapsed} />
-                <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
-                    <div className="max-w-full mx-auto">
+                <main className="flex-1 p-4 sm:p-6 lg:p-8">
+                    <div className="max-w-full mx-auto h-full">
                         <Outlet />
                     </div>
                 </main>
@@ -119,11 +119,11 @@ const App: React.FC = () => {
                                     {/* Routes accessible by Administrator and Warehouse Manager */}
                                     <Route element={<ProtectedRoute roles={['Administrator', 'Warehouse Manager']} />}>
                                         <Route path="/products" element={<Products />} />
-                                        <Route path="/warehouses" element={<Warehouses />} />
-                                        <Route path="/warehouses/:id" element={<WarehouseDetail />} />
                                         <Route path="/donations" element={<Donations />} />
                                         <Route path="/donors" element={<Donors />} />
                                         <Route path="/donors/:id" element={<DonorDetail />} />
+                                        <Route path="/warehouses/:id" element={<WarehouseDetail />} />
+                                        <Route path="/warehouses" element={<Warehouses />} />
                                         <Route path="/expiry-report" element={<ExpiryReport />} />
                                         <Route path="/donor-analysis" element={<DonorAnalysis />} />
                                     </Route>
