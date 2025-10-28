@@ -47,7 +47,7 @@ export const Select = React.forwardRef<
 >(({ className, children, error, ...props }, ref) => {
   const errorClasses = 'border-destructive dark:border-destructive focus:ring-destructive';
   const baseClasses =
-    'flex h-10 w-full items-center justify-between rounded-md border border-input dark:border-dark-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground dark:placeholder:text-dark-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring dark:focus:ring-dark-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
+    'flex h-10 w-full items-center justify-between rounded-md border border-input dark:border-dark-input bg-background dark:bg-dark-background text-foreground dark:text-dark-foreground px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground dark:placeholder:text-dark-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring dark:focus:ring-dark-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
   return (
     <select
       className={`${baseClasses} ${error ? errorClasses : ''} ${className}`}
@@ -67,7 +67,7 @@ export const Textarea = React.forwardRef<
 >(({ className, error, ...props }, ref) => {
   const errorClasses = 'border-destructive dark:border-destructive focus-visible:ring-destructive';
   const baseClasses =
-    'flex min-h-[80px] w-full rounded-md border border-input dark:border-dark-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground dark:placeholder:text-dark-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:focus-visible:ring-dark-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
+    'flex min-h-[80px] w-full rounded-md border border-input dark:border-dark-input bg-background dark:bg-dark-background text-foreground dark:text-dark-foreground px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground dark:placeholder:text-dark-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:focus-visible:ring-dark-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
   return (
     <textarea
       className={`${baseClasses} ${error ? errorClasses : ''} ${className}`}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronLeftIcon, ChevronRightIcon, CalendarIcon } from './icons/Icons';
 import { Button } from './Button';
 
@@ -25,20 +26,39 @@ const formatDisplayDate = (dateString: string | null): string => {
 
 export const DatePicker: React.FC<DatePickerProps> = ({ selectedDate, onSelectDate }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null); // Ref for the input element
+  const portalRef = useRef<HTMLDivElement>(null); // Ref for the portal content
   const [viewDate, setViewDate] = useState(
     selectedDate ? new Date(`${selectedDate}T00:00:00Z`) : new Date()
   );
-  const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+      if (
+        inputRef.current &&
+        !inputRef.current.contains(event.target as Node) &&
+        portalRef.current &&
+        !portalRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [inputRef, portalRef]); // Added inputRef and portalRef to dependencies
+
+  useEffect(() => {
+    const handleScroll = (event: Event) => {
+      // Close if scrolling outside the datepicker, but not if scrolling within the datepicker itself
+      if (isOpen && portalRef.current && !portalRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    // Attach scroll listener to the window
+    window.addEventListener('scroll', handleScroll, true); // Use capture phase
+    return () => window.removeEventListener('scroll', handleScroll, true);
+  }, [isOpen, portalRef]); // Added portalRef to dependencies
 
   const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
   const firstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
@@ -83,10 +103,30 @@ export const DatePicker: React.FC<DatePickerProps> = ({ selectedDate, onSelectDa
     return [...blanks, ...days];
   };
 
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+  // inputRef is already declared above, removed duplicate
+
+  useEffect(() => {
+    setPortalTarget(document.body);
+  }, []);
+
+  const calculatePosition = () => {
+    if (inputRef.current) {
+      const rect = inputRef.current.getBoundingClientRect();
+      return {
+        top: rect.bottom + window.scrollY + 8, // 8px for mt-2
+        left: rect.left + window.scrollX,
+        width: rect.width,
+      };
+    }
+    return {};
+  };
+
   return (
-    <div className="relative w-full" ref={wrapperRef}>
+    <div className="relative w-full">
       <div className="relative">
         <input
+          ref={inputRef}
           type="text"
           readOnly
           value={formatDisplayDate(selectedDate)}
@@ -97,8 +137,12 @@ export const DatePicker: React.FC<DatePickerProps> = ({ selectedDate, onSelectDa
         <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
       </div>
 
-      {isOpen && (
-        <div className="absolute z-10 top-full mt-2 w-full bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-lg shadow-lg p-4 animate-slide-up">
+      {isOpen && portalTarget && createPortal(
+        <div
+          ref={portalRef} // Attach ref to the portal content
+          className="absolute z-50 bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-lg shadow-lg p-4 animate-slide-up"
+          style={calculatePosition()}
+        >
           <div className="flex items-center justify-between mb-2">
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => changeMonth(-1)}>
               <ChevronLeftIcon className="w-4 h-4" />
@@ -116,7 +160,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({ selectedDate, onSelectDa
             ))}
           </div>
           <div className="grid grid-cols-7 gap-1">{renderCalendar()}</div>
-        </div>
+        </div>,
+        portalTarget
       )}
     </div>
   );

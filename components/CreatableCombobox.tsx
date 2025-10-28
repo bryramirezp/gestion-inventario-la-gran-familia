@@ -86,33 +86,33 @@ const CreatableCombobox: React.FC<CreatableComboboxProps> = ({
         onClick={() => setIsOpen(true)}
       />
       {isOpen && (
-        <div className="absolute z-10 w-full mt-1 bg-card border border-border rounded-md shadow-lg max-h-60 overflow-auto">
+        <div className="absolute z-10 w-full mt-1 bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-md shadow-lg max-h-60 overflow-auto">
           {filteredOptions.length > 0 &&
             filteredOptions.map((option) => (
               <div
                 key={option.value}
-                className="cursor-pointer hover:bg-muted p-2"
+                className="cursor-pointer hover:bg-muted dark:hover:bg-dark-muted p-2"
                 onClick={() => handleSelect(option.value)}
               >
-                <p className="font-medium">{option.label}</p>
+                <p className="font-medium text-foreground dark:text-dark-foreground">{option.label}</p>
                 {option.details && (
-                  <p className="text-sm text-muted-foreground">{option.details}</p>
+                  <p className="text-sm text-muted-foreground dark:text-dark-muted-foreground">{option.details}</p>
                 )}
               </div>
             ))}
           {showCreateOption && (
             <div
-              className="cursor-pointer hover:bg-muted p-2 flex items-center"
+              className="cursor-pointer hover:bg-muted dark:hover:bg-dark-muted p-2 flex items-center"
               onClick={handleCreate}
             >
               <PlusIcon className="w-4 h-4 mr-2 text-primary" />
-              <p>
+              <p className="text-foreground dark:text-dark-foreground">
                 Crear "<span className="font-semibold">{query}</span>"
               </p>
             </div>
           )}
           {filteredOptions.length === 0 && !showCreateOption && (
-            <div className="p-2 text-sm text-muted-foreground">No se encontraron opciones.</div>
+            <div className="p-2 text-sm text-muted-foreground dark:text-dark-muted-foreground">No se encontraron opciones.</div>
           )}
         </div>
       )}

@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
@@ -24,7 +25,9 @@ const CardHeader = React.forwardRef<HTMLDivElement, CardHeaderProps>(
     >
       <div className="flex-grow space-y-1.5">{children}</div>
       {renderHeaderActions && (
-        <div className="flex-shrink-0 w-full md:w-auto">{renderHeaderActions()}</div>
+        <div className="flex-shrink-0 w-full md:w-auto">
+          {renderHeaderActions()}
+        </div>
       )}
     </div>
   )
@@ -33,11 +36,7 @@ CardHeader.displayName = 'CardHeader';
 
 const CardTitle = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLHeadingElement>>(
   ({ className, ...props }, ref) => (
-    <h3
-      ref={ref}
-      className={`text-lg font-semibold leading-none tracking-tight ${className}`}
-      {...props}
-    />
+    <h3 ref={ref} className={`text-lg font-semibold leading-none tracking-tight ${className}`} {...props} />
   )
 );
 CardTitle.displayName = 'CardTitle';
@@ -51,7 +50,9 @@ const CardDescription = React.forwardRef<
 CardDescription.displayName = 'CardDescription';
 
 const CardContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => <div ref={ref} className={`p-6 pt-0 ${className}`} {...props} />
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={`p-6 pt-0 ${className}`} {...props} />
+  )
 );
 CardContent.displayName = 'CardContent';
 

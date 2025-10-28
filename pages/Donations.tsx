@@ -360,7 +360,7 @@ const Donations: React.FC = () => {
                 <CardDescription>Agrega cada producto incluido en la donación.</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
+                <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2"> {/* Added max-height and overflow-y-auto */}
                   {items.map((item, index) => (
                     <AnimatedWrapper
                       key={index}

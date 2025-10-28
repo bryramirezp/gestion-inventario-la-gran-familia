@@ -23,7 +23,7 @@ import { systemApi } from '../services/api';
 declare const XLSX: any;
 
 const Backup: React.FC = () => {
-  const { callApi } = useAuth();
+  const { getToken } = useAuth();
   const { addAlert } = useAlerts();
 
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -40,7 +40,12 @@ const Backup: React.FC = () => {
     setIsBackupLoading(true);
     addAlert('Generando respaldo... esto puede tardar un momento.', 'info');
     try {
-      const data = await callApi((token) => systemApi.getDataForExport(token, selectedYear));
+      const token = getToken();
+      if (!token) {
+        addAlert('No se pudo obtener el token de autenticación.', 'error');
+        return;
+      }
+      const data = await systemApi.getDataForExport(token, selectedYear);
 
       const wb = XLSX.utils.book_new();
 
@@ -73,7 +78,12 @@ const Backup: React.FC = () => {
   const handleReset = async () => {
     setIsResetLoading(true);
     try {
-      await callApi((token) => systemApi.resetSystem(token));
+      const token = getToken();
+      if (!token) {
+        addAlert('No se pudo obtener el token de autenticación.', 'error');
+        return;
+      }
+      await systemApi.resetSystem(token);
       addAlert(
         'Sistema reseteado con éxito. Todos los datos transaccionales han sido eliminados.',
         'success'
@@ -129,7 +139,12 @@ const Backup: React.FC = () => {
           return;
         }
 
-        const { summary } = await callApi((token) => systemApi.importData(token, parsedData));
+        const token = getToken();
+        if (!token) {
+          addAlert('No se pudo obtener el token de autenticación.', 'error');
+          return;
+        }
+        const { summary } = await systemApi.importData(token, parsedData);
         addAlert(summary, 'success');
       } catch (error) {
         console.error('Failed to import data', error);
