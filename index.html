@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/x-icon" href="./favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Inventory Management System</title>
+    <title>Gestión de Inventario - La Gran Familia</title>
 
     <!-- Security Headers -->
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
@@ -13,12 +13,12 @@
     <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
     <meta http-equiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=()" />
 
-    <!-- Content Security Policy - Actualizada para Supabase -->
+    <!-- Content Security Policy - Optimizada para Vite y producción -->
     <meta
       http-equiv="Content-Security-Policy"
       content="
       default-src 'self';
-      script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://unpkg.com https://aistudiocdn.com;
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' 'unsafe-hashes' https://cdnjs.cloudflare.com;
       style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
       font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com;
       img-src 'self' data: https:;
@@ -28,6 +28,8 @@
       base-uri 'self';
       form-action 'self';
       upgrade-insecure-requests;
+      worker-src 'self' blob:;
+      child-src 'self' blob:;
     "
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -36,14 +38,8 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="preload" href="/src/index.css" as="style">
-    <link rel="preload" href="/logo-lagranfamilia.png" as="image">
-    <!-- Preload critical chunks -->
-    <link rel="modulepreload" href="/src/main.tsx">
-    <link rel="modulepreload" href="/src/App.tsx">
     <!-- Lazy load non-critical scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
-    <script src="https://unpkg.com/recharts/umd/Recharts.min.js" defer></script>
     <style>
       :root {
         --background: 210 20% 98%;
@@ -142,7 +138,6 @@
         scroll-behavior: smooth;
       }
     </style>
-    <link rel="stylesheet" href="/src/index.css" />
   </head>
   <body class="bg-background text-foreground transition-colors duration-300">
     <script>
