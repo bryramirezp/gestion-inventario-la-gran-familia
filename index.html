@@ -142,16 +142,6 @@
         scroll-behavior: smooth;
       }
     </style>
-    <script type="importmap">
-      {
-        "imports": {
-          "react": "https://aistudiocdn.com/react@^19.2.0",
-          "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-          "react/": "https://aistudiocdn.com/react@^19.2.0/",
-          "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.9.4"
-        }
-      }
-    </script>
     <link rel="stylesheet" href="/src/index.css" />
   </head>
   <body class="bg-background text-foreground transition-colors duration-300">
@@ -167,8 +157,8 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      // Register service worker for caching
-      if ('serviceWorker' in navigator) {
+      // Register service worker for caching (only in production)
+      if ('serviceWorker' in navigator && import.meta.env.PROD) {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/sw.js')
             .then((registration) => {
