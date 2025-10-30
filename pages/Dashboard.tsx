@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import Header from '../components/Header';
 import { useApiQuery } from '../hooks/useApiQuery';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -20,7 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../co
 import { AnimatedWrapper, AnimatedCounter } from '../components/Animated';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../hooks/useUserProfile';
-import { Donation } from '../types';
+// import { Donation } from '../types';
 import { Button } from '../components/Button';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
@@ -73,12 +73,8 @@ const StatCard: React.FC<StatCardProps> = React.memo(
 );
 
 const DefaultDashboard: React.FC = () => {
-  const { user } = useAuth();
   const { data: userProfile } = useUserProfile();
   const { theme } = useTheme();
-  // Los componentes de recharts ahora se importan directamente, no necesitamos el hook
-  const rechartsLoading = false;
-  const rechartsError = null;
 
   // Use React Query for data fetching with caching
   const { data: products, isLoading: productsLoading } = useApiQuery(
@@ -167,7 +163,7 @@ const DefaultDashboard: React.FC = () => {
     },
   };
 
-if (loading || rechartsLoading) {
+if (loading) {
     return <div className="flex justify-center items-center h-full">Cargando tablero...</div>;
   }
 
@@ -290,7 +286,6 @@ if (loading || rechartsLoading) {
 };
 
 const NutritionistDashboard: React.FC = () => {
-  const { user } = useAuth();
   const { data: userProfile } = useUserProfile();
 
   const { data: products, isLoading: productsLoading } = useApiQuery(
@@ -312,9 +307,6 @@ const NutritionistDashboard: React.FC = () => {
     };
   }, [products]);
 
-  const todayMenu = useMemo(() => {
-    return null; // Sin menús disponibles
-  }, []);
 
   if (loading) {
     return <div className="flex justify-center items-center h-full">Cargando tablero...</div>;
@@ -384,7 +376,7 @@ const NutritionistDashboard: React.FC = () => {
 };
 
 const Dashboard: React.FC = () => {
-  const { user, loading } = useAuth();
+  const { loading } = useAuth();
   const { data: userProfile, isLoading: isProfileLoading } = useUserProfile();
 
   if (loading || isProfileLoading) {

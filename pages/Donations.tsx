@@ -7,7 +7,6 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
-  CardFooter,
 } from '../components/Card';
 import { Button } from '../components/Button';
 import { Label, Input, FormError } from '../components/forms';
@@ -43,7 +42,7 @@ const DonationItemsModal: React.FC<{ donation: Donation; onClose: () => void }> 
   onClose,
 }) => {
   const columns: Column<DonationItem>[] = [
-    { header: 'Producto', accessor: (item) => (item as any).product_name },
+    { header: 'Producto', accessor: (item) => (item as any).product_name || 'Unknown Product' },
     { header: 'Cantidad', accessor: 'current_quantity' },
     { header: 'Precio Unitario', accessor: (item) => `$${item.unit_price.toFixed(2)}` },
     { header: 'Descuento', accessor: (item) => `${item.discount_percentage}%` },
@@ -51,7 +50,7 @@ const DonationItemsModal: React.FC<{ donation: Donation; onClose: () => void }> 
       header: 'Total',
       accessor: (item) => {
         const total =
-          item.current_quantity * item.unit_price * (1 - item.discount_percentage / 100);
+          Number(item.current_quantity) * item.unit_price * (1 - item.discount_percentage / 100);
         return `$${total.toFixed(2)}`;
       },
     },
@@ -78,7 +77,7 @@ const DonationItemsModal: React.FC<{ donation: Donation; onClose: () => void }> 
           <Table
             columns={columns}
             data={donation.items}
-            getKey={(item: any) => item.product_id}
+            getKey={(item) => item.product_id}
             {...staticTableState}
           />
         </div>
@@ -220,7 +219,7 @@ const Donations: React.FC = () => {
     }, 100);
   }, [items.length]); // Dependency on items.length to correctly target the new item
 
-  const handleItemChange = useCallback((index: number, field: keyof DonationItemForm, value: any) => {
+  const handleItemChange = useCallback((index: number, field: keyof DonationItemForm, value: string | number | null) => {
     setItems((prevItems) => {
       const newItems = [...prevItems];
       newItems[index] = { ...newItems[index], [field]: value };
@@ -281,7 +280,7 @@ const Donations: React.FC = () => {
       await donationApi.createDonation(token, {
         donor_id: selectedDonor!,
         warehouse_id: selectedWarehouse!,
-        items: items as any,
+        items: items,
       });
       addAlert('¡Donación registrada con éxito!', 'success');
       resetForm();
@@ -311,9 +310,9 @@ const Donations: React.FC = () => {
       setSelectedDonor(newDonor.donor_id);
       setIsDonorModalOpen(false);
       setNewDonorName('');
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Error al crear donante - manejado por el sistema de alertas
-      addAlert(`Error al crear nuevo donante: ${error.message}`, 'error');
+      addAlert(`Error al crear nuevo donante: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
       throw error;
     }
   };
@@ -455,7 +454,7 @@ const Donations: React.FC = () => {
                         </div>
                       </div>
                       {formErrors.items?.[index] && (
-                        <FormError message={formErrors.items[index]} className="mt-2" />
+                        <FormError message={formErrors.items?.[index]} className="mt-2" />
                       )}
                     </AnimatedWrapper>
                   ))}

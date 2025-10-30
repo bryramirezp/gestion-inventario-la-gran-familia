@@ -20,10 +20,18 @@ import { useAlerts } from '../contexts/AlertContext';
 import { supabase } from '../services/supabase';
 
 // This is a global declaration for the SheetJS library loaded from CDN
-declare const XLSX: any;
+declare const XLSX: {
+  utils: {
+    book_new: () => any;
+    json_to_sheet: (data: any[], options?: any) => any;
+    book_append_sheet: (workbook: any, worksheet: any, name: string) => void;
+    sheet_to_json: (worksheet: any) => any[];
+  };
+  read: (data: Uint8Array, options: any) => any;
+  writeFile: (workbook: any, filename: string) => void;
+};
 
 const Backup: React.FC = () => {
-  const { getToken } = useAuth();
   const { addAlert } = useAlerts();
 
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -339,7 +347,7 @@ const handleImport = () => {
       const json = XLSX.utils.sheet_to_json(worksheet);
 
       // 🔹 Agrupar por nombre de donante
-      const donorsMap = new Map<string, any>();
+      const donorsMap = new Map<string, unknown[]>();
 
       for (const row of json) {
         const donorName = row['Nombre Completo']?.trim() || 'Desconocido';

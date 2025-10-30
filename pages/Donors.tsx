@@ -175,10 +175,6 @@ const Donors: React.FC = () => {
     handleCloseModal();
   };
 
-  const handleOpenAlert = (donor: Donor) => {
-    setDonorToDelete(donor);
-    setIsAlertOpen(true);
-  };
 
   const handleConfirmDelete = async () => {
     if (donorToDelete) {

@@ -111,7 +111,6 @@ const StatCard: React.FC<StatCardProps> = React.memo(({ title, value, icon: Icon
 ));
 
 const ManagerView: React.FC = () => {
-  const { user } = useAuth();
   const { data: userProfile } = useUserProfile();
   const { addAlert } = useAlerts();
   const { refreshNotifications } = useNotifications();

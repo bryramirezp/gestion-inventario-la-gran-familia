@@ -18,7 +18,6 @@ import { ChevronLeftIcon } from '../components/icons/Icons';
 type ProductDetail = Awaited<ReturnType<typeof getFullProductDetails>>[0];
 
 const WarehouseDetail: React.FC = () => {
-  const { user } = useAuth();
   const { data: userProfile } = useUserProfile();
   const { id } = useParams<{ id: string }>();
   const warehouseId = id ? parseInt(id, 10) : undefined;

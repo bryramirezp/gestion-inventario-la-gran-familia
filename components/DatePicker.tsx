@@ -131,6 +131,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({ selectedDate, onSelectDa
           readOnly
           value={formatDisplayDate(selectedDate)}
           onClick={() => setIsOpen(!isOpen)}
+          onFocus={() => setIsOpen(true)}
           placeholder="Selecciona una fecha"
           className="flex h-10 w-full cursor-pointer rounded-md border border-input dark:border-dark-input bg-background dark:bg-dark-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         />
@@ -140,7 +141,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({ selectedDate, onSelectDa
       {isOpen && portalTarget && createPortal(
         <div
           ref={portalRef} // Attach ref to the portal content
-          className="absolute z-50 bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-lg shadow-lg p-4 animate-slide-up"
+          className="absolute z-[150] bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-lg shadow-lg p-4 animate-slide-up"
           style={calculatePosition()}
         >
           <div className="flex items-center justify-between mb-2">

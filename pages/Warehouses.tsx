@@ -53,8 +53,8 @@ const WarehouseForm: React.FC<{
   const handleFormSubmit = async () => {
     try {
       await onSave(values);
-    } catch (error: any) {
-      setErrors({ form: error.message || 'An unexpected error occurred.' });
+    } catch (error: unknown) {
+      setErrors({ form: error instanceof Error ? error.message : 'An unexpected error occurred.' });
     }
   };
 
@@ -222,10 +222,6 @@ const Warehouses: React.FC = () => {
     handleCloseModal();
   };
 
-  const handleOpenAlert = (warehouse: Warehouse) => {
-    setWarehouseToDelete(warehouse);
-    setIsAlertOpen(true);
-  };
 
   const handleConfirmDelete = async () => {
     if (warehouseToDelete) {

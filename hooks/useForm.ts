@@ -1,4 +1,4 @@
-import { useState, ChangeEvent, FormEvent } from 'react';
+import { useState, FormEvent } from 'react';
 
 type FormErrors<T> = Partial<Record<keyof T | 'form', string>>;
 type ValidateFunction<T> = (values: T) => FormErrors<T>;

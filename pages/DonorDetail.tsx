@@ -27,7 +27,7 @@ const DonationItemsModal: React.FC<{ donation: Donation; onClose: () => void }> 
   onClose,
 }) => {
   const columns: Column<DonationItem>[] = [
-    { header: 'Producto', accessor: (item) => (item as any).product_name },
+    { header: 'Producto', accessor: (item) => (item as any).product_name || 'Unknown Product' },
     { header: 'Cantidad', accessor: 'current_quantity' },
     { header: 'Precio Unitario', accessor: (item) => `$${item.unit_price.toFixed(2)}` },
     { header: 'Descuento', accessor: (item) => `${item.discount_percentage}%` },
@@ -35,7 +35,7 @@ const DonationItemsModal: React.FC<{ donation: Donation; onClose: () => void }> 
       header: 'Total',
       accessor: (item) => {
         const total =
-          item.current_quantity * item.unit_price * (1 - item.discount_percentage / 100);
+          Number(item.current_quantity) * item.unit_price * (1 - item.discount_percentage / 100);
         return `$${total.toFixed(2)}`;
       },
     },
@@ -63,7 +63,7 @@ const DonationItemsModal: React.FC<{ donation: Donation; onClose: () => void }> 
           <Table
             columns={columns}
             data={donation.items}
-            getKey={(item: any) => item.product_id}
+            getKey={(item) => item.product_id}
             {...staticTableState}
           />
         </div>
@@ -73,7 +73,6 @@ const DonationItemsModal: React.FC<{ donation: Donation; onClose: () => void }> 
 };
 
 const DonorDetail: React.FC = () => {
-  const { user } = useAuth();
   const { data: userProfile } = useUserProfile();
   const { id } = useParams<{ id: string }>();
   const donorId = id ? parseInt(id, 10) : undefined;

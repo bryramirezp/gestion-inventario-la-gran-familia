@@ -114,7 +114,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
         for (const p of allProducts) {
             const productLots = stockLotsByProduct[p.product_id] || [];
-            const totalStock = productLots.reduce((sum, lot) => sum + lot.current_quantity, 0);
+            const totalStock = productLots.reduce((sum, lot) => sum + Number(lot.current_quantity), 0);
 
             if (totalStock < p.low_stock_threshold) {
                 lowStockItems.push({ product_id: p.product_id, product_name: p.product_name, total_stock: totalStock, low_stock_threshold: p.low_stock_threshold });

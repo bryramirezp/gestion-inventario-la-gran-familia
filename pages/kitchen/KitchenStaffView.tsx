@@ -34,7 +34,6 @@ const getStatusBadge = (status: TransactionDetail['status']) => {
 };
 
 const KitchenStaffView: React.FC = () => {
-  const { user } = useAuth();
   const { data: userProfile } = useUserProfile();
   const { addAlert } = useAlerts();
   const { refreshNotifications } = useNotifications();

@@ -25,7 +25,7 @@ import {
 } from '../types';
 import { supabase } from './supabase';
 
-const EXPIRED_WAREHOUSE_ID = 4;
+const EXPIRED_WAREHOUSE_ID = 999; // Use a high number that won't conflict with actual warehouse IDs
 
 export const warehouseApi = {
   getAll: async (_token: string): Promise<Warehouse[]> => {
@@ -227,7 +227,7 @@ const getDonorAnalysisData = async (
           const categoryName = categoryMap.get(productInfo.category_id);
           if (categoryName) {
             categoryCounts[categoryName] =
-              (categoryCounts[categoryName] || 0) + item.current_quantity;
+              (categoryCounts[categoryName] || 0) + Number(item.current_quantity);
           }
         }
       });
@@ -488,16 +488,16 @@ export const authApi = {
     // TODO: Add password verification here when authentication is properly implemented
     // For now, accept any password for demo purposes
 
-    const { data: role } = await supabase
-      .from('roles')
-      .select('*')
-      .eq('role_id', user.role_id)
-      .single();
+    // const { data: role } = await supabase
+    //   .from('roles')
+    //   .select('*')
+    //   .eq('role_id', user.role_id)
+    //   .single();
 
-    const { data: warehouseAccess } = await supabase
-      .from('user_warehouse_access')
-      .select('warehouse_id')
-      .eq('user_id', user.user_id);
+    // const { data: warehouseAccess } = await supabase
+    //   .from('user_warehouse_access')
+    //   .select('warehouse_id')
+    //   .eq('user_id', user.user_id);
 
     return { accessToken: 'managed-by-supabase', refreshToken: 'managed-by-supabase' };
   },
@@ -626,7 +626,7 @@ export const userApi = {
   updateUserPassword: async (
     token: string,
     userId: string,
-    newPassword: string
+    _newPassword: string
   ): Promise<boolean> => {
     const { data: user, error: userError } = await supabase
       .from('users')
@@ -726,7 +726,7 @@ export const getFullProductDetails = async (_token: string, warehouseId?: number
     const productLots = lotsByProduct[p.product_id] || [];
     const usableLots = productLots.filter((lot) => lot.warehouse_id !== EXPIRED_WAREHOUSE_ID);
 
-    const totalStock = usableLots.reduce((sum, lot) => sum + lot.current_quantity, 0);
+    const totalStock = usableLots.reduce((sum, lot) => sum + Number(lot.current_quantity), 0);
 
     const soonestExpiry = usableLots
       .filter((l) => l.expiry_date)
@@ -857,10 +857,10 @@ export const kitchenApi = {
         let quantityToDeduct = detail.quantity;
         for (const lot of lots || []) {
           if (quantityToDeduct <= 0) break;
-          const deductAmount = Math.min(lot.current_quantity, quantityToDeduct);
+          const deductAmount = Math.min(Number(lot.current_quantity), quantityToDeduct);
           await supabase
             .from('stock_lots')
-            .update({ current_quantity: lot.current_quantity - deductAmount })
+            .update({ current_quantity: Number(lot.current_quantity) - deductAmount })
             .eq('lot_id', lot.lot_id);
           quantityToDeduct -= deductAmount;
         }
@@ -917,11 +917,11 @@ export const donationApi = {
       const safeItems = donation.items || []; // Ensure items is an array
 
       const total_value_before_discount = safeItems.reduce(
-        (acc, item) => acc + (item.unit_price || 0) * item.current_quantity,
+        (acc, item) => acc + (item.unit_price || 0) * Number(item.current_quantity),
         0
       );
       const total_value_after_discount = safeItems.reduce((acc, item) => {
-        const itemTotal = (item.unit_price || 0) * item.current_quantity;
+        const itemTotal = (item.unit_price || 0) * Number(item.current_quantity);
         const discount = itemTotal * ((item.discount_percentage || 0) / 100);
         return acc + (itemTotal - discount);
       }, 0);
@@ -948,16 +948,13 @@ export const donationApi = {
 // --- SYSTEM API ---
 export const systemApi = {
   getDataForExport: async (_token: string, year: number) => {
-    const [donations, donors, warehouses, products, units, stockLots, transactions, users] =
+    const [donations, warehouses, products, stockLots, transactions] =
       await Promise.all([
         donationApi.getHistory(_token),
-        donorApi.getAll(_token),
         warehouseApi.getAll(_token),
         productApi.getAll(_token),
-        getUnits(_token),
         stockLotApi.getAll(_token),
         kitchenApi.getTransactions(_token),
-        userApi.getAllWithDetails(_token),
       ]);
 
     const productMap = new Map(products.map((p) => [p.product_id, p]));
@@ -987,8 +984,8 @@ export const systemApi = {
       d.items.map((i) => ({
         'ID Donación': d.donation_id,
         Fecha: new Date(d.donation_date).toLocaleDateString(),
-        Producto: (i as any).product_name,
-        Cantidad: i.current_quantity,
+        Producto: (i as any).product_name || 'Unknown Product',
+        Cantidad: Number(i.current_quantity),
         'Precio Unitario': i.unit_price,
         '% Descuento': i.discount_percentage,
       }))
@@ -1001,7 +998,7 @@ export const systemApi = {
         Producto: product?.product_name || 'N/A',
         SKU: product?.sku || 'N/A',
         Almacén: warehouseMap.get(s.warehouse_id) || 'N/A',
-        'Cantidad Actual': s.current_quantity,
+        'Cantidad Actual': Number(s.current_quantity),
         'Fecha Recepción': new Date(s.received_date).toLocaleDateString(),
         'Fecha Caducidad': s.expiry_date ? new Date(s.expiry_date).toLocaleDateString() : 'N/A',
         'Precio Unitario': s.unit_price,

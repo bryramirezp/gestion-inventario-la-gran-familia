@@ -25,11 +25,7 @@ import {
 } from 'recharts';
 
 const DonorAnalysis: React.FC = () => {
-  const { getToken } = useAuth();
   const { theme } = useTheme();
-  // Los componentes de recharts ahora se importan directamente, no necesitamos el hook
-  const rechartsLoading = false;
-  const rechartsError = null;
   const [analysisData, setAnalysisData] = useState<DonorAnalysisData[]>([]);
   const [donorTypes, setDonorTypes] = useState<DonorType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -127,7 +123,7 @@ const DonorAnalysis: React.FC = () => {
     'donor-analysis-table'
   );
 
-if (loading || rechartsLoading) {
+if (loading) {
     return <div className="flex justify-center items-center h-full">Cargando análisis...</div>;
   }
 

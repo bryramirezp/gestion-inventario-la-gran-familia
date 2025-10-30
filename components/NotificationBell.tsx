@@ -7,7 +7,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../hooks/useUserProfile';
 
 const NotificationBell: React.FC = () => {
-  const { user } = useAuth();
   const { data: userProfile } = useUserProfile();
   const {
     lowStockNotifications,
@@ -30,11 +29,6 @@ const NotificationBell: React.FC = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
-
-  const statusMap = {
-    Approved: 'Aprobada',
-    Rejected: 'Rechazada',
-  } as const;
 
   const getKitchenNotificationMessage = (notif: (typeof kitchenRequestNotifications)[0]) => {
     switch (userProfile?.role_name) {

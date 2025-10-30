@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { stockLotApi, productApi, warehouseApi } from '../services/api';
-import { StockLot, Product, Warehouse } from '../types';
+import { StockLot, Warehouse } from '../types';
 import Header from '../components/Header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/Card';
 import Table, { Column } from '../components/Table';

@@ -1,10 +1,10 @@
 import React from 'react';
 
 // Sanitización básica de inputs (temporalmente sin DOMPurify)
-const sanitizeInput = (value: string): string => {
-  // Sanitización básica sin DOMPurify por ahora
-  return value.replace(/[<>]/g, '');
-};
+// const sanitizeInput = (value: string): string => {
+//   // Sanitización básica sin DOMPurify por ahora
+//   return value.replace(/[<>]/g, '');
+// };
 
 // --- Input ---
 export const Input = React.forwardRef<

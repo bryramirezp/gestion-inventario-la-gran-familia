@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   CubeIcon,
@@ -21,16 +21,15 @@ import { Button } from './Button';
 import LoadingSpinner from './LoadingSpinner';
 
 const Sidebar: React.FC<{
-  isCollapsed: boolean;
+  _isCollapsed: boolean;
   isMobileOpen: boolean;
   setMobileOpen: (isOpen: boolean) => void;
-  onToggleCollapse?: (collapsed: boolean) => void;
-}> = ({ isCollapsed, isMobileOpen, setMobileOpen, onToggleCollapse }) => {
+  _onToggleCollapse?: (collapsed: boolean) => void;
+}> = ({ _isCollapsed, isMobileOpen, setMobileOpen, _onToggleCollapse }) => {
   const { user, logout } = useAuth();
   const { data: userProfile, isLoading: isProfileLoading } = useUserProfile();
 
   // Sidebar is now static (always expanded)
-  const persistentCollapsed = false;
 
   const navigationSections = [
     {

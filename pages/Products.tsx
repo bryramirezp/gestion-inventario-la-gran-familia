@@ -40,7 +40,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useForm } from '../hooks/useForm';
 import { DatePicker } from '../components/DatePicker';
 import Pagination from '../components/Pagination';
-import { PlusCircleIcon } from '../components/icons/Icons';
+// import { PlusCircleIcon } from '../components/icons/Icons';
 
 type ProductDetail = Awaited<ReturnType<typeof getFullProductDetails>>[0];
 const ITEMS_PER_PAGE = 10;
@@ -81,8 +81,8 @@ const ProductForm: React.FC<{
   const handleFormSubmit = async () => {
     try {
       await onSave(values as NewProduct);
-    } catch (error: any) {
-      setErrors({ form: error.message || 'Un error inesperado ocurrió.' });
+    } catch (error: unknown) {
+      setErrors({ form: error instanceof Error ? error.message : 'Un error inesperado ocurrió.' });
     }
   };
 
@@ -221,8 +221,8 @@ const RestockForm: React.FC<RestockFormProps> = ({ warehouses, onSave, onCancel 
   const handleFormSubmit = async () => {
     try {
       await onSave(values);
-    } catch (error: any) {
-      setErrors({ form: error.message || 'An unexpected error occurred.' });
+    } catch (error: unknown) {
+      setErrors({ form: error instanceof Error ? error.message : 'An unexpected error occurred.' });
     }
   };
 

@@ -17,7 +17,7 @@ export const useUserProfile = () => {
 
   return useApiQuery<UserProfile>(
     ['userProfile', authUser?.id], // Agregar dependencia del user ID
-    async (token) => {
+    async (_token) => {
       if (!authUser?.id) throw new Error('No authenticated user');
 
       const { data: user, error } = await supabase

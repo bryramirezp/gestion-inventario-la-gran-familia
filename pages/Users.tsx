@@ -19,7 +19,7 @@ import {
   AlertDialogTitle,
 } from '../components/AlertDialog';
 import { userApi, getRoles, warehouseApi } from '../services/api';
-import { supabase } from '../services/supabase';
+// import { supabase } from '../services/supabase';
 import { User, Role, Warehouse } from '../types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/Card';
 import { Label, Select, Input, FormError } from '../components/forms';
@@ -71,8 +71,8 @@ const CreateUserForm: React.FC<{
   const handleFormSubmit = async () => {
     try {
       await onSave(values);
-    } catch (error: any) {
-      setErrors({ form: error.message || 'An unexpected error occurred.' });
+    } catch (error: unknown) {
+      setErrors({ form: error instanceof Error ? error.message : 'An unexpected error occurred.' });
     }
   };
 
@@ -147,8 +147,8 @@ const EditUserForm: React.FC<{
   const handleFormSubmit = async () => {
     try {
       await onSave(values, user?.user_id);
-    } catch (error: any) {
-      setErrors({ form: error.message || 'An unexpected error occurred.' });
+    } catch (error: unknown) {
+      setErrors({ form: error instanceof Error ? error.message : 'An unexpected error occurred.' });
     }
   };
 
@@ -277,8 +277,8 @@ const PasswordResetForm: React.FC<{
   const handleFormSubmit = async () => {
     try {
       await onSave(values.newPassword);
-    } catch (error: any) {
-      setErrors({ form: error.message || 'An unexpected error occurred.' });
+    } catch (error: unknown) {
+      setErrors({ form: error instanceof Error ? error.message : 'An unexpected error occurred.' });
     }
   };
 
@@ -493,7 +493,6 @@ const Users: React.FC = () => {
     () => [
       { header: 'Nombre', accessor: 'full_name' },
       { header: 'Rol', accessor: (item) => <Badge>{item.role_name}</Badge> },
-      // FIX: The accessor function was incomplete, causing a syntax error. It should map warehouse IDs to names using the pre-built `warehouseMap`.
       {
         header: 'Acceso a Almacén',
         accessor: (item) =>
@@ -565,7 +564,7 @@ const Users: React.FC = () => {
     [currentUser]
   );
 
-  const { orderedColumns, ...tableState } = useTableState<UserDetail>(columns, 'users-table', false);
+  const { orderedColumns, ...tableState } = useTableState<UserDetail>(columns, 'users-table');
 
   return (
     <AnimatedWrapper>
