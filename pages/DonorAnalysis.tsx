@@ -10,12 +10,26 @@ import { Input } from '../components/forms';
 import useTableState from '../hooks/useTableState';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { useRecharts } from '../hooks/useRecharts';
+// Importar componentes de recharts directamente para evitar problemas de dependencias circulares
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+} from 'recharts';
 
 const DonorAnalysis: React.FC = () => {
   const { getToken } = useAuth();
   const { theme } = useTheme();
-  const { recharts, loading: rechartsLoading, error: rechartsError } = useRecharts();
+  // Los componentes de recharts ahora se importan directamente, no necesitamos el hook
+  const rechartsLoading = false;
+  const rechartsError = null;
   const [analysisData, setAnalysisData] = useState<DonorAnalysisData[]>([]);
   const [donorTypes, setDonorTypes] = useState<DonorType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -113,28 +127,12 @@ const DonorAnalysis: React.FC = () => {
     'donor-analysis-table'
   );
 
-  if (loading || rechartsLoading) {
+if (loading || rechartsLoading) {
     return <div className="flex justify-center items-center h-full">Cargando análisis...</div>;
   }
 
-  if (rechartsError || !recharts) {
-    return (
-      <AnimatedWrapper>
-        <Header
-          title="Análisis de Donantes"
-          description="Métricas clave e información sobre las contribuciones de tus donantes."
-        />
-        <div className="text-center py-16">
-          <p className="text-muted-foreground">
-            No se pudo cargar las gráficas. Por favor, recarga la página.
-          </p>
-        </div>
-      </AnimatedWrapper>
-    );
-  }
-
-  const { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } =
-    recharts;
+  // Los componentes de recharts ya están importados directamente
+  // No necesitamos la verificación de error del hook ni la desestructuración
 
   return (
     <AnimatedWrapper>

@@ -24,7 +24,19 @@ import { Donation } from '../types';
 import { Button } from '../components/Button';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
-import { useRecharts } from '../hooks/useRecharts';
+// Importar componentes de recharts directamente para evitar problemas de dependencias circulares
+import {
+  ResponsiveContainer,
+  LineChart,
+  BarChart,
+  Line,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from 'recharts';
 
 interface DashboardStats {
   totalProducts: number;
@@ -64,7 +76,9 @@ const DefaultDashboard: React.FC = () => {
   const { user } = useAuth();
   const { data: userProfile } = useUserProfile();
   const { theme } = useTheme();
-  const { recharts, loading: rechartsLoading, error: rechartsError } = useRecharts();
+  // Los componentes de recharts ahora se importan directamente, no necesitamos el hook
+  const rechartsLoading = false;
+  const rechartsError = null;
 
   // Use React Query for data fetching with caching
   const { data: products, isLoading: productsLoading } = useApiQuery(
@@ -153,35 +167,12 @@ const DefaultDashboard: React.FC = () => {
     },
   };
 
-  if (loading || rechartsLoading) {
+if (loading || rechartsLoading) {
     return <div className="flex justify-center items-center h-full">Cargando tablero...</div>;
   }
 
-  if (rechartsError || !recharts) {
-    return (
-      <AnimatedWrapper>
-        <Header title="Tablero" description="Resumen general del estado del inventario." />
-        <div className="text-center py-16">
-          <p className="text-muted-foreground">
-            No se pudo cargar las gráficas. Por favor, recarga la página.
-          </p>
-        </div>
-      </AnimatedWrapper>
-    );
-  }
-
-  const {
-    ResponsiveContainer,
-    LineChart,
-    BarChart,
-    Line,
-    Bar,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    Legend,
-  } = recharts;
+  // Los componentes de recharts ya están importados directamente
+  // No necesitamos la verificación de error del hook ni la desestructuración
 
   return (
     <AnimatedWrapper>
