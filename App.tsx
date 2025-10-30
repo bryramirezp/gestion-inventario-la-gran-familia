@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useUserProfile } from './hooks/useUserProfile'; // Import useUserProfile
 import Login from './pages/Login';
 import Landing from './pages/Landing';
+import ConfirmEmail from './pages/ConfirmEmail';
 import { AlertProvider } from './contexts/AlertContext';
 import { AlertContainer } from './components/Alerts';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -81,7 +82,7 @@ const AdminOnlyRoute: React.FC = () => {
         return <Navigate to="/login" replace />;
     }
 
-    if (!userProfile || userProfile.role_name !== 'Administrator') { // Check role instead of hardcoded IDs
+    if (!userProfile || userProfile.role_name !== 'Administrador') { // Check role instead of hardcoded IDs
         return <Navigate to="/dashboard" replace />;
     }
 
@@ -110,14 +111,15 @@ const App: React.FC = () => {
                         <Routes>
                             <Route path="/landing" element={<Landing />} />
                             <Route path="/login" element={<Login />} />
+                            <Route path="/ConfirmEmail" element={<ConfirmEmail />} />
 
                             <Route element={<ProtectedRoute />}>
                                 <Route element={<MainLayout />}>
                                     <Route path="/dashboard" element={<Dashboard />} />
                                     <Route path="/profile" element={<Profile />} />
 
-                                    {/* Routes accessible by Administrator and Warehouse Manager */}
-                                    <Route element={<ProtectedRoute roles={['Administrator', 'Warehouse Manager']} />}>
+                                    {/* Routes accessible by Administrador and Operador */}
+                                    <Route element={<ProtectedRoute roles={['Administrador', 'Operador']} />}>
                                         <Route path="/products" element={<Products />} />
                                         <Route path="/donations" element={<Donations />} />
                                         <Route path="/donors" element={<Donors />} />
@@ -128,15 +130,15 @@ const App: React.FC = () => {
                                         <Route path="/donor-analysis" element={<DonorAnalysis />} />
                                     </Route>
 
-                                    {/* Routes accessible only by Administrator */}
-                                    <Route element={<ProtectedRoute roles={['Administrator']} />}>
+                                    {/* Routes accessible only by Administrador */}
+                                    <Route element={<ProtectedRoute roles={['Administrador']} />}>
                                         <Route path="/categories" element={<Categories />} />
                                         <Route path="/brands" element={<Brands />} />
                                         <Route path="/users" element={<Users />} />
                                     </Route>
 
                                     {/* Kitchen route accessible by multiple specific roles */}
-                                    <Route element={<ProtectedRoute roles={['Administrator', 'Warehouse Manager', 'Kitchen Staff', 'Nutritionist']} />}>
+                                    <Route element={<ProtectedRoute roles={['Administrador', 'Operador', 'Consultor']} />}>
                                         <Route path="/kitchen" element={<Kitchen />} />
                                     </Route>
 

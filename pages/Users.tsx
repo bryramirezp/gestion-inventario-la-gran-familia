@@ -19,6 +19,7 @@ import {
   AlertDialogTitle,
 } from '../components/AlertDialog';
 import { userApi, getRoles, warehouseApi } from '../services/api';
+import { supabase } from '../services/supabase';
 import { User, Role, Warehouse } from '../types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/Card';
 import { Label, Select, Input, FormError } from '../components/forms';
@@ -28,57 +29,120 @@ import { AnimatedWrapper } from '../components/Animated';
 import { useAlerts } from '../contexts/AlertContext';
 import { useForm } from '../hooks/useForm';
 import useTableState from '../hooks/useTableState';
-import { EditIcon, KeyIcon, XCircleIcon, CheckCircleIcon } from '../components/icons/Icons';
+import { EditIcon, KeyIcon, XCircleIcon, CheckCircleIcon, TrashIcon } from '../components/icons/Icons';
 import { useAuth } from '../contexts/AuthContext';
 
 type UserDetail = User & { role_name: string; warehouse_access: number[] };
 
-interface UserFormData {
-  full_name: string;
+interface CreateUserFormData {
+  email: string;
+  password: string;
+}
+
+interface EditUserFormData {
   role_id: number;
   warehouse_ids: number[];
 }
 
-const UserForm: React.FC<{
+const CreateUserForm: React.FC<{
+  onSave: (data: CreateUserFormData) => Promise<void>;
+  onCancel: () => void;
+}> = ({ onSave, onCancel }) => {
+
+  const { values, errors, handleChange, handleSubmit, setErrors } =
+    useForm<CreateUserFormData>(
+      {
+        email: '',
+        password: '',
+      },
+      (formData) => {
+        const tempErrors: Record<string, string> = {};
+        if (!formData.email)
+          tempErrors.email = 'El email es requerido.';
+        if (!formData.password)
+          tempErrors.password = 'La contraseña es requerida.';
+        if (formData.password && formData.password.length < 6)
+          tempErrors.password = 'La contraseña debe tener al menos 6 caracteres.';
+        return tempErrors;
+      }
+    );
+
+
+  const handleFormSubmit = async () => {
+    try {
+      await onSave(values);
+    } catch (error: any) {
+      setErrors({ form: error.message || 'An unexpected error occurred.' });
+    }
+  };
+
+
+  return (
+    <form onSubmit={(e) => handleSubmit(e, handleFormSubmit)} className="p-6">
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 gap-y-6">
+          <div>
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              value={values.email}
+              onChange={handleChange}
+              required
+              error={!!errors.email}
+            />
+            <FormError message={errors.email} />
+          </div>
+          <div>
+            <Label htmlFor="password">Contraseña</Label>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              value={values.password}
+              onChange={handleChange}
+              required
+              error={!!errors.password}
+            />
+            <FormError message={errors.password} />
+          </div>
+        </div>
+
+        <FormError message={errors.form} />
+      </div>
+      <DialogFooter>
+        <Button type="button" variant="ghost" onClick={onCancel}>
+          Cancelar
+        </Button>
+        <Button type="submit">Crear Usuario</Button>
+      </DialogFooter>
+    </form>
+  );
+};
+
+const EditUserForm: React.FC<{
   user: UserDetail | null;
   roles: Role[];
   warehouses: Warehouse[];
-  onSave: (data: UserFormData, userId?: string) => Promise<void>;
+  onSave: (data: EditUserFormData, userId?: string) => Promise<void>;
   onCancel: () => void;
 }> = ({ user, roles, warehouses, onSave, onCancel }) => {
   const isEditing = !!user;
 
   const { values, errors, handleChange, handleSubmit, setErrors, setValues } =
-    useForm<UserFormData>(
+    useForm<EditUserFormData>(
       {
-        full_name: user?.full_name || '',
         role_id: user?.role_id || 0,
         warehouse_ids: user?.warehouse_access || [],
       },
       (formData) => {
         const tempErrors: Record<string, string> = {};
-        if (!isEditing && !formData.full_name)
-          tempErrors.full_name = 'El nombre completo es requerido.';
         if (!formData.role_id) tempErrors.role_id = 'Se debe seleccionar un rol.';
         return tempErrors;
       }
     );
 
-  const handleWarehouseChange = (warehouseId: number) => {
-    setValues((prev) => {
-      const newWarehouseIds = prev.warehouse_ids.includes(warehouseId)
-        ? prev.warehouse_ids.filter((id) => id !== warehouseId)
-        : [...prev.warehouse_ids, warehouseId];
-      return { ...prev, warehouse_ids: newWarehouseIds };
-    });
-  };
-
-  const handleSelectAllWarehouses = (selectAll: boolean) => {
-    setValues((prev) => ({
-      ...prev,
-      warehouse_ids: selectAll ? warehouses.map((wh) => wh.warehouse_id) : [],
-    }));
-  };
 
   const handleFormSubmit = async () => {
     try {
@@ -92,19 +156,6 @@ const UserForm: React.FC<{
     <form onSubmit={(e) => handleSubmit(e, handleFormSubmit)} className="p-6">
       <div className="space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6">
-          <div>
-            <Label htmlFor="full_name">Nombre Completo</Label>
-            <Input
-              id="full_name"
-              name="full_name"
-              value={values.full_name}
-              onChange={handleChange}
-              required={!isEditing}
-              disabled={isEditing}
-              error={!!errors.full_name}
-            />
-            <FormError message={errors.full_name} />
-          </div>
           <div>
             <Label htmlFor="role_id">Rol</Label>
             <Select
@@ -133,7 +184,10 @@ const UserForm: React.FC<{
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() => handleSelectAllWarehouses(true)}
+                onClick={() => setValues((prev) => ({
+                  ...prev,
+                  warehouse_ids: warehouses.map((wh) => wh.warehouse_id),
+                }))}
                 className="text-xs"
               >
                 Seleccionar Todo
@@ -142,7 +196,10 @@ const UserForm: React.FC<{
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() => handleSelectAllWarehouses(false)}
+                onClick={() => setValues((prev) => ({
+                  ...prev,
+                  warehouse_ids: [],
+                }))}
                 className="text-xs"
               >
                 Deseleccionar Todo
@@ -160,7 +217,12 @@ const UserForm: React.FC<{
                     type="checkbox"
                     id={`wh-${wh.warehouse_id}`}
                     checked={values.warehouse_ids.includes(wh.warehouse_id)}
-                    onChange={() => handleWarehouseChange(wh.warehouse_id)}
+                    onChange={() => setValues((prev) => {
+                      const newWarehouseIds = prev.warehouse_ids.includes(wh.warehouse_id)
+                        ? prev.warehouse_ids.filter((id) => id !== wh.warehouse_id)
+                        : [...prev.warehouse_ids, wh.warehouse_id];
+                      return { ...prev, warehouse_ids: newWarehouseIds };
+                    })}
                     className="h-4 w-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
                   />
                   <Label
@@ -260,7 +322,7 @@ const PasswordResetForm: React.FC<{
 };
 
 const Users: React.FC = () => {
-  const { user: currentUser, getToken } = useAuth();
+  const { user: currentUser, getToken, signUp } = useAuth();
   const [users, setUsers] = useState<UserDetail[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -270,6 +332,8 @@ const Users: React.FC = () => {
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isToggleAlertOpen, setIsToggleAlertOpen] = useState(false);
   const [userToToggle, setUserToToggle] = useState<UserDetail | null>(null);
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<UserDetail | null>(null);
   const { addAlert } = useAlerts();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -321,6 +385,11 @@ const Users: React.FC = () => {
     setIsToggleAlertOpen(true);
   };
 
+  const handleOpenDeleteAlert = (user: UserDetail) => {
+    setUserToDelete(user);
+    setIsDeleteAlertOpen(true);
+  };
+
   const handleCloseModal = () => {
     setEditingUser(null);
     setIsModalOpen(false);
@@ -351,25 +420,57 @@ const Users: React.FC = () => {
     }
   };
 
-  const handleSave = async (data: UserFormData, userId?: string) => {
+  const handleConfirmDelete = async () => {
+    if (userToDelete) {
+      const token = getToken();
+      if (!token) {
+        addAlert('No se pudo obtener el token de autenticación.', 'error');
+        return;
+      }
+      try {
+        await userApi.deleteUser(token, userToDelete.user_id);
+        addAlert(`El usuario ${userToDelete.full_name} ha sido eliminado permanentemente.`, 'success');
+        fetchData();
+      } catch (error) {
+        console.error('Failed to delete user', error);
+        addAlert('Error al eliminar el usuario.', 'error');
+      } finally {
+        setIsDeleteAlertOpen(false);
+        setUserToDelete(null);
+      }
+    }
+  };
+
+  const handleCreateUser = async (data: CreateUserFormData) => {
+    // Creating new user with Supabase Auth
+    const { user, error } = await signUp(data.email, data.password);
+
+    if (error) {
+      addAlert(`Error al crear usuario: ${error.message}`, 'error');
+      return;
+    }
+
+    if (user) {
+      addAlert('¡Usuario creado con éxito!', 'success');
+    }
+
+    fetchData();
+    handleCloseModal();
+  };
+
+  const handleEditUser = async (data: EditUserFormData, userId?: string) => {
     const token = getToken();
     if (!token) {
       addAlert('No se pudo obtener el token de autenticación.', 'error');
       return;
     }
+
     if (userId) {
       // Editing existing user's permissions
       await userApi.updateUserAccess(token, userId, data.role_id, data.warehouse_ids);
       addAlert('¡Permisos de usuario actualizados con éxito!', 'success');
-    } else {
-      // Creating new user
-      await userApi.create(token, {
-        full_name: data.full_name,
-        role_id: data.role_id,
-        warehouse_ids: data.warehouse_ids,
-      });
-      addAlert('¡Usuario creado con éxito!', 'success');
     }
+
     fetchData();
     handleCloseModal();
   };
@@ -436,6 +537,16 @@ const Users: React.FC = () => {
               >
                 <KeyIcon className="h-4 w-4" />
               </Button>
+              {item.user_id !== currentUser?.id && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  title="Eliminar Usuario"
+                  onClick={() => handleOpenDeleteAlert(item)}
+                >
+                  <TrashIcon className="h-4 w-4 text-destructive" />
+                </Button>
+              )}
               {!isCurrentUser && (
                 <Button
                   variant="ghost"
@@ -454,7 +565,7 @@ const Users: React.FC = () => {
     [currentUser]
   );
 
-  const { orderedColumns, ...tableState } = useTableState<UserDetail>(columns, 'users-table');
+  const { orderedColumns, ...tableState } = useTableState<UserDetail>(columns, 'users-table', false);
 
   return (
     <AnimatedWrapper>
@@ -512,16 +623,23 @@ const Users: React.FC = () => {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>
-              {editingUser ? 'Editar Permisos de Usuario' : 'Agregar Nuevo Usuario'}
+              {editingUser ? 'Editar Permisos de Usuario' : 'Crear Nuevo Usuario'}
             </DialogTitle>
           </DialogHeader>
-          <UserForm
-            user={editingUser}
-            roles={roles}
-            warehouses={warehouses}
-            onSave={handleSave}
-            onCancel={handleCloseModal}
-          />
+          {editingUser ? (
+            <EditUserForm
+              user={editingUser}
+              roles={roles}
+              warehouses={warehouses}
+              onSave={handleEditUser}
+              onCancel={handleCloseModal}
+            />
+          ) : (
+            <CreateUserForm
+              onSave={handleCreateUser}
+              onCancel={handleCloseModal}
+            />
+          )}
         </DialogContent>
       </Dialog>
 
@@ -558,6 +676,29 @@ const Users: React.FC = () => {
             </AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmToggle}>
               Sí, {userToToggle?.is_active ? 'Desactivar' : 'Activar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog isOpen={isDeleteAlertOpen} onClose={() => setIsDeleteAlertOpen(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás completamente seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Esto eliminará permanentemente al usuario "
+              {userToDelete?.full_name}" y toda su información asociada, incluyendo su cuenta de autenticación.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setIsDeleteAlertOpen(false)}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Sí, Eliminar Permanentemente
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

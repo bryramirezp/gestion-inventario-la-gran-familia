@@ -595,7 +595,7 @@ const Products: React.FC = () => {
     <AnimatedWrapper>
       <Header
         title="Productos"
-        description="Administra todos los productos en tu inventario."
+        description="Administra el catálogo de productos en tu inventario."
         buttonText="Agregar Producto"
         onButtonClick={() => handleOpenModal()}
       />

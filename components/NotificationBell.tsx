@@ -4,9 +4,11 @@ import { BellIcon, ChefHatIcon, ExclamationTriangleIcon } from './icons/Icons';
 import { Button } from './Button';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useUserProfile } from '../hooks/useUserProfile';
 
 const NotificationBell: React.FC = () => {
   const { user } = useAuth();
+  const { data: userProfile } = useUserProfile();
   const {
     lowStockNotifications,
     expiryNotifications,
@@ -35,14 +37,11 @@ const NotificationBell: React.FC = () => {
   } as const;
 
   const getKitchenNotificationMessage = (notif: (typeof kitchenRequestNotifications)[0]) => {
-    switch (user?.role_name) {
-      case 'Kitchen Staff':
-        const status = statusMap[notif.status as keyof typeof statusMap] || notif.status;
-        return `Tu solicitud #${notif.transaction_id} ha sido ${status}.`;
-      case 'Nutritionist':
+    switch (userProfile?.role_name) {
+      case 'Consultor':
         return `La solicitud de cocina #${notif.transaction_id} fue completada.`;
-      case 'Administrator':
-      case 'Warehouse Manager':
+      case 'Administrador':
+      case 'Operador':
         return `${notif.requester_name} ha enviado una nueva solicitud (#${notif.transaction_id}).`;
       default:
         return `Actualización en la solicitud #${notif.transaction_id}.`;

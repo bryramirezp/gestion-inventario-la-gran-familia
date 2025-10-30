@@ -22,8 +22,6 @@ import {
   NewTransaction,
   TransactionDetail,
   NewTransactionDetail,
-  Menu,
-  NewMenu,
 } from '../types';
 import { supabase } from './supabase';
 
@@ -141,46 +139,6 @@ export const brandApi = {
   },
   delete: async (token: string, id: number): Promise<boolean> => {
     const { error } = await supabase.from('brands').delete().eq('brand_id', id);
-    if (error) throw new Error(error.message);
-    return true;
-  },
-};
-export const menuApi = {
-  getAll: async (_token: string): Promise<Menu[]> => {
-    const { data, error } = await supabase.from('daily_menus').select('*');
-    if (error) throw new Error(error.message);
-    return data || [];
-  },
-  getById: async (token: string, id: number): Promise<Menu | undefined> => {
-    const { data, error } = await supabase
-      .from('daily_menus')
-      .select('*')
-      .eq('menu_id', id)
-      .single();
-    if (error) throw new Error(error.message);
-    return data;
-  },
-  create: async (token: string, newItem: NewMenu): Promise<Menu> => {
-    const { data, error } = await supabase.from('daily_menus').insert(newItem).select().single();
-    if (error) throw new Error(error.message);
-    return data;
-  },
-  update: async (
-    token: string,
-    id: number,
-    updates: Partial<NewMenu>
-  ): Promise<Menu | undefined> => {
-    const { data, error } = await supabase
-      .from('daily_menus')
-      .update(updates)
-      .eq('menu_id', id)
-      .select()
-      .single();
-    if (error) throw new Error(error.message);
-    return data;
-  },
-  delete: async (token: string, id: number): Promise<boolean> => {
-    const { error } = await supabase.from('daily_menus').delete().eq('menu_id', id);
     if (error) throw new Error(error.message);
     return true;
   },
@@ -697,6 +655,23 @@ export const userApi = {
       .single();
     if (error) throw new Error(error.message);
     return data;
+  },
+  deleteUser: async (token: string, userId: string): Promise<boolean> => {
+    // First delete user warehouse access
+    const { error: accessError } = await supabase
+      .from('user_warehouse_access')
+      .delete()
+      .eq('user_id', userId);
+    if (accessError) throw new Error(accessError.message);
+
+    // Then delete the user (this will trigger the function to delete auth user)
+    const { error: userError } = await supabase
+      .from('users')
+      .delete()
+      .eq('user_id', userId);
+    if (userError) throw new Error(userError.message);
+
+    return true;
   },
 };
 export const getRoles = async (_token: string): Promise<Role[]> => {

@@ -72,8 +72,8 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     try {
       setLoading(true);
 
-      const allowedRolesForStockAlerts = ['Administrator', 'Warehouse Manager', 'Nutritionist'];
-      const allowedRolesForKitchenAlerts = ['Administrator', 'Warehouse Manager', 'Kitchen Staff', 'Nutritionist'];
+      const allowedRolesForStockAlerts = ['Administrador', 'Operador', 'Consultor'];
+      const allowedRolesForKitchenAlerts = ['Administrador', 'Operador', 'Consultor'];
 
       let productsPromise = Promise.resolve([]);
       let stockLotsPromise = Promise.resolve([]);
@@ -142,11 +142,9 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
       // --- KITCHEN REQUEST NOTIFICATIONS ---
       let kitchenNotifications: KitchenRequestNotification[] = [];
-      if (['Administrator', 'Warehouse Manager'].includes(userProfile.role_name)) {
+      if (['Administrador', 'Operador'].includes(userProfile.role_name)) {
         kitchenNotifications = kitchenTransactions.filter(t => t.status === 'Pending').map(t => ({ transaction_id: t.transaction_id, requester_name: t.requester_name, status: t.status }));
-      } else if (userProfile.role_name === 'Kitchen Staff') {
-          kitchenNotifications = kitchenTransactions.filter(t => t.requester_id === userProfile.user_id && (t.status === 'Approved' || t.status === 'Rejected')).map(t => ({ transaction_id: t.transaction_id, requester_name: 'Your', status: t.status }));
-      } else if (userProfile.role_name === 'Nutritionist') {
+      } else if (userProfile.role_name === 'Consultor') {
           const yesterday = new Date();
           yesterday.setDate(yesterday.getDate() - 1);
           kitchenNotifications = kitchenTransactions.filter(t => t.status === 'Completed' && new Date(t.transaction_date) > yesterday).map(t => ({ transaction_id: t.transaction_id, requester_name: 'Kitchen', status: t.status }));

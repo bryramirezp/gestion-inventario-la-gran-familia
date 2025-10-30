@@ -1,8 +1,11 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Column } from '../components/Table';
 
-const useTableState = <T extends object>(initialColumns: Column<T>[], storageKey: string) => {
+const useTableState = <T extends object>(initialColumns: Column<T>[], storageKey: string, enableReordering: boolean = true) => {
   const [columnOrder, setColumnOrder] = useState<string[]>(() => {
+    if (!enableReordering) {
+      return initialColumns.map((c) => c.header);
+    }
     try {
       const savedOrder = localStorage.getItem(`${storageKey}-order`);
       return savedOrder ? JSON.parse(savedOrder) : initialColumns.map((c) => c.header);
@@ -23,12 +26,13 @@ const useTableState = <T extends object>(initialColumns: Column<T>[], storageKey
   });
 
   useEffect(() => {
+    if (!enableReordering) return;
     try {
       localStorage.setItem(`${storageKey}-order`, JSON.stringify(columnOrder));
     } catch (error) {
       console.error('Failed to save column order to localStorage', error);
     }
-  }, [columnOrder, storageKey]);
+  }, [columnOrder, storageKey, enableReordering]);
 
   useEffect(() => {
     try {
@@ -39,6 +43,10 @@ const useTableState = <T extends object>(initialColumns: Column<T>[], storageKey
   }, [columnWidths, storageKey]);
 
   const orderedColumns = useMemo(() => {
+    if (!enableReordering) {
+      return initialColumns;
+    }
+
     // Filter out any columns that may have been removed from initialColumns since last save
     const activeColumns = initialColumns.filter((c) => columnOrder.includes(c.header));
     const newColumns = initialColumns.filter((c) => !columnOrder.includes(c.header));
@@ -50,7 +58,7 @@ const useTableState = <T extends object>(initialColumns: Column<T>[], storageKey
       ),
       ...newColumns,
     ];
-  }, [columnOrder, initialColumns]);
+  }, [columnOrder, initialColumns, enableReordering]);
 
   const handleResize = useCallback((header: string, newWidth: number) => {
     setColumnWidths((prev) => ({

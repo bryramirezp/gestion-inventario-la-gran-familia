@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { menuApi, kitchenApi, getFullProductDetails } from '../../services/api';
+import { kitchenApi, getFullProductDetails } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUserProfile } from '../../hooks/useUserProfile';
-import { Menu } from '../../types';
+// Menu type removed since menuApi is no longer used
 import Header from '../../components/Header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/Card';
 import { Button } from '../../components/Button';
@@ -38,7 +38,7 @@ const KitchenStaffView: React.FC = () => {
   const { data: userProfile } = useUserProfile();
   const { addAlert } = useAlerts();
   const { refreshNotifications } = useNotifications();
-  const [todayMenu, setTodayMenu] = useState<Menu | null>(null);
+  const [todayMenu, setTodayMenu] = useState<any | null>(null);
   const [products, setProducts] = useState<ProductDetail[]>([]);
   const [requestHistory, setRequestHistory] = useState<TransactionDetail[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,8 +52,7 @@ const KitchenStaffView: React.FC = () => {
     if (!userProfile) return;
     setLoading(true);
     try {
-      const [menus, prods, transactions] = await Promise.all([
-        menuApi.getAll(''),
+      const [prods, transactions] = await Promise.all([
         getFullProductDetails('', userProfile.warehouse_access[0]),
         kitchenApi.getTransactions(''),
       ]);
@@ -62,8 +61,8 @@ const KitchenStaffView: React.FC = () => {
       const localDate = new Date(today.getTime() - today.getTimezoneOffset() * 60000);
       const todayStr = localDate.toISOString().split('T')[0];
 
-      const menuForToday = menus.find((m) => m.menu_date === todayStr);
-      setTodayMenu(menuForToday || null);
+      // Since menuApi is removed, set todayMenu to null for now
+      setTodayMenu(null);
       setProducts(prods);
       setRequestHistory(transactions.filter((t) => t.requester_id === userProfile.user_id));
     } catch (error) {

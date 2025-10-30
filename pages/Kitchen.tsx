@@ -3,7 +3,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../hooks/useUserProfile';
 import ManagerView from './kitchen/ManagerView';
 import KitchenStaffView from './kitchen/KitchenStaffView';
-import NutritionistView from './kitchen/NutritionistView';
 
 const Kitchen: React.FC = () => {
   const { user, loading } = useAuth();
@@ -20,13 +19,12 @@ const Kitchen: React.FC = () => {
   }
 
   switch (userProfile.role_name) {
-    case 'Kitchen Staff':
-      return <KitchenStaffView />;
-    case 'Nutritionist':
-      return <NutritionistView />;
-    case 'Administrator':
-    case 'Warehouse Manager':
+    case 'Administrador':
       return <ManagerView />;
+    case 'Operador':
+      return <ManagerView />;
+    case 'Consultor':
+      return <KitchenStaffView />;
     default:
       return (
         <div className="flex items-center justify-center h-full">
@@ -37,3 +35,4 @@ const Kitchen: React.FC = () => {
 };
 
 export default Kitchen;
+

@@ -299,73 +299,6 @@ export type Database = {
         ];
       };
 
-      daily_menus: {
-        Row: {
-          menu_id: number;
-          title: string;
-          instructions: string | null;
-          menu_date: string;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          menu_id?: number;
-          title: string;
-          instructions?: string | null;
-          menu_date: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          menu_id?: number;
-          title?: string;
-          instructions?: string | null;
-          menu_date?: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-
-      menu_items: {
-        Row: {
-          item_id: number;
-          menu_id: number;
-          product_id: number;
-          quantity: number;
-          created_at: string;
-        };
-        Insert: {
-          item_id?: number;
-          menu_id: number;
-          product_id: number;
-          quantity: number;
-          created_at?: string;
-        };
-        Update: {
-          item_id?: number;
-          menu_id?: number;
-          product_id?: number;
-          quantity?: number;
-          created_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'menu_items_menu_id_fkey';
-            columns: ['menu_id'];
-            isOneToOne: false;
-            referencedRelation: 'daily_menus';
-            referencedColumns: ['menu_id'];
-          },
-          {
-            foreignKeyName: 'menu_items_product_id_fkey';
-            columns: ['product_id'];
-            isOneToOne: false;
-            referencedRelation: 'products';
-            referencedColumns: ['product_id'];
-          },
-        ];
-      };
 
       donation_items: {
         Row: {
@@ -695,30 +628,7 @@ export type TransactionDetail = Database['public']['Tables']['transaction_detail
 export type NewTransactionDetail = Database['public']['Tables']['transaction_details']['Insert'];
 export type UserWarehouseAccess = Database['public']['Tables']['user_warehouse_access']['Row'];
 export type DonationTransaction = Database['public']['Tables']['donation_transactions']['Row'];
-export type DailyMenu = Database['public']['Tables']['daily_menus']['Row'];
-export type MenuItem = Database['public']['Tables']['menu_items']['Row'];
 
-export interface Menu {
-  menu_id: number;
-  title: string;
-  instructions: string;
-  menu_date: string; // YYYY-MM-DD
-  created_at: string;
-  updated_at: string;
-  items: {
-    product_id: number;
-    quantity: number;
-  }[];
-}
-export interface NewMenu {
-  title: string;
-  instructions: string;
-  menu_date: string;
-  items: {
-    product_id: number;
-    quantity: number;
-  }[];
-}
 
 export interface KitchenRequestNotification {
   transaction_id: number;

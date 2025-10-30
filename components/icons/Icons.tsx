@@ -186,13 +186,14 @@ export const SunIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg {...baseProps} {...props}>
     <path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm0-2c3.87 0 7 3.13 7 7s-3.13 7-7 7-7-3.13-7-7 3.13-7 7-7zm0-3v2h-1V2h1zm0 18v2h-1v-2h1zM4.22 5.64l1.41-1.41L4.22 2.81 2.81 4.22l1.41 1.42zM18.36 19.78l1.41-1.41 1.41 1.41-1.41 1.41-1.41-1.41zM2 12H0v-1h2v1zm20 0h2v-1h-2v1zM4.22 18.36l-1.41 1.41 1.41 1.41 1.41-1.41-1.41-1.41zM19.78 5.64l-1.41-1.41-1.41 1.41 1.41 1.41 1.41-1.41z" />
   </svg>
-);
+ );
 
 export const MoonIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg {...baseProps} {...props}>
-    <path d="M10 2c-1.74 0-3.41.56-4.79 1.5C3.44 2.45 2.25 2.76 1.13 3.4c-.11.06-.2.14-.29.21-.49.4-.87.87-1.15 1.4C-.65 8.16 2.01 14.12 7.6 17.5c2.65 1.58 5.66 1.77 8.36.56.27-.12.53-.25.79-.4.54-.31.95-.73 1.22-1.25.07-.12.14-.23.19-.36.63-1.1 1-2.27 1.05-3.47.02-.45-.04-.9-.12-1.34-.1-.54-.25-1.07-.44-1.58-.87-2.31-2.73-4.17-5.04-5.04-1.15-.43-2.36-.6-3.58-.51z" />
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
   </svg>
 );
+
 
 export const MenuIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg
@@ -419,5 +420,19 @@ export const WorldIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     <circle cx="12" cy="12" r="10" />
     <line x1="2" y1="12" x2="22" y2="12" />
     <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+  </svg>
+);
+
+export const CloudIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg
+    {...baseProps}
+    {...props}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
   </svg>
 );

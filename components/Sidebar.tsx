@@ -40,7 +40,7 @@ const Sidebar: React.FC<{
           name: 'Tablero',
           href: '/dashboard',
           icon: ChartPieIcon,
-          roles: ['Administrator', 'Warehouse Manager', 'Kitchen Staff', 'Nutritionist'],
+          roles: ['Administrador', 'Operador', 'Consultor'],
         },
       ],
     },
@@ -51,25 +51,25 @@ const Sidebar: React.FC<{
           name: 'Productos',
           href: '/products',
           icon: CubeIcon,
-          roles: ['Administrator', 'Warehouse Manager'],
+          roles: ['Administrador', 'Operador'],
         },
         {
           name: 'Donaciones',
           href: '/donations',
           icon: DollarSignIcon,
-          roles: ['Administrator', 'Warehouse Manager'],
+          roles: ['Administrador', 'Operador'],
         },
         {
           name: 'Donantes',
           href: '/donors',
           icon: UserGroupIcon,
-          roles: ['Administrator', 'Warehouse Manager'],
+          roles: ['Administrador', 'Operador'],
         },
         {
           name: 'Almacenes',
           href: '/warehouses',
           icon: BuildingStorefrontIcon,
-          roles: ['Administrator', 'Warehouse Manager'],
+          roles: ['Administrador', 'Operador'],
         },
       ],
     },
@@ -80,11 +80,11 @@ const Sidebar: React.FC<{
           name: 'Cocina',
           href: '/kitchen',
           icon: ChefHatIcon,
-          roles: ['Administrator', 'Warehouse Manager', 'Kitchen Staff', 'Nutritionist'],
+          roles: ['Administrador', 'Operador', 'Consultor'],
         },
-        { name: 'Categorías', href: '/categories', icon: ArchiveBoxIcon, roles: ['Administrator'] },
-        { name: 'Marcas', href: '/brands', icon: TagIcon, roles: ['Administrator'] },
-        { name: 'Usuarios', href: '/users', icon: UsersIcon, roles: ['Administrator'] },
+        { name: 'Categorías', href: '/categories', icon: ArchiveBoxIcon, roles: ['Administrador'] },
+        { name: 'Marcas', href: '/brands', icon: TagIcon, roles: ['Administrador'] },
+        { name: 'Usuarios', href: '/users', icon: UsersIcon, roles: ['Administrador'] },
         {
           name: 'Respaldo y Reseteo',
           href: '/backup',
@@ -101,13 +101,13 @@ const Sidebar: React.FC<{
           name: 'Reporte de Caducidad',
           href: '/expiry-report',
           icon: ExclamationTriangleIcon,
-          roles: ['Administrator', 'Warehouse Manager'],
+          roles: ['Administrador', 'Operador'],
         },
         {
           name: 'Análisis de Donantes',
           href: '/donor-analysis',
           icon: TrendingUpIcon,
-          roles: ['Administrator', 'Warehouse Manager'],
+          roles: ['Administrador', 'Operador'],
         },
       ],
     },
@@ -141,7 +141,7 @@ const Sidebar: React.FC<{
             const availableItems = section.items.filter((item) => {
               if (!userProfile) return false; // Ensure userProfile is loaded
               if (item.adminOnly) {
-                return userProfile.role_name === 'Administrator';
+                return userProfile.role_name === 'Administrador';
               }
               return item.roles.includes(userProfile.role_name);
             });

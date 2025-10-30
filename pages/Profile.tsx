@@ -26,7 +26,7 @@ const Profile: React.FC = () => {
   const { data: userProfile } = useUserProfile();
   const { addAlert } = useAlerts();
 
-  const isAdministrator = userProfile?.role_name === 'Administrator';
+  const isAdministrator = userProfile?.role_name === 'Administrador';
 
   const passwordForm = useForm<PasswordFormState>(
     { currentPassword: '', newPassword: '', confirmPassword: '' },

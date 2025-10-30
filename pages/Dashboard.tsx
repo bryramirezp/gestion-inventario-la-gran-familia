@@ -6,7 +6,6 @@ import {
   getFullProductDetails,
   warehouseApi,
   donorApi,
-  menuApi,
   donationApi,
 } from '../services/api';
 import {
@@ -21,7 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../co
 import { AnimatedWrapper, AnimatedCounter } from '../components/Animated';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../hooks/useUserProfile';
-import { Menu, Donation } from '../types';
+import { Donation } from '../types';
 import { Button } from '../components/Button';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
@@ -308,42 +307,23 @@ const NutritionistDashboard: React.FC = () => {
     (token) => getFullProductDetails(token)
   );
 
-  const { data: menus, isLoading: menusLoading } = useApiQuery(
-    ['menus'],
-    (token) => menuApi.getAll(token)
-  );
-
-  const loading = productsLoading || menusLoading;
+  const loading = productsLoading;
 
   const stats = useMemo(() => {
-    if (!products || !menus) return { menusNext7Days: 0, lowStockItems: 0, expiringSoon: 0 };
-
-    const today = new Date();
-    const todayStr = new Date(today.getTime() - today.getTimezoneOffset() * 60000)
-      .toISOString()
-      .split('T')[0];
-    const nextWeek = new Date(today);
-    nextWeek.setDate(today.getDate() + 7);
+    if (!products) return { menusNext7Days: 0, lowStockItems: 0, expiringSoon: 0 };
 
     return {
-      menusNext7Days: menus.filter(
-        (m) => new Date(m.menu_date) > today && new Date(m.menu_date) <= nextWeek
-      ).length,
+      menusNext7Days: 0, // Sin menús disponibles
       lowStockItems: products.filter((p) => p.total_stock < p.low_stock_threshold).length,
       expiringSoon: products.filter(
         (p) => p.days_to_expiry !== null && p.days_to_expiry <= 30 && p.days_to_expiry >= 0
       ).length,
     };
-  }, [products, menus]);
+  }, [products]);
 
   const todayMenu = useMemo(() => {
-    if (!menus) return null;
-    const today = new Date();
-    const todayStr = new Date(today.getTime() - today.getTimezoneOffset() * 60000)
-      .toISOString()
-      .split('T')[0];
-    return menus.find((m) => m.menu_date === todayStr) || null;
-  }, [menus]);
+    return null; // Sin menús disponibles
+  }, []);
 
   if (loading) {
     return <div className="flex justify-center items-center h-full">Cargando tablero...</div>;
@@ -352,17 +332,17 @@ const NutritionistDashboard: React.FC = () => {
   return (
     <AnimatedWrapper>
       <Header
-        title="Tablero de Nutricionista"
+        title="Tablero de Consultor"
         description={`Bienvenida de nuevo, ${userProfile?.full_name}. Aquí está tu resumen diario.`}
       />
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <StatCard
-          title="Menús Planeados (Próx. 7 Días)"
+          title="Consultas Disponibles"
           value={stats.menusNext7Days}
           icon={CalendarIcon}
           delay={0.1}
         >
-          <p className="text-xs text-muted-foreground mt-1">Todo listo para la semana.</p>
+          <p className="text-xs text-muted-foreground mt-1">Funcionalidades de consulta activas.</p>
         </StatCard>
         <StatCard
           title="Artículos con Stock Bajo"
@@ -387,7 +367,7 @@ const NutritionistDashboard: React.FC = () => {
       <Card>
         <CardHeader>
           <CardTitle>
-            Menú de Hoy:{' '}
+            Información de Consulta:{' '}
             {new Date().toLocaleDateString('es-ES', {
               weekday: 'long',
               month: 'long',
@@ -396,26 +376,16 @@ const NutritionistDashboard: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {todayMenu ? (
-            <div>
-              <h3 className="text-xl font-bold text-primary mb-2">{todayMenu.title}</h3>
-              <p className="text-muted-foreground whitespace-pre-wrap">{todayMenu.instructions}</p>
-              <p className="text-sm font-semibold mt-4">
-                ({todayMenu.items.length} ingredientes requeridos)
-              </p>
-            </div>
-          ) : (
-            <div className="text-center py-10 text-muted-foreground">
-              <ClipboardListIcon className="mx-auto h-12 w-12" />
-              <h3 className="mt-2 text-sm font-medium text-foreground">
-                No hay Menú Planeado para Hoy
-              </h3>
-              <p className="mt-1 text-sm">Puedes planear un nuevo menú en la sección de cocina.</p>
-              <Button as={Link} to="/kitchen" size="sm" className="mt-4">
-                Planear un Menú
-              </Button>
-            </div>
-          )}
+          <div className="text-center py-10 text-muted-foreground">
+            <ClipboardListIcon className="mx-auto h-12 w-12" />
+            <h3 className="mt-2 text-sm font-medium text-foreground">
+              Información de Consulta Disponible
+            </h3>
+            <p className="mt-1 text-sm">Accede a las funcionalidades de consulta en la sección de cocina.</p>
+            <Button as={Link} to="/kitchen" size="sm" className="mt-4">
+              Ir a Consultas
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </AnimatedWrapper>
@@ -430,7 +400,7 @@ const Dashboard: React.FC = () => {
     return <LoadingSpinner size="lg" message="Cargando dashboard..." fullScreen />;
   }
 
-  if (userProfile?.role_name === 'Nutritionist') {
+  if (userProfile?.role_name === 'Consultor') {
     return <NutritionistDashboard />;
   }
 
