@@ -71,7 +71,7 @@ const Profile: React.FC = () => {
 
   const handlePasswordSubmit = () => {
     // This is a simulated action. In a real app, you would call an API endpoint.
-    console.log('Simulating password change for user:', userProfile.user_id);
+    // Simulando cambio de contraseña para usuario
     addAlert('¡Contraseña cambiada con éxito! (Simulado)', 'success');
     passwordForm.reset();
   };

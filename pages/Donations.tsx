@@ -177,7 +177,7 @@ const Donations: React.FC = () => {
       setHistory(h);
       setDonorTypes(dt);
     } catch (e) {
-      console.error('Failed to fetch donation data', e);
+      // Error al cargar datos de donaciones - manejado por el sistema de alertas
       addAlert('Error al cargar los datos de la página.', 'error');
     } finally {
       setLoading(false);
@@ -287,7 +287,7 @@ const Donations: React.FC = () => {
       resetForm();
       fetchData(); // Refetch history
     } catch (error) {
-      console.error('Failed to register donation', error);
+      // Error al registrar donación - manejado por el sistema de alertas
       addAlert('Error al registrar la donación.', 'error');
     }
   }, [validateForm, getToken, selectedDonor, selectedWarehouse, items, addAlert, resetForm, fetchData]);
@@ -312,7 +312,7 @@ const Donations: React.FC = () => {
       setIsDonorModalOpen(false);
       setNewDonorName('');
     } catch (error: any) {
-      console.error('Failed to create donor', error);
+      // Error al crear donante - manejado por el sistema de alertas
       addAlert(`Error al crear nuevo donante: ${error.message}`, 'error');
       throw error;
     }

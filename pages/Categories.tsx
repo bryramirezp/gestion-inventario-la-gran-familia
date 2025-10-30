@@ -103,7 +103,7 @@ const Categories: React.FC = () => {
       const data = await categoryApi.getAll('');
       setCategories(data);
     } catch (error) {
-      console.error('Failed to fetch categories', error);
+      // Error al cargar categorías - manejado por el sistema de alertas
       addAlert('Error al cargar las categorías.', 'error');
     } finally {
       setLoading(false);
@@ -165,7 +165,7 @@ const Categories: React.FC = () => {
         addAlert('Categoría desactivada con éxito.', 'success');
         fetchCategories();
       } catch (error) {
-        console.error('Failed to deactivate category', error);
+        // Error al desactivar categoría - manejado por el sistema de alertas
         addAlert('Error al desactivar la categoría.', 'error');
       } finally {
         setIsAlertOpen(false);

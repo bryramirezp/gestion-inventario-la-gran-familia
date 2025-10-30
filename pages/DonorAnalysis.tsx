@@ -45,7 +45,7 @@ const DonorAnalysis: React.FC = () => {
       setAnalysisData(data);
       setDonorTypes(types);
     } catch (error) {
-      console.error('Failed to fetch donor analysis', error);
+      // Error al cargar análisis de donantes - manejado internamente
     } finally {
       setLoading(false);
     }

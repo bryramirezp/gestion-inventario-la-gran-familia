@@ -29,7 +29,7 @@ const Login: React.FC = () => {
   useEffect(() => {
     // Solo redirigir cuando tengamos usuario Y no estemos cargando
     if (user && !authLoading) {
-      console.log('Login: User authenticated, redirecting to dashboard...');
+      // Usuario autenticado, redirigiendo al dashboard
       navigate('/dashboard', { replace: true });
     }
   }, [user, authLoading, navigate]);
@@ -37,15 +37,15 @@ const Login: React.FC = () => {
   const handleLogin = async () => {
     setErrors({});
     try {
-      console.log('Login: Starting login...');
+      // Iniciando proceso de login
       await login(values.email, values.password);
-      console.log('Login: Login completed');
+      // Proceso de login completado
       // NO forzar redirección - dejar que useEffect lo maneje cuando user cambie
     } catch (err: any) {
       setErrors({
         form: err.message || 'Error al iniciar sesión. Por favor, inténtalo de nuevo.'
       });
-      console.error('Login error:', err);
+      // Error en login - manejado por el sistema de alertas
     }
   };
 

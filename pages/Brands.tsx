@@ -102,7 +102,7 @@ const Brands: React.FC = () => {
       const data = await brandApi.getAll('');
       setBrands(data);
     } catch (error) {
-      console.error('Failed to fetch brands', error);
+      // Error al cargar marcas - manejado por el sistema de alertas
       addAlert('Error al cargar las marcas.', 'error');
     } finally {
       setLoading(false);
@@ -161,7 +161,7 @@ const Brands: React.FC = () => {
         addAlert('Marca eliminada con éxito.', 'success');
         fetchBrands();
       } catch (error) {
-        console.error('Failed to delete brand', error);
+        // Error al eliminar marca - manejado por el sistema de alertas
         addAlert('Error al eliminar la marca.', 'error');
       } finally {
         setIsAlertOpen(false);

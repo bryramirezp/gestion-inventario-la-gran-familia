@@ -48,7 +48,7 @@ const WarehouseDetail: React.FC = () => {
         setProducts(prods as ProductDetail[]);
         setAllCategories(cats);
       } catch (error) {
-        console.error(`Failed to fetch data for warehouse ${warehouseId}`, error);
+        // Error al cargar datos del almacén - manejado internamente
       } finally {
         setLoading(false);
       }

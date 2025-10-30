@@ -75,7 +75,7 @@ const handleBackup = async () => {
       .order('donation_date', { ascending: true });
 
     if (donationsError) throw donationsError;
-    console.log('✅ Donaciones obtenidas:', donations?.length ?? 0);
+    // Donaciones obtenidas correctamente
 
     if (!donations || donations.length === 0) {
       addAlert('No hay donaciones en el año seleccionado.', 'warning');
@@ -120,7 +120,7 @@ const handleBackup = async () => {
       .order('donation_id', { ascending: true });
 
     if (itemsError) throw itemsError;
-    console.log('✅ Artículos donados obtenidos:', donationItems?.length ?? 0);
+    // Artículos donados obtenidos correctamente
 
     // 🔹 3. Mapear tipos de donativo (según tu catálogo)
     const donorTypeMapping: Record<number, string> = {
@@ -285,7 +285,7 @@ const handleBackup = async () => {
 
     addAlert(`✅ Respaldo generado: ${donationItems?.length || 0} artículos exportados`, 'success');
   } catch (error) {
-    console.error('❌ Error al generar respaldo:', error);
+    // Error al generar respaldo - manejado por el sistema de alertas
     addAlert(`Error: ${error.message}`, 'error');
   } finally {
     setIsBackupLoading(false);
@@ -308,7 +308,7 @@ const handleReset = async () => {
     addAlert('Sistema reseteado con éxito.', 'success');
     window.location.reload();
   } catch (error) {
-    console.error('Failed to reset system', error);
+    // Error al resetear sistema - manejado por el sistema de alertas
     addAlert('Error al resetear el sistema.', 'error');
   } finally {
     setIsResetLoading(false);
@@ -440,7 +440,7 @@ const handleImport = () => {
 
       addAlert('Importación completada exitosamente.', 'success');
     } catch (error) {
-      console.error('Error al importar', error);
+      // Error al importar datos - manejado por el sistema de alertas
       addAlert('Error al importar los datos. Revisa la consola.', 'error');
     } finally {
       setIsImporting(false);

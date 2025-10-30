@@ -83,7 +83,7 @@ const ExpiryReport: React.FC = () => {
 
       setReportLots(enrichedLots);
     } catch (error) {
-      console.error('Failed to fetch expiry report data', error);
+      // Error al cargar datos de reporte de caducidad - manejado internamente
     } finally {
       setLoading(false);
     }
@@ -119,7 +119,7 @@ const ExpiryReport: React.FC = () => {
       }
       fetchReportData();
     } catch (error) {
-      console.error('Failed to process expired lots', error);
+      // Error al procesar lotes caducados - manejado por el sistema de alertas
       addAlert('Ocurrió un error al procesar los lotes caducados.', 'error');
     } finally {
       setIsProcessing(false);

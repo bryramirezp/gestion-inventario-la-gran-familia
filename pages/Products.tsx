@@ -339,7 +339,7 @@ const Products: React.FC = () => {
       setUnits(uns);
       setWarehouses(whs);
     } catch (error) {
-      console.error('Failed to fetch products', error);
+      // Error al cargar productos - manejado por el sistema de alertas
       addAlert('Error al cargar los productos.', 'error');
     } finally {
       setLoading(false);
@@ -433,7 +433,7 @@ const Products: React.FC = () => {
       await refreshNotifications();
       handleCloseModal();
     } catch (error) {
-      console.error('Failed to save product', error);
+      // Error al guardar producto - propagado al formulario
       throw error;
     }
   };
@@ -456,7 +456,7 @@ const Products: React.FC = () => {
       await refreshNotifications();
       handleCloseRestockModal();
     } catch (error) {
-      console.error('Failed to add stock', error);
+      // Error al agregar stock - manejado por el sistema de alertas
       addAlert('Error al agregar stock. Por favor, inténtalo de nuevo.', 'error');
       throw error; // Propagate error to form
     }
@@ -480,7 +480,7 @@ const Products: React.FC = () => {
         await fetchProducts();
         await refreshNotifications();
       } catch (error) {
-        console.error('Failed to delete product', error);
+        // Error al eliminar producto - manejado por el sistema de alertas
         addAlert('Error al eliminar el producto. Puede que esté en uso.', 'error');
       } finally {
         setIsAlertOpen(false);

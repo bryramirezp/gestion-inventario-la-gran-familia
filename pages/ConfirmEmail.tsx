@@ -27,7 +27,7 @@ const ConfirmEmail: React.FC = () => {
           });
 
           if (error) {
-            console.error('Error verifying email:', error);
+            // Error verificando email - manejado por el sistema
             setStatus('error');
             setMessage('Error al confirmar el correo electrónico. El enlace puede haber expirado.');
           } else if (data.user) {
@@ -42,7 +42,7 @@ const ConfirmEmail: React.FC = () => {
           setMessage('Enlace de confirmación inválido o expirado.');
         }
       } catch (error) {
-        console.error('Error during email confirmation:', error);
+        // Error durante confirmación de email - manejado por el sistema
         setStatus('error');
         setMessage('Ocurrió un error inesperado. Inténtalo de nuevo.');
       }

@@ -107,7 +107,7 @@ const DonorDetail: React.FC = () => {
       }
       setWarehouses(whs);
     } catch (error) {
-      console.error('Failed to fetch donor details', error);
+      // Error al cargar detalles del donante - manejado internamente
     } finally {
       setLoading(false);
     }

@@ -165,7 +165,7 @@ const Warehouses: React.FC = () => {
       }));
       setWarehouses(warehousesWithCount);
     } catch (error) {
-      console.error('Failed to fetch warehouses', error);
+      // Error al cargar almacenes - manejado por el sistema de alertas
       addAlert('Error al cargar los almacenes.', 'error');
     } finally {
       setLoading(false);
@@ -239,7 +239,7 @@ const Warehouses: React.FC = () => {
         addAlert('Almacén eliminado con éxito.', 'success');
         fetchWarehouses();
       } catch (error) {
-        console.error('Failed to delete warehouse', error);
+        // Error al eliminar almacén - manejado por el sistema de alertas
         addAlert('Error al eliminar el almacén.', 'error');
       } finally {
         setIsAlertOpen(false);

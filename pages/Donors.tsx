@@ -124,7 +124,7 @@ const Donors: React.FC = () => {
       setDonors(donorData.sort((a, b) => b.total_value_donated - a.total_value_donated));
       setDonorTypes(donorTypeData);
     } catch (error) {
-      console.error('Failed to fetch donors', error);
+      // Error al cargar donantes - manejado por el sistema de alertas
       addAlert('Error al cargar los donantes.', 'error');
     } finally {
       setLoading(false);
@@ -192,7 +192,7 @@ const Donors: React.FC = () => {
         addAlert('Donante eliminado con éxito.', 'success');
         fetchDonors();
       } catch (error) {
-        console.error('Failed to delete donor', error);
+        // Error al eliminar donante - manejado por el sistema de alertas
         addAlert('Error al eliminar el donante.', 'error');
       } finally {
         setIsAlertOpen(false);

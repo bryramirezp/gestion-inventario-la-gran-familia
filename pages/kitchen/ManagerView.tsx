@@ -145,7 +145,7 @@ const ManagerView: React.FC = () => {
       setTransactions(trans);
       setCategories(cats);
     } catch (error) {
-      console.error('Failed to fetch manager kitchen data', error);
+      // Error al cargar datos de gestión de cocina - manejado por el sistema de alertas
       addAlert('Error al cargar los datos de la cocina.', 'error');
     } finally {
       setLoading(false);

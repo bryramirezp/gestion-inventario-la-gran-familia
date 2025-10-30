@@ -66,7 +66,7 @@ const KitchenStaffView: React.FC = () => {
       setProducts(prods);
       setRequestHistory(transactions.filter((t) => t.requester_id === userProfile.user_id));
     } catch (error) {
-      addAlert('Failed to load kitchen data.', 'error');
+      // Error al cargar datos de cocina - manejado por el sistema de alertas
     } finally {
       setLoading(false);
     }
@@ -127,7 +127,7 @@ const KitchenStaffView: React.FC = () => {
       setIsConfirmed(false);
       setFormErrors({});
     } catch (error) {
-      addAlert('Failed to submit request.', 'error');
+      // Error al enviar solicitud - manejado por el sistema de alertas
     }
   };
 

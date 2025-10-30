@@ -351,7 +351,7 @@ const Users: React.FC = () => {
       setRoles(roleData);
       setWarehouses(warehouseData);
     } catch (error) {
-      console.error('Failed to fetch user data', error);
+      // Error al cargar datos de usuario - manejado por el sistema de alertas
       addAlert('Error al cargar los datos de usuario.', 'error');
     } finally {
       setLoading(false);
@@ -411,7 +411,7 @@ const Users: React.FC = () => {
         );
         fetchData();
       } catch (error) {
-        console.error('Failed to toggle user status', error);
+        // Error al cambiar estado de usuario - manejado por el sistema de alertas
         addAlert('Error al actualizar el estado del usuario.', 'error');
       } finally {
         setIsToggleAlertOpen(false);
@@ -432,7 +432,7 @@ const Users: React.FC = () => {
         addAlert(`El usuario ${userToDelete.full_name} ha sido eliminado permanentemente.`, 'success');
         fetchData();
       } catch (error) {
-        console.error('Failed to delete user', error);
+        // Error al eliminar usuario - manejado por el sistema de alertas
         addAlert('Error al eliminar el usuario.', 'error');
       } finally {
         setIsDeleteAlertOpen(false);
