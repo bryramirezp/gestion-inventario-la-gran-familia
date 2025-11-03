@@ -70,24 +70,6 @@ const ProtectedRoute: React.FC<{ roles?: string[] }> = ({ roles }) => {
     return <Outlet />;
 };
 
-const AdminOnlyRoute: React.FC = () => {
-    const { user, loading } = useAuth();
-    const { data: userProfile, isLoading: isProfileLoading } = useUserProfile(); // Use useUserProfile
-
-    if (loading || isProfileLoading) { // Wait for both auth and profile to load
-        return <LoadingSpinner size="lg" message="Cargando..." />;
-    }
-
-    if (!user) {
-        return <Navigate to="/login" replace />;
-    }
-
-    if (!userProfile || userProfile.role_name !== 'Administrador') { // Check role instead of hardcoded IDs
-        return <Navigate to="/dashboard" replace />;
-    }
-
-    return <Outlet />;
-};
 
 
 const LoadingFallback: React.FC = () => (
@@ -143,7 +125,7 @@ const App: React.FC = () => {
                                     </Route>
 
                                     {/* Backup route for specific admins */}
-                                    <Route element={<AdminOnlyRoute />}>
+                                    <Route element={<ProtectedRoute roles={['Administrador']} />}>
                                         <Route path="/backup" element={<Backup />} />
                                     </Route>
                                 </Route>
