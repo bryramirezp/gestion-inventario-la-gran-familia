@@ -511,44 +511,6 @@ const handleImport = () => {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-4">
-                <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-lg bg-muted dark:bg-dark-muted">
-                  <DatabaseBackupIcon className="w-6 h-6 text-muted-foreground -scale-x-100" />
-                </div>
-                <div>
-                  <CardTitle>Importar Datos desde Excel</CardTitle>
-                  <CardDescription>
-                    Sube un archivo para agregar nuevos registros de donaciones al sistema.
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="import-file-input">Selecciona Archivo de Excel</Label>
-                <Input
-                  id="import-file-input"
-                  type="file"
-                  onChange={handleFileChange}
-                  accept=".xlsx, .xls"
-                  className="pt-2"
-                />
-                <p className="text-xs text-muted-foreground mt-2">
-                  Formato esperado: Una hoja de Excel con columnas para Ref, Nombre Completo, Fecha,
-                  Cantidad, Unidad, Descripción y Precio Unitario.
-                </p>
-              </div>
-              <Button
-                onClick={handleImport}
-                disabled={isImporting || !importFile}
-                className="w-full"
-              >
-                {isImporting ? 'Importando...' : 'Importar Datos'}
-              </Button>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Reset Card */}

@@ -21,11 +21,11 @@ import { Button } from './Button';
 import LoadingSpinner from './LoadingSpinner';
 
 const Sidebar: React.FC<{
-  _isCollapsed: boolean;
+  isCollapsed: boolean;
   isMobileOpen: boolean;
   setMobileOpen: (isOpen: boolean) => void;
-  _onToggleCollapse?: (collapsed: boolean) => void;
-}> = ({ _isCollapsed, isMobileOpen, setMobileOpen, _onToggleCollapse }) => {
+  onToggleCollapse?: (collapsed: boolean) => void;
+}> = ({ isCollapsed, isMobileOpen, setMobileOpen, onToggleCollapse }) => {
   const { user, logout } = useAuth();
   const { data: userProfile, isLoading: isProfileLoading } = useUserProfile();
 
@@ -122,11 +122,11 @@ const Sidebar: React.FC<{
       {/* Header Section - Fixed */}
       <div className="flex-shrink-0">
         <div className="flex items-center mb-6 px-2 justify-start">
-          <div className="flex items-center overflow-hidden transition-all duration-500 ease-in-out w-auto">
+          <div className={`flex items-center overflow-hidden transition-all duration-500 ease-in-out ${isCollapsed ? 'w-auto' : 'w-auto'}`}>
             <div className="bg-primary p-2 rounded-lg flex-shrink-0">
               <img src="/logo-lagranfamilia.png" alt="La Gran Familia" className="w-6 h-6 object-contain" />
             </div>
-            <h1 className="text-xl font-bold ml-3 text-foreground dark:text-dark-foreground whitespace-nowrap">
+            <h1 className={`text-xl font-bold ml-3 text-foreground dark:text-dark-foreground whitespace-nowrap transition-all duration-500 ease-in-out ${isCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
               La Gran Familia
             </h1>
           </div>
@@ -156,7 +156,7 @@ const Sidebar: React.FC<{
 
             return (
               <div key={section.title}>
-                <h3 className="px-3 text-xs font-semibold uppercase text-muted-foreground/80 tracking-wider mb-1 mt-3 transition-all duration-500 ease-in-out">
+                <h3 className={`px-3 text-xs font-semibold uppercase text-muted-foreground/80 tracking-wider mb-1 mt-3 transition-all duration-500 ease-in-out ${isCollapsed ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100'}`}>
                   <span>{section.title}</span>
                 </h3>
                 {availableItems.map((item) => (
@@ -165,7 +165,7 @@ const Sidebar: React.FC<{
                     to={item.href}
                     onClick={() => setMobileOpen(false)}
                     className={({ isActive }) =>
-                      `${linkClasses} ${isActive ? activeLinkClasses : ''} group relative transition-all duration-300 ease-in-out transform-gpu`
+                      `${linkClasses} ${isActive ? activeLinkClasses : ''} group relative transition-all duration-300 ease-in-out transform-gpu ${isCollapsed ? 'justify-center px-2' : ''}`
                     }
                     onMouseEnter={() => {
                       // Prefetch route on hover for better UX
@@ -175,7 +175,7 @@ const Sidebar: React.FC<{
                     }}
                   >
                     <item.icon className="w-5 h-5 flex-shrink-0" />
-                    <span className="ml-3 whitespace-nowrap transition-all duration-500 ease-in-out">
+                    <span className={`ml-3 whitespace-nowrap transition-all duration-500 ease-in-out ${isCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
                       {item.name}
                     </span>
                   </NavLink>
@@ -191,11 +191,11 @@ const Sidebar: React.FC<{
           <div className="border-t border-border dark:border-dark-border pt-4">
             <Button
               variant="ghost"
-              className="w-full transition-all duration-300 ease-in-out"
+              className={`w-full transition-all duration-300 ease-in-out ${isCollapsed ? 'justify-center px-2' : ''}`}
               onClick={logout}
             >
-              <LogoutIcon className="w-5 h-5" />
-              <span className="ml-2 whitespace-nowrap transition-all duration-500 ease-in-out">
+              <LogoutIcon className="w-5 h-5 flex-shrink-0" />
+              <span className={`ml-2 whitespace-nowrap transition-all duration-500 ease-in-out ${isCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
                 Cerrar Sesión
               </span>
             </Button>
@@ -215,16 +215,17 @@ const Sidebar: React.FC<{
 
       {/* Unified Sidebar */}
       <aside
-        className="
+        className={`
             bg-card dark:bg-dark-card border-r border-border dark:border-dark-border
             flex flex-col flex-shrink-0 p-4
             transition-all duration-500 ease-in-out
             fixed lg:relative inset-y-0 left-0 z-50
-            w-64
+            ${isCollapsed ? 'w-16' : 'w-64'}
             lg:w-64
+            ${isCollapsed ? 'lg:w-16' : 'lg:w-64'}
             translate-x-0
             lg:translate-x-0
-        "
+        `}
       >
         {sidebarContent}
       </aside>
