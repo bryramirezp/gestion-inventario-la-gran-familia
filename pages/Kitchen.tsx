@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../hooks/useUserProfile';
+import LoadingSpinner from '../components/LoadingSpinner';
 import ManagerView from './kitchen/ManagerView';
 import KitchenStaffView from './kitchen/KitchenStaffView';
 
@@ -9,13 +10,11 @@ const Kitchen: React.FC = () => {
   const { data: userProfile, isLoading: isProfileLoading } = useUserProfile();
 
   if (loading || isProfileLoading) {
-    return (
-      <div className="flex items-center justify-center h-full">Cargando Módulo de Cocina...</div>
-    );
+    return <LoadingSpinner size="lg" message="Cargando Módulo de Cocina..." centerScreen />;
   }
 
   if (!user || !userProfile) {
-    return <div className="flex items-center justify-center h-full">Usuario no encontrado.</div>;
+    return <LoadingSpinner size="lg" message="Usuario no encontrado." centerScreen />;
   }
 
   switch (userProfile.role_name) {
@@ -26,11 +25,7 @@ const Kitchen: React.FC = () => {
     case 'Consultor':
       return <KitchenStaffView />;
     default:
-      return (
-        <div className="flex items-center justify-center h-full">
-          No tienes acceso a este módulo.
-        </div>
-      );
+      return <LoadingSpinner size="lg" message="No tienes acceso a este módulo." centerScreen />;
   }
 };
 

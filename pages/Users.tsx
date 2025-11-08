@@ -364,7 +364,9 @@ const Users: React.FC = () => {
 
   const filteredUsers = useMemo(() => {
     return users.filter((u) => {
-      const matchesSearch = u.full_name.toLowerCase().includes(searchTerm.toLowerCase());
+      // Manejar full_name null o undefined
+      const fullName = u.full_name || '';
+      const matchesSearch = fullName.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesRole = selectedRole ? u.role_id === parseInt(selectedRole) : true;
       return matchesSearch && matchesRole;
     });
@@ -406,7 +408,7 @@ const Users: React.FC = () => {
       try {
         await userApi.toggleUserStatus(token, userToToggle.user_id);
         addAlert(
-          `El usuario ${userToToggle.full_name} ha sido ${userToToggle.is_active ? 'desactivado' : 'activado'}.`,
+          `El usuario ${userToToggle.full_name || 'Sin nombre'} ha sido ${userToToggle.is_active ? 'desactivado' : 'activado'}.`,
           'success'
         );
         fetchData();
@@ -429,7 +431,7 @@ const Users: React.FC = () => {
       }
       try {
         await userApi.deleteUser(token, userToDelete.user_id);
-        addAlert(`El usuario ${userToDelete.full_name} ha sido eliminado permanentemente.`, 'success');
+        addAlert(`El usuario ${userToDelete.full_name || 'Sin nombre'} ha sido eliminado permanentemente.`, 'success');
         fetchData();
       } catch (error) {
         // Error al eliminar usuario - manejado por el sistema de alertas
@@ -483,7 +485,7 @@ const Users: React.FC = () => {
       return;
     }
     await userApi.updateUserPassword(token, editingUser.user_id, password);
-    addAlert(`La contraseña para ${editingUser.full_name} ha sido actualizada.`, 'success');
+    addAlert(`La contraseña para ${editingUser.full_name || 'el usuario'} ha sido actualizada.`, 'success');
     handleCloseModal();
   };
 
@@ -491,7 +493,10 @@ const Users: React.FC = () => {
 
   const columns: Column<UserDetail>[] = useMemo(
     () => [
-      { header: 'Nombre', accessor: 'full_name' },
+      { 
+        header: 'Nombre', 
+        accessor: (item) => item.full_name || 'Sin nombre' 
+      },
       { header: 'Rol', accessor: (item) => <Badge>{item.role_name}</Badge> },
       {
         header: 'Acceso a Almacén',
@@ -645,7 +650,7 @@ const Users: React.FC = () => {
       <Dialog isOpen={isPasswordModalOpen} onClose={handleCloseModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Restablecer Contraseña para {editingUser?.full_name}</DialogTitle>
+            <DialogTitle>Restablecer Contraseña para {editingUser?.full_name || 'Usuario'}</DialogTitle>
           </DialogHeader>
           {editingUser && (
             <PasswordResetForm
@@ -663,7 +668,7 @@ const Users: React.FC = () => {
             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
             <AlertDialogDescription>
               Esto {userToToggle?.is_active ? 'desactivará' : 'activará'} la cuenta de "
-              {userToToggle?.full_name}".{' '}
+              {userToToggle?.full_name || 'Sin nombre'}".{' '}
               {userToToggle?.is_active
                 ? 'No podrán iniciar sesión.'
                 : 'Podrán volver a iniciar sesión.'}
@@ -686,7 +691,7 @@ const Users: React.FC = () => {
             <AlertDialogTitle>¿Estás completamente seguro?</AlertDialogTitle>
             <AlertDialogDescription>
               Esta acción no se puede deshacer. Esto eliminará permanentemente al usuario "
-              {userToDelete?.full_name}" y toda su información asociada, incluyendo su cuenta de autenticación.
+              {userToDelete?.full_name || 'Sin nombre'}" y toda su información asociada, incluyendo su cuenta de autenticación.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

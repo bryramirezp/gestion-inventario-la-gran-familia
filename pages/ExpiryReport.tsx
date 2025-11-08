@@ -20,6 +20,7 @@ import {
   AlertDialogTitle,
 } from '../components/AlertDialog';
 import { useAlerts } from '../contexts/AlertContext';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 type ReportLot = StockLot & {
   product_name: string;
@@ -186,7 +187,7 @@ const ExpiryReport: React.FC = () => {
   );
 
   if (loading) {
-    return <div className="text-center p-8">Cargando reporte de caducidad...</div>;
+    return <LoadingSpinner size="lg" message="Cargando reporte de caducidad..." centerScreen />;
   }
 
   return (

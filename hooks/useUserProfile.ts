@@ -5,8 +5,8 @@ import { useAuth } from '../contexts/AuthContext';
 
 export interface UserProfile {
   user_id: string;
-  full_name: string;
-  role_id: number;
+  full_name: string | null;
+  role_id: number | null;
   role_name: string;
   is_active: boolean;
   warehouse_access: number[];

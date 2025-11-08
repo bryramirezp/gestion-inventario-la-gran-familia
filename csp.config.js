@@ -5,6 +5,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 const baseCSP = {
   'default-src': ["'self'"],
   'frame-src': ["'none'"],
+  'frame-ancestors': ["'none'"],
   'object-src': ["'none'"],
   'base-uri': ["'self'"],
   'form-action': ["'self'"],
@@ -13,22 +14,30 @@ const baseCSP = {
 };
 
 // Development-specific rules (more permissive for debugging)
+// Note: In development, we allow unsafe-inline for easier debugging
+// All external CDN dependencies have been removed:
+// - Google Fonts: Auto-hosted in public/fonts/ (loaded from 'self')
+// - xlsx library: Loaded via npm and dynamic import (no CDN needed)
 const developmentCSP = {
   ...baseCSP,
-  'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdnjs.cloudflare.com"],
-  'style-src': ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-  'font-src': ["'self'", "https://fonts.gstatic.com"],
-  'img-src': ["'self'", "data:", "https:"],
+  'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+  'style-src': ["'self'", "'unsafe-inline'"],
+  'font-src': ["'self'"], // Fonts auto-hosted, no Google Fonts CDN
+  'img-src': ["'self'", "data:", "https://*.supabase.co", "https://vercel.com", "https://*.vercel.app"],
   'connect-src': ["'self'", "https://*.supabase.co", "wss://*.supabase.co"]
 };
 
-// Production-specific rules (more restrictive)
+// Production-specific rules (strict CSP compliant)
+// No external CDN dependencies - all assets served from 'self'
+// - Google Fonts: Auto-hosted in public/fonts/
+// - xlsx library: Loaded via npm and dynamic import
+// - Scripts: 'strict-dynamic' allows Vite-bundled scripts to load other scripts
 const productionCSP = {
   ...baseCSP,
-  'script-src': ["'self'", "https://cdnjs.cloudflare.com"],
-  'style-src': ["'self'", "https://fonts.googleapis.com"],
-  'font-src': ["'self'", "https://fonts.gstatic.com"],
-  'img-src': ["'self'", "data:", "https:"],
+  'script-src': ["'self'", "'strict-dynamic'"], // No CDN scripts (xlsx loaded via npm)
+  'style-src': ["'self'"], // No Google Fonts CDN (fonts auto-hosted)
+  'font-src': ["'self'"], // Fonts auto-hosted, no Google Fonts CDN
+  'img-src': ["'self'", "data:", "https://*.supabase.co", "https://vercel.com", "https://*.vercel.app"],
   'connect-src': ["'self'", "https://*.supabase.co", "wss://*.supabase.co"]
 };
 

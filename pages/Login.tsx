@@ -117,9 +117,15 @@ const Login: React.FC = () => {
                 {errors.form}
               </p>
             )}
-            <Button type="submit" disabled={authLoading || !values.email} className="w-full">
-              <KeyIcon className="w-4 h-4 mr-2" />
-              {authLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+            <Button 
+              type="submit" 
+              disabled={!values.email} 
+              loading={authLoading}
+              loadingText="Iniciando sesión..."
+              className="w-full"
+            >
+              {!authLoading && <KeyIcon className="w-4 h-4 mr-2" />}
+              Iniciar Sesión
             </Button>
           </form>
           <div className="mt-4 text-center space-y-2">

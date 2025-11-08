@@ -19,6 +19,7 @@ import {
 import useTableState from '../hooks/useTableState';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../hooks/useUserProfile';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 type DonationItem = Donation['items'][0];
 
@@ -151,7 +152,7 @@ const DonorDetail: React.FC = () => {
     `donor-detail-${donorId}-donations`
   );
 
-  if (loading) return <div>Cargando detalles del donante...</div>;
+  if (loading) return <LoadingSpinner size="lg" message="Cargando detalles del donante..." centerScreen />;
   if (!donor || !analysis)
     return (
       <div>

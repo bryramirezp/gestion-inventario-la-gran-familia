@@ -163,8 +163,8 @@ const DefaultDashboard: React.FC = () => {
     },
   };
 
-if (loading) {
-    return <div className="flex justify-center items-center h-full">Cargando tablero...</div>;
+  if (loading) {
+    return <LoadingSpinner size="lg" message="Cargando tablero..." centerScreen />;
   }
 
   // Los componentes de recharts ya están importados directamente
@@ -309,7 +309,7 @@ const NutritionistDashboard: React.FC = () => {
 
 
   if (loading) {
-    return <div className="flex justify-center items-center h-full">Cargando tablero...</div>;
+    return <LoadingSpinner size="lg" message="Cargando tablero..." centerScreen />;
   }
 
   return (

@@ -18,21 +18,34 @@ import { DatabaseBackupIcon, ExclamationTriangleIcon } from '../components/icons
 import { useAuth } from '../contexts/AuthContext';
 import { useAlerts } from '../contexts/AlertContext';
 import { supabase } from '../services/supabase';
+import { useXLSX } from '../hooks/useXLSX';
+import LoadingSpinner from '../components/LoadingSpinner';
 
-// This is a global declaration for the SheetJS library loaded from CDN
-declare const XLSX: {
-  utils: {
-    book_new: () => any;
-    json_to_sheet: (data: any[], options?: any) => any;
-    book_append_sheet: (workbook: any, worksheet: any, name: string) => void;
-    sheet_to_json: (worksheet: any) => any[];
+// Función auxiliar para obtener ancho de columna
+const getColumnWidth = (header: string): number => {
+  const widths: Record<string, number> = {
+    'Ref': 8,
+    'Nombre Completo': 25,
+    'Celular / Telefono': 15,
+    'Correo': 25,
+    'Dirección': 30,
+    'Fecha': 12,
+    'Almacén': 20,
+    'Cantidad': 10,
+    'Unidad': 10,
+    'Descripción': 35,
+    'Precio Unitario': 12,
+    'Precio Total': 12,
+    'Total con descuento': 15,
+    'Porcentaje Descuento': 12,
+    'Tipo de Donativo': 20,
   };
-  read: (data: Uint8Array, options: any) => any;
-  writeFile: (workbook: any, filename: string) => void;
+  return widths[header] || 12;
 };
 
 const Backup: React.FC = () => {
   const { addAlert } = useAlerts();
+  const { xlsx, isReady: isXLSXReady } = useXLSX();
 
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [isBackupLoading, setIsBackupLoading] = useState(false);
@@ -43,6 +56,11 @@ const Backup: React.FC = () => {
 
   const [importFile, setImportFile] = useState<File | null>(null);
   const [isImporting, setIsImporting] = useState(false);
+
+  // Show loading spinner while xlsx is loading
+  if (!isXLSXReady) {
+    return <LoadingSpinner size="lg" message="Cargando herramientas de exportación..." centerScreen />;
+  }
 
 const handleBackup = async () => {
   setIsBackupLoading(true);
@@ -235,8 +253,13 @@ const handleBackup = async () => {
       };
     }) || [];
 
-    // 🔹 6. Crear libro de Excel
-    const wb = XLSX.utils.book_new();
+    // 🔹 6. Crear libro de Excel con ExcelJS
+    if (!xlsx) {
+      throw new Error('ExcelJS library no está disponible');
+    }
+
+    const workbook = new xlsx.Workbook();
+    const worksheet = workbook.addWorksheet(`Donativos_${selectedYear}`);
     
     // Definir headers personalizados según tu formato
     const headers = [
@@ -266,30 +289,39 @@ const handleBackup = async () => {
       'mob y equipo'
     ];
 
-    const ws = XLSX.utils.json_to_sheet(excelData, { header: headers });
-    
-    // Ajustar anchos de columna
-    ws['!cols'] = [
-      { wch: 8 },  // Ref
-      { wch: 25 }, // Nombre
-      { wch: 15 }, // Teléfono
-      { wch: 25 }, // Correo
-      { wch: 30 }, // Dirección
-      { wch: 12 }, // Fecha
-      { wch: 20 }, // Almacén
-      { wch: 10 }, // Cantidad
-      { wch: 10 }, // Unidad
-      { wch: 35 }, // Descripción
-      { wch: 12 }, // Precio Unit
-      { wch: 12 }, // Precio Total
-      { wch: 15 }, // Con descuento
-      { wch: 12 }, // % Desc
-      { wch: 20 }, // Tipo
-      ...Array(15).fill({ wch: 12 }) // Columnas numéricas
-    ];
+    // Definir columnas con headers
+    worksheet.columns = headers.map(header => ({
+      header,
+      key: header,
+      width: getColumnWidth(header)
+    }));
 
-    XLSX.utils.book_append_sheet(wb, ws, `Donativos_${selectedYear}`);
-    XLSX.writeFile(wb, `Respaldo_Completo_LaGranFamilia_${selectedYear}.xlsx`);
+    // Aplicar estilo a la fila de headers
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE0E0E0' }
+    };
+
+    // Añadir datos
+    worksheet.addRows(excelData);
+
+    // Generar archivo
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { 
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+    });
+    
+    // Descargar archivo
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Respaldo_Completo_LaGranFamilia_${selectedYear}.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
 
     addAlert(`✅ Respaldo generado: ${donationItems?.length || 0} artículos exportados`, 'success');
   } catch (error) {
@@ -330,24 +362,60 @@ const handleReset = async () => {
     }
   };
 
-const handleImport = () => {
+const handleImport = async () => {
   if (!importFile) {
     addAlert('Por favor, selecciona un archivo de Excel para importar.', 'warning');
     return;
   }
 
   setIsImporting(true);
-  const reader = new FileReader();
 
-  reader.onload = async (e) => {
-    try {
-      const data = new Uint8Array(e.target!.result as ArrayBuffer);
-      const workbook = XLSX.read(data, { type: 'array', cellDates: true });
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const json = XLSX.utils.sheet_to_json(worksheet);
+  try {
+    if (!xlsx) {
+      throw new Error('ExcelJS library no está disponible');
+    }
 
-      // 🔹 Agrupar por nombre de donante
-      const donorsMap = new Map<string, unknown[]>();
+    const arrayBuffer = await importFile.arrayBuffer();
+    const workbook = new xlsx.Workbook();
+    await workbook.xlsx.load(arrayBuffer);
+    
+    const worksheet = workbook.getWorksheet(0); // Primera hoja
+    if (!worksheet) {
+      throw new Error('No se encontró ninguna hoja en el archivo');
+    }
+
+    // Convertir a JSON
+    const json: any[] = [];
+    const headers: string[] = [];
+    
+    // Leer headers (primera fila)
+    worksheet.getRow(1).eachCell((cell, colNumber) => {
+      headers[colNumber - 1] = cell.value?.toString() || '';
+    });
+
+    // Leer datos (desde la segunda fila)
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return; // Skip header
+      
+      const rowData: any = {};
+      row.eachCell((cell, colNumber) => {
+        const header = headers[colNumber - 1];
+        if (header) {
+          // Manejar diferentes tipos de valores
+          if (cell.value instanceof Date) {
+            rowData[header] = cell.value;
+          } else if (typeof cell.value === 'object' && cell.value !== null) {
+            rowData[header] = cell.value.toString();
+          } else {
+            rowData[header] = cell.value;
+          }
+        }
+      });
+      json.push(rowData);
+    });
+
+    // 🔹 Agrupar por nombre de donante
+    const donorsMap = new Map<string, unknown[]>();
 
       for (const row of json) {
         const donorName = row['Nombre Completo']?.trim() || 'Desconocido';
@@ -446,19 +514,17 @@ const handleImport = () => {
         }
       }
 
-      addAlert('Importación completada exitosamente.', 'success');
-    } catch (error) {
-      // Error al importar datos - manejado por el sistema de alertas
-      addAlert('Error al importar los datos. Revisa la consola.', 'error');
-    } finally {
-      setIsImporting(false);
-      setImportFile(null);
-      const input = document.getElementById('import-file-input') as HTMLInputElement;
-      if (input) input.value = '';
-    }
-  };
-
-  reader.readAsArrayBuffer(importFile);
+    addAlert('Importación completada exitosamente.', 'success');
+  } catch (error: any) {
+    // Error al importar datos - manejado por el sistema de alertas
+    addAlert(`Error al importar los datos: ${error.message}`, 'error');
+    console.error('Error al importar:', error);
+  } finally {
+    setIsImporting(false);
+    setImportFile(null);
+    const input = document.getElementById('import-file-input') as HTMLInputElement;
+    if (input) input.value = '';
+  }
 };
 
 
@@ -505,8 +571,13 @@ const handleImport = () => {
                   ))}
                 </Select>
               </div>
-              <Button onClick={handleBackup} disabled={isBackupLoading} className="w-full">
-                {isBackupLoading ? 'Generando...' : 'Generar y Descargar Respaldo'}
+              <Button 
+                onClick={handleBackup} 
+                loading={isBackupLoading}
+                loadingText="Generando..."
+                className="w-full"
+              >
+                Generar y Descargar Respaldo
               </Button>
             </CardContent>
           </Card>
@@ -573,10 +644,12 @@ const handleImport = () => {
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleReset}
-              disabled={resetConfirmationText !== 'RESET' || isResetLoading}
+              disabled={resetConfirmationText !== 'RESET'}
+              loading={isResetLoading}
+              loadingText="Reseteando..."
               className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
             >
-              {isResetLoading ? 'Reseteando...' : 'Entiendo, resetear los datos'}
+              Entiendo, resetear los datos
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

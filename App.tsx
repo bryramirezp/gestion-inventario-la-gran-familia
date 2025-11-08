@@ -55,7 +55,7 @@ const ProtectedRoute: React.FC<{ roles?: string[] }> = ({ roles }) => {
     const { data: userProfile, isLoading: isProfileLoading } = useUserProfile(); // Use useUserProfile
 
     if (loading || isProfileLoading) { // Wait for both auth and profile to load
-        return <LoadingSpinner size="lg" message="Cargando..." />;
+        return <LoadingSpinner size="lg" message="Cargando..." centerScreen />;
     }
 
     if (!user) {
@@ -73,11 +73,7 @@ const ProtectedRoute: React.FC<{ roles?: string[] }> = ({ roles }) => {
 
 
 const LoadingFallback: React.FC = () => (
-  <div className="flex h-screen w-screen items-center justify-center bg-background">
-    <div className="flex flex-col items-center gap-4">
-      <LoadingSpinner size="lg" message="Cargando aplicación..." />
-    </div>
-  </div>
+  <LoadingSpinner size="lg" message="Cargando aplicación..." centerScreen />
 );
 
 const App: React.FC = () => {

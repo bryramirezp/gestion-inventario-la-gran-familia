@@ -9,7 +9,9 @@ import { Badge } from '../components/Badge';
 import { Input } from '../components/forms';
 import useTableState from '../hooks/useTableState';
 import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '../contexts/ThemeContext';
+import LoadingSpinner from '../components/LoadingSpinner';
+import { useChartColors } from '../hooks/useChartColors';
+import { useChartTheme } from '../hooks/useChartTheme';
 // Importar componentes de recharts directamente para evitar problemas de dependencias circulares
 import {
   ResponsiveContainer,
@@ -25,11 +27,14 @@ import {
 } from 'recharts';
 
 const DonorAnalysis: React.FC = () => {
-  const { theme } = useTheme();
   const [analysisData, setAnalysisData] = useState<DonorAnalysisData[]>([]);
   const [donorTypes, setDonorTypes] = useState<DonorType[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Usar hooks del sistema de diseño para gráficos
+  const chartColors = useChartColors();
+  const chartTheme = useChartTheme();
 
   const fetchAnalysisData = useCallback(async () => {
     try {
@@ -77,21 +82,6 @@ const DonorAnalysis: React.FC = () => {
       .map((d) => ({ name: d.donor_name, value: d.total_value_donated }));
   }, [analysisData]);
 
-  const chartTheme = {
-    axis: {
-      stroke: theme === 'dark' ? 'hsl(215 20% 65%)' : 'hsl(215 16% 46%)',
-      tick: { fill: theme === 'dark' ? 'hsl(215 20% 65%)' : 'hsl(215 16% 46%)' },
-    },
-    grid: {
-      stroke: theme === 'dark' ? 'hsl(215 28% 18%)' : 'hsl(215 20% 92%)',
-    },
-    tooltip: {
-      background: theme === 'dark' ? 'hsl(222 47% 11%)' : 'hsl(0 0% 100%)',
-      border: theme === 'dark' ? 'hsl(215 28% 18%)' : 'hsl(215 20% 88%)',
-    },
-  };
-
-  const COLORS = ['#FF8042', '#0088FE', '#00C49F', '#FFBB28', '#AF19FF'];
 
   const columns: Column<DonorAnalysisData>[] = useMemo(
     () => [
@@ -123,8 +113,8 @@ const DonorAnalysis: React.FC = () => {
     'donor-analysis-table'
   );
 
-if (loading) {
-    return <div className="flex justify-center items-center h-full">Cargando análisis...</div>;
+  if (loading) {
+    return <LoadingSpinner size="lg" message="Cargando análisis..." centerScreen />;
   }
 
   // Los componentes de recharts ya están importados directamente
@@ -156,7 +146,7 @@ if (loading) {
                       label
                     >
                       {contributionByTypeData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
                       ))}
                     </Pie>
                     <Tooltip
@@ -193,7 +183,7 @@ if (loading) {
                       formatter={(value: number) => `$${value.toLocaleString()}`}
                     />
                     <Legend />
-                    <Bar dataKey="value" name="Total Donado" fill="#FF8042" />
+                    <Bar dataKey="value" name="Total Donado" fill={chartColors[0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

@@ -34,23 +34,23 @@ export type Database = {
       users: {
         Row: {
           user_id: string;
-          full_name: string;
-          role_id: number;
+          full_name: string | null;
+          role_id: number | null;
           is_active: boolean;
           created_at: string;
           updated_at: string;
         };
         Insert: {
           user_id: string;
-          full_name: string;
-          role_id: number;
+          full_name?: string | null;
+          role_id?: number | null;
           is_active?: boolean;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
           user_id?: string;
-          full_name?: string;
+          full_name?: string | null;
           role_id?: number;
           is_active?: boolean;
           created_at?: string;
@@ -468,7 +468,10 @@ export type Database = {
           current_quantity: number;
           received_date: string;
           expiry_date: string | null;
+          is_expired: boolean;
           unit_price: number;
+          created_at: string;
+          updated_at: string;
         };
         Insert: {
           lot_id?: number;
@@ -477,7 +480,10 @@ export type Database = {
           current_quantity: number;
           received_date?: string;
           expiry_date?: string | null;
+          is_expired?: boolean;
           unit_price?: number;
+          created_at?: string;
+          updated_at?: string;
         };
         Update: {
           lot_id?: number;
@@ -486,7 +492,10 @@ export type Database = {
           current_quantity?: number;
           received_date?: string;
           expiry_date?: string | null;
+          is_expired?: boolean;
           unit_price?: number;
+          created_at?: string;
+          updated_at?: string;
         };
         Relationships: [
           {
@@ -516,6 +525,8 @@ export type Database = {
           notes: string | null;
           source_warehouse_id: number;
           requester_signature: string | null;
+          created_at: string;
+          updated_at: string;
         };
         Insert: {
           transaction_id?: number;
@@ -526,6 +537,8 @@ export type Database = {
           notes?: string | null;
           source_warehouse_id: number;
           requester_signature?: string | null;
+          created_at?: string;
+          updated_at?: string;
         };
         Update: {
           transaction_id?: number;
@@ -536,6 +549,8 @@ export type Database = {
           notes?: string | null;
           source_warehouse_id?: number;
           requester_signature?: string | null;
+          created_at?: string;
+          updated_at?: string;
         };
         Relationships: [
           {
@@ -568,18 +583,21 @@ export type Database = {
           transaction_id: number;
           product_id: number;
           quantity: number;
+          created_at: string;
         };
         Insert: {
           detail_id?: number;
           transaction_id: number;
           product_id: number;
           quantity: number;
+          created_at?: string;
         };
         Update: {
           detail_id?: number;
           transaction_id?: number;
           product_id?: number;
           quantity?: number;
+          created_at?: string;
         };
         Relationships: [
           {

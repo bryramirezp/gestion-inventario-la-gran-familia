@@ -724,7 +724,10 @@ export const getFullProductDetails = async (_token: string, warehouseId?: number
 
   return products.map((p) => {
     const productLots = lotsByProduct[p.product_id] || [];
-    const usableLots = productLots.filter((lot) => lot.warehouse_id !== EXPIRED_WAREHOUSE_ID);
+    // Filtrar lotes vencidos usando is_expired (y mantener compatibilidad temporal con warehouse_id)
+    const usableLots = productLots.filter(
+      (lot) => !lot.is_expired && lot.warehouse_id !== EXPIRED_WAREHOUSE_ID
+    );
 
     const totalStock = usableLots.reduce((sum, lot) => sum + Number(lot.current_quantity), 0);
 
@@ -771,14 +774,14 @@ export const kitchenApi = {
     const users = usersRes.data || [];
     const products = productsRes.data || [];
 
-    const userMap = new Map(users.map((u) => [u.user_id, u.full_name]));
+    const userMap = new Map(users.map((u) => [u.user_id, u.full_name || 'Sin nombre']));
     const productMap = new Map(products.map((p) => [p.product_id, p.product_name]));
 
     return transactions
       .map((t) => ({
         ...t,
         requester_name: userMap.get(t.requester_id) || 'Unknown',
-        approver_name: t.approver_id ? userMap.get(t.approver_id) : 'N/A',
+        approver_name: t.approver_id ? (userMap.get(t.approver_id) || 'N/A') : 'N/A',
         details: details
           .filter((d) => d.transaction_id === t.transaction_id)
           .map((d) => ({ ...d, product_name: productMap.get(d.product_id) || 'Unknown' })),
@@ -793,6 +796,44 @@ export const kitchenApi = {
     notes: string,
     requester_signature: string
   ): Promise<Transaction> => {
+    // Validar stock disponible para cada producto antes de crear la solicitud
+    for (const item of items) {
+      try {
+        const { data: stockAvailable, error: validationError } = await supabase.rpc(
+          'validate_stock_available',
+          {
+            p_product_id: item.product_id,
+            p_warehouse_id: source_warehouse_id,
+            p_required_quantity: item.quantity,
+          }
+        );
+
+        if (validationError) {
+          throw new Error(
+            `Error al validar stock para producto ${item.product_id}: ${validationError.message}`
+          );
+        }
+
+        if (!stockAvailable) {
+          // Obtener información del producto para el mensaje de error
+          const { data: product } = await supabase
+            .from('products')
+            .select('product_name')
+            .eq('product_id', item.product_id)
+            .single();
+
+          const productName = product?.product_name || `Producto ID ${item.product_id}`;
+          throw new Error(
+            `Stock insuficiente para ${productName}. Cantidad requerida: ${item.quantity}`
+          );
+        }
+      } catch (error: any) {
+        // Re-lanzar el error con mensaje claro
+        throw new Error(error.message || 'Error al validar stock disponible');
+      }
+    }
+
+    // Si todas las validaciones pasan, crear la transacción
     const { data: newTransaction, error } = await supabase
       .from('transactions')
       .insert({
@@ -806,11 +847,20 @@ export const kitchenApi = {
       .select()
       .single();
     if (error) throw new Error(error.message);
+
+    // Crear los detalles de la transacción
     for (const item of items) {
-      await supabase
-        .from('transaction_details')
-        .insert({ transaction_id: newTransaction.transaction_id, ...item });
+      const { error: detailError } = await supabase.from('transaction_details').insert({
+        transaction_id: newTransaction.transaction_id,
+        ...item,
+      });
+      if (detailError) {
+        // Si falla al crear detalles, eliminar la transacción creada
+        await supabase.from('transactions').delete().eq('transaction_id', newTransaction.transaction_id);
+        throw new Error(`Error al crear detalles de transacción: ${detailError.message}`);
+      }
     }
+
     return newTransaction;
   },
   updateRequestStatus: async (
@@ -819,112 +869,219 @@ export const kitchenApi = {
     newStatus: Transaction['status'],
     approver_id?: string
   ): Promise<Transaction | undefined> => {
-    const { data: transaction, error: selectError } = await supabase
-      .from('transactions')
-      .select('*')
-      .eq('transaction_id', transaction_id)
-      .single();
-    if (selectError || !transaction) throw new Error('Transaction not found');
+    // Si se está completando la transacción, usar función PostgreSQL atómica
+    if (newStatus === 'Completed') {
+      if (!approver_id) {
+        throw new Error('Approver ID is required to complete a transaction');
+      }
 
-    const updates: Partial<Pick<Transaction, 'status' | 'approver_id'>> = { status: newStatus };
-    if (approver_id) updates.approver_id = approver_id;
+      try {
+        // Llamar a la función PostgreSQL que maneja todo de forma atómica
+        const { data, error } = await supabase.rpc('complete_kitchen_transaction', {
+          p_transaction_id: transaction_id,
+          p_approver_id: approver_id,
+        });
 
-    const { data: updated, error } = await supabase
-      .from('transactions')
-      .update(updates)
-      .eq('transaction_id', transaction_id)
-      .select()
-      .single();
-    if (error) throw new Error(error.message);
+        if (error) {
+          // Manejar errores específicos de PostgreSQL
+          if (error.message.includes('Insufficient stock')) {
+            throw new Error(`Stock insuficiente: ${error.message}`);
+          }
+          if (error.message.includes('Transaction must be approved')) {
+            throw new Error('La transacción debe estar aprobada antes de completarse');
+          }
+          throw new Error(`Error al completar transacción: ${error.message}`);
+        }
 
-    if (newStatus === 'Completed' && updated) {
-      const { data: transactionDetails, error: detailsError } = await supabase
-        .from('transaction_details')
-        .select('*')
-        .eq('transaction_id', transaction_id);
-      if (detailsError) throw new Error(detailsError.message);
-
-      for (const detail of transactionDetails || []) {
-        const { data: lots, error: lotsError } = await supabase
-          .from('stock_lots')
+        // Obtener la transacción actualizada
+        const { data: updated, error: fetchError } = await supabase
+          .from('transactions')
           .select('*')
-          .eq('product_id', detail.product_id)
-          .eq('warehouse_id', updated.source_warehouse_id)
-          .gt('current_quantity', 0)
-          .order('received_date', { ascending: true });
-        if (lotsError) throw new Error(lotsError.message);
+          .eq('transaction_id', transaction_id)
+          .single();
 
-        let quantityToDeduct = detail.quantity;
-        for (const lot of lots || []) {
-          if (quantityToDeduct <= 0) break;
-          const deductAmount = Math.min(Number(lot.current_quantity), quantityToDeduct);
-          await supabase
-            .from('stock_lots')
-            .update({ current_quantity: Number(lot.current_quantity) - deductAmount })
-            .eq('lot_id', lot.lot_id);
-          quantityToDeduct -= deductAmount;
+        if (fetchError) throw new Error(fetchError.message);
+        return updated;
+      } catch (error: any) {
+        // Re-lanzar el error con mensaje user-friendly
+        throw new Error(error.message || 'Error al completar la transacción');
+      }
+    } else if (newStatus === 'Approved') {
+      // Validar stock antes de aprobar
+      const { data: transaction, error: selectError } = await supabase
+        .from('transactions')
+        .select('*, transaction_details(*)')
+        .eq('transaction_id', transaction_id)
+        .single();
+
+      if (selectError || !transaction) {
+        throw new Error('Transaction not found');
+      }
+
+      // Validar stock para cada producto en los detalles
+      for (const detail of (transaction as any).transaction_details || []) {
+        try {
+          const { data: stockAvailable, error: validationError } = await supabase.rpc(
+            'validate_stock_available',
+            {
+              p_product_id: detail.product_id,
+              p_warehouse_id: transaction.source_warehouse_id,
+              p_required_quantity: detail.quantity,
+            }
+          );
+
+          if (validationError) {
+            throw new Error(
+              `Error al validar stock para producto ${detail.product_id}: ${validationError.message}`
+            );
+          }
+
+          if (!stockAvailable) {
+            // Obtener información del producto para el mensaje de error
+            const { data: product } = await supabase
+              .from('products')
+              .select('product_name')
+              .eq('product_id', detail.product_id)
+              .single();
+
+            const productName = product?.product_name || `Producto ID ${detail.product_id}`;
+            throw new Error(
+              `Stock insuficiente para ${productName}. Cantidad requerida: ${detail.quantity}`
+            );
+          }
+        } catch (error: any) {
+          throw new Error(error.message || 'Error al validar stock disponible');
         }
       }
+
+      // Si todas las validaciones pasan, aprobar la transacción
+      const updates: Partial<Pick<Transaction, 'status' | 'approver_id'>> = { status: newStatus };
+      if (approver_id) updates.approver_id = approver_id;
+
+      const { data: updated, error } = await supabase
+        .from('transactions')
+        .update(updates)
+        .eq('transaction_id', transaction_id)
+        .select()
+        .single();
+      if (error) throw new Error(error.message);
+      return updated;
+    } else {
+      // Para otros cambios de estado (Pending, Rejected), usar lógica simple
+      const updates: Partial<Pick<Transaction, 'status' | 'approver_id'>> = { status: newStatus };
+      if (approver_id) updates.approver_id = approver_id;
+
+      const { data: updated, error } = await supabase
+        .from('transactions')
+        .update(updates)
+        .eq('transaction_id', transaction_id)
+        .select()
+        .single();
+      if (error) throw new Error(error.message);
+      return updated;
     }
-    return updated;
   },
 };
 
 export const donationApi = {
   createDonation: async (_token: string, donationData: NewDonation) => {
-    for (const item of donationData.items) {
-      await stockLotApi.create(_token, {
+    try {
+      // Preparar items en formato JSON para la función PostgreSQL
+      const itemsJson = donationData.items.map((item) => ({
         product_id: item.product_id,
-        warehouse_id: donationData.warehouse_id,
-        current_quantity: item.quantity,
-        expiry_date: item.expiry_date,
+        quantity: item.quantity,
         unit_price: item.unit_price,
-        received_date: new Date().toISOString(),
+        discount_percentage: item.discount_percentage || 0,
+        expiry_date: item.expiry_date || null,
+      }));
+
+      // Llamar a la función PostgreSQL atómica
+      const { data, error } = await supabase.rpc('create_donation_atomic', {
+        p_donor_id: donationData.donor_id,
+        p_warehouse_id: donationData.warehouse_id,
+        p_items: itemsJson,
+        p_donation_date: new Date().toISOString().split('T')[0], // Formato DATE (opcional, tiene default)
       });
+
+      if (error) {
+        // Manejar errores específicos de PostgreSQL
+        if (error.message.includes('Donor not found')) {
+          throw new Error(`Donante no encontrado: ${donationData.donor_id}`);
+        }
+        if (error.message.includes('Warehouse not found')) {
+          throw new Error(`Almacén no encontrado: ${donationData.warehouse_id}`);
+        }
+        if (error.message.includes('Product not found')) {
+          throw new Error(`Producto no encontrado en los items de la donación`);
+        }
+        if (error.message.includes('must have product_id')) {
+          throw new Error('Cada item debe tener product_id, quantity y unit_price');
+        }
+        throw new Error(`Error al crear donación: ${error.message}`);
+      }
+
+      // Obtener la donación creada para retornarla
+      const { data: donation, error: fetchError } = await supabase
+        .from('donation_transactions')
+        .select('*')
+        .eq('donation_id', data.donation_id)
+        .single();
+
+      if (fetchError) {
+        throw new Error(`Error al obtener donación creada: ${fetchError.message}`);
+      }
+
+      return { success: true, donation: donation };
+    } catch (error: any) {
+      // Re-lanzar el error con mensaje user-friendly
+      throw new Error(error.message || 'Error al crear la donación');
     }
-    const { data: newDonationRecord, error } = await supabase
-      .from('donation_transactions')
-      .insert({
-        donor_id: donationData.donor_id,
-        warehouse_id: donationData.warehouse_id,
-        donation_date: new Date().toISOString(),
-      })
-      .select()
-      .single();
-    if (error) throw new Error(error.message);
-    return { success: true, donation: newDonationRecord };
   },
   getHistory: async (_token: string): Promise<Donation[]> => {
-    const [donationsRes, donorsRes, warehousesRes, productsRes] = await Promise.all([
+    const [donationsRes, itemsRes, donorsRes, warehousesRes, productsRes] = await Promise.all([
       supabase.from('donation_transactions').select('*'),
+      supabase.from('donation_items').select('*'),
       supabase.from('donors').select('*'),
       supabase.from('warehouses').select('*'),
       supabase.from('products').select('*'),
     ]);
     if (donationsRes.error) throw new Error(donationsRes.error.message);
+    if (itemsRes.error) throw new Error(itemsRes.error.message);
     if (donorsRes.error) throw new Error(donorsRes.error.message);
     if (warehousesRes.error) throw new Error(warehousesRes.error.message);
     if (productsRes.error) throw new Error(productsRes.error.message);
 
     const donations = donationsRes.data || [];
+    const items = itemsRes.data || [];
     const donorMap = new Map((donorsRes.data || []).map((d) => [d.donor_id, d.donor_name]));
     const warehouseMap = new Map(
       (warehousesRes.data || []).map((w) => [w.warehouse_id, w.warehouse_name])
     );
     const productMap = new Map((productsRes.data || []).map((p) => [p.product_id, p.product_name]));
 
-    const enrichedHistory = donations.map((donation) => {
-      const safeItems = donation.items || []; // Ensure items is an array
+    // Agrupar items por donation_id
+    const itemsByDonation = new Map<number, typeof items>();
+    items.forEach((item) => {
+      if (!itemsByDonation.has(item.donation_id)) {
+        itemsByDonation.set(item.donation_id, []);
+      }
+      itemsByDonation.get(item.donation_id)!.push(item);
+    });
 
-      const total_value_before_discount = safeItems.reduce(
-        (acc, item) => acc + (item.unit_price || 0) * Number(item.current_quantity),
-        0
-      );
-      const total_value_after_discount = safeItems.reduce((acc, item) => {
-        const itemTotal = (item.unit_price || 0) * Number(item.current_quantity);
-        const discount = itemTotal * ((item.discount_percentage || 0) / 100);
-        return acc + (itemTotal - discount);
-      }, 0);
+    const enrichedHistory = donations.map((donation) => {
+      const safeItems = itemsByDonation.get(donation.donation_id) || [];
+
+      // Usar los totales de la base de datos si están disponibles, sino calcularlos
+      const total_value_before_discount =
+        donation.total_value_before_discount ||
+        safeItems.reduce((acc, item) => acc + (item.unit_price || 0) * Number(item.quantity), 0);
+      const total_value_after_discount =
+        donation.total_value_after_discount ||
+        safeItems.reduce((acc, item) => {
+          const itemTotal = (item.unit_price || 0) * Number(item.quantity);
+          const discount = itemTotal * ((item.discount_percentage || 0) / 100);
+          return acc + (itemTotal - discount);
+        }, 0);
 
       return {
         ...donation,
@@ -933,6 +1090,8 @@ export const donationApi = {
         items: safeItems.map((item) => ({
           ...item,
           product_name: productMap.get(item.product_id) || 'Unknown Product',
+          // Compatibilidad: mapear quantity a current_quantity para el tipo DonationItem
+          current_quantity: item.quantity,
         })),
         total_value_before_discount,
         total_value_after_discount,

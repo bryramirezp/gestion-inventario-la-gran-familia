@@ -14,6 +14,7 @@ import useTableState from '../hooks/useTableState';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { ChevronLeftIcon } from '../components/icons/Icons';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 type ProductDetail = Awaited<ReturnType<typeof getFullProductDetails>>[0];
 
@@ -125,7 +126,7 @@ const WarehouseDetail: React.FC = () => {
     `warehouse-detail-${warehouseId}-table`
   );
 
-  if (loading) return <div>Cargando detalles del almacén...</div>;
+  if (loading) return <LoadingSpinner size="lg" message="Cargando detalles del almacén..." centerScreen />;
   if (!warehouse)
     return (
       <div>

@@ -25,6 +25,7 @@ import {
   DialogDescription,
 } from '../../components/Dialog';
 import { Input, Select } from '../../components/forms';
+import LoadingSpinner from '../../components/LoadingSpinner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -366,7 +367,7 @@ const ManagerView: React.FC = () => {
     }
   };
 
-  if (loading) return <div>Cargando Vista de Administrador...</div>;
+  if (loading) return <LoadingSpinner size="lg" message="Cargando Vista de Administrador..." centerScreen />;
 
   return (
     <AnimatedWrapper>

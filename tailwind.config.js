@@ -61,6 +61,13 @@ module.exports = {
           low: "hsl(var(--inventory-low))",
           expired: "hsl(var(--inventory-expired))",
         },
+        chart: {
+          1: "hsl(var(--chart-color-1))",  // Naranja principal (primary)
+          2: "hsl(var(--chart-color-2))",  // Naranja oscuro (variación)
+          3: "hsl(var(--chart-color-3))",  // Naranja claro (variación)
+          4: "hsl(var(--chart-color-4))",  // Verde (success)
+          5: "hsl(var(--chart-color-5))",  // Amarillo (warning)
+        },
       },
       borderRadius: {
         lg: `0.75rem`,
