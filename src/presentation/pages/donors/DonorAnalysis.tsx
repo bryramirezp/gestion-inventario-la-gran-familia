@@ -1,0 +1,224 @@
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import Header from '@/presentation/components/layout/Header';
+import Table, { Column } from '@/presentation/components/ui/Table';
+import { donorApi, getDonorTypes } from '@/data/api';
+import { DonorAnalysisData, DonorType } from '@/domain/types';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/presentation/components/ui/Card';
+import { AnimatedWrapper } from '@/presentation/components/animated/Animated';
+import { Badge } from '@/presentation/components/ui/Badge';
+import { Input } from '@/presentation/components/forms';
+import useTableState from '@/infrastructure/hooks/useTableState';
+import { useAuth } from '@/app/providers/AuthProvider';
+import LoadingSpinner from '@/presentation/components/ui/LoadingSpinner';
+import { useChartColors } from '@/infrastructure/hooks/charts/useChartColors';
+import { useChartTheme } from '@/infrastructure/hooks/charts/useChartTheme';
+// Importar componentes de recharts directamente para evitar problemas de dependencias circulares
+import {
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+} from 'recharts';
+import { ResponsiveChart } from '@/presentation/components/ui/ResponsiveChart';
+
+const DonorAnalysis: React.FC = () => {
+  const [analysisData, setAnalysisData] = useState<DonorAnalysisData[]>([]);
+  const [donorTypes, setDonorTypes] = useState<DonorType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // Usar hooks del sistema de diseño para gráficos
+  const chartColors = useChartColors();
+  const chartTheme = useChartTheme();
+
+  const fetchAnalysisData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [data, types] = await Promise.all([
+        donorApi.getAnalysis(''),
+        getDonorTypes(''),
+      ]);
+      setAnalysisData(data);
+      setDonorTypes(types);
+    } catch (error) {
+      // Error al cargar análisis de donantes - manejado internamente
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAnalysisData();
+  }, [fetchAnalysisData]);
+
+  const filteredData = useMemo(() => {
+    return analysisData.filter((d) =>
+      d.donor_name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [analysisData, searchTerm]);
+
+  const contributionByTypeData = useMemo(() => {
+    const typeMap = new Map(donorTypes.map((t) => [t.donor_type_id, t.type_name]));
+    const byType = new Map<string, number>();
+
+    analysisData.forEach((donor) => {
+      const typeName = String(typeMap.get(donor.donor_type_id) || 'Desconocido');
+      const currentValue = byType.get(typeName) || 0;
+      byType.set(typeName, currentValue + donor.total_value_donated);
+    });
+
+    return Array.from(byType.entries()).map(([name, value]) => ({ name, value }));
+  }, [analysisData, donorTypes]);
+
+  const topDonorsData = useMemo(() => {
+    return [...analysisData]
+      .sort((a, b) => b.total_value_donated - a.total_value_donated)
+      .slice(0, 5)
+      .map((d) => ({ name: d.donor_name, value: d.total_value_donated }));
+  }, [analysisData]);
+
+
+  const columns: Column<DonorAnalysisData>[] = useMemo(
+    () => [
+      { header: 'Nombre del Donante', accessor: 'donor_name' },
+      {
+        header: 'Valor Total Donado',
+        accessor: (item) =>
+          `$${item.total_value_donated.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      },
+      {
+        header: 'Donaciones',
+        accessor: (item) => <div className="text-center">{item.total_donations_count}</div>,
+      },
+      {
+        header: 'Última Donación',
+        accessor: (item) =>
+          item.last_donation_date ? new Date(item.last_donation_date).toLocaleDateString() : 'N/A',
+      },
+      {
+        header: 'Categoría Principal',
+        accessor: (item) => <Badge variant="secondary">{item.top_donated_category}</Badge>,
+      },
+    ],
+    []
+  );
+
+  const { orderedColumns, ...tableState } = useTableState<DonorAnalysisData>(
+    columns,
+    'donor-analysis-table'
+  );
+
+  if (loading) {
+    return <LoadingSpinner size="lg" message="Cargando análisis..." centerScreen />;
+  }
+
+  // Los componentes de recharts ya están importados directamente
+  // No necesitamos la verificación de error del hook ni la desestructuración
+
+  return (
+    <AnimatedWrapper>
+      <Header
+        title="Análisis de Donantes"
+        description="Métricas clave e información sobre las contribuciones de tus donantes."
+      />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <AnimatedWrapper delay={0.1} className="lg:col-span-1">
+          <Card>
+            <CardHeader>
+              <CardTitle>Contribución por Tipo de Donante</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveChart minHeight={200} maxHeight={300}>
+                <PieChart>
+                  <Pie
+                    data={contributionByTypeData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    label
+                  >
+                    {contributionByTypeData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: chartTheme.tooltip.background,
+                      border: `1px solid ${chartTheme.tooltip.border}`,
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveChart>
+            </CardContent>
+          </Card>
+        </AnimatedWrapper>
+        <AnimatedWrapper delay={0.2} className="lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Top 5 Donantes por Valor</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveChart minHeight={200} maxHeight={300}>
+                <BarChart
+                  data={topDonorsData}
+                  margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
+                >
+                  <XAxis dataKey="name" stroke={chartTheme.axis.stroke} tick={false} />
+                  <YAxis stroke={chartTheme.axis.stroke} tick={chartTheme.axis.tick} />
+                  <Tooltip
+                    contentStyle={{
+                        backgroundColor: chartTheme.tooltip.background,
+                        border: `1px solid ${chartTheme.tooltip.border}`,
+                      }}
+                      formatter={(value: number) => `$${value.toLocaleString()}`}
+                    />
+                    <Legend />
+                    <Bar dataKey="value" name="Total Donado" fill={chartColors[0]}                     />
+                  </BarChart>
+              </ResponsiveChart>
+            </CardContent>
+          </Card>
+        </AnimatedWrapper>
+      </div>
+
+      <Card>
+        <CardHeader
+          renderHeaderActions={() => (
+            <Input
+              placeholder="Buscar por nombre de donante..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full sm:w-64"
+            />
+          )}
+        >
+          <CardTitle>Métricas de Todos los Donantes</CardTitle>
+          <CardDescription>
+            Mostrando {filteredData.length} de {analysisData.length} donantes.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <p className="text-center p-4">Cargando datos de análisis...</p>
+          ) : (
+            <Table
+              columns={orderedColumns}
+              data={filteredData}
+              getKey={(d) => d.donor_id}
+              {...tableState}
+            />
+          )}
+        </CardContent>
+      </Card>
+    </AnimatedWrapper>
+  );
+};
+
+export default DonorAnalysis;

@@ -9,7 +9,7 @@
 --   p_warehouse_id: ID del almacén destino
 --   p_donation_date: Fecha de la donación (opcional, por defecto CURRENT_DATE)
 --   p_items: JSON array con los items de la donación:
---            [{product_id, quantity, unit_price, discount_percentage, expiry_date}, ...]
+--            [{product_id, quantity, market_unit_price, actual_unit_price, expiry_date}, ...]
 --
 -- Retorna: JSON con { success: true, donation_id: ..., stock_lots_created: ... }
 --
@@ -27,10 +27,10 @@ DECLARE
   v_donation_id BIGINT;
   v_stock_lot_id BIGINT;
   v_stock_lots_created INTEGER := 0;
-  v_total_before_discount NUMERIC := 0;
-  v_total_after_discount NUMERIC := 0;
-  v_item_total NUMERIC;
-  v_item_discount NUMERIC;
+  v_total_market_value NUMERIC := 0;
+  v_total_actual_value NUMERIC := 0;
+  v_market_total NUMERIC;
+  v_actual_total NUMERIC;
   v_result JSON;
 BEGIN
   -- Validar que el donante existe
@@ -53,8 +53,8 @@ BEGIN
     donor_id,
     warehouse_id,
     donation_date,
-    total_value_before_discount,
-    total_value_after_discount
+    total_market_value,
+    total_actual_value
   )
   VALUES (
     p_donor_id,
@@ -69,8 +69,8 @@ BEGIN
   FOR v_item IN SELECT * FROM jsonb_array_elements(p_items)
   LOOP
     -- Validar campos requeridos
-    IF NOT (v_item ? 'product_id' AND v_item ? 'quantity' AND v_item ? 'unit_price') THEN
-      RAISE EXCEPTION 'Each item must have product_id, quantity, and unit_price';
+    IF NOT (v_item ? 'product_id' AND v_item ? 'quantity' AND v_item ? 'market_unit_price' AND v_item ? 'actual_unit_price') THEN
+      RAISE EXCEPTION 'Each item must have product_id, quantity, market_unit_price, and actual_unit_price';
     END IF;
     
     -- Validar que el producto existe
@@ -79,27 +79,27 @@ BEGIN
     END IF;
     
     -- Calcular valores del item
-    v_item_total := (v_item->>'quantity')::NUMERIC * (v_item->>'unit_price')::NUMERIC;
-    v_item_discount := v_item_total * COALESCE((v_item->>'discount_percentage')::NUMERIC, 0) / 100;
+    v_market_total := (v_item->>'quantity')::NUMERIC * (v_item->>'market_unit_price')::NUMERIC;
+    v_actual_total := (v_item->>'quantity')::NUMERIC * (v_item->>'actual_unit_price')::NUMERIC;
     
-    v_total_before_discount := v_total_before_discount + v_item_total;
-    v_total_after_discount := v_total_after_discount + (v_item_total - v_item_discount);
+    v_total_market_value := v_total_market_value + v_market_total;
+    v_total_actual_value := v_total_actual_value + v_actual_total;
     
     -- Crear item de donación
     INSERT INTO public.donation_items (
       donation_id,
       product_id,
       quantity,
-      unit_price,
-      discount_percentage,
+      market_unit_price,
+      actual_unit_price,
       expiry_date
     )
     VALUES (
       v_donation_id,
       (v_item->>'product_id')::BIGINT,
       (v_item->>'quantity')::NUMERIC,
-      (v_item->>'unit_price')::NUMERIC,
-      COALESCE((v_item->>'discount_percentage')::NUMERIC, 0),
+      (v_item->>'market_unit_price')::NUMERIC,
+      (v_item->>'actual_unit_price')::NUMERIC,
       CASE 
         WHEN v_item ? 'expiry_date' AND v_item->>'expiry_date' != 'null' 
         THEN (v_item->>'expiry_date')::DATE
@@ -128,7 +128,7 @@ BEGIN
         THEN (v_item->>'expiry_date')::DATE
         ELSE NULL
       END,
-      (v_item->>'unit_price')::NUMERIC
+      (v_item->>'actual_unit_price')::NUMERIC
     )
     RETURNING lot_id INTO v_stock_lot_id;
     
@@ -137,8 +137,8 @@ BEGIN
   
   -- Actualizar totales de la donación
   UPDATE public.donation_transactions
-  SET total_value_before_discount = v_total_before_discount,
-      total_value_after_discount = v_total_after_discount,
+  SET total_market_value = v_total_market_value,
+      total_actual_value = v_total_actual_value,
       updated_at = NOW()
   WHERE donation_id = v_donation_id;
   
@@ -147,8 +147,8 @@ BEGIN
     'success', true,
     'donation_id', v_donation_id,
     'stock_lots_created', v_stock_lots_created,
-    'total_value_before_discount', v_total_before_discount,
-    'total_value_after_discount', v_total_after_discount
+    'total_market_value', v_total_market_value,
+    'total_actual_value', v_total_actual_value
   );
   
   RETURN v_result;
@@ -163,4 +163,7 @@ $$ LANGUAGE plpgsql;
 -- Comentarios
 COMMENT ON FUNCTION public.create_donation_atomic IS 
 'Crea una donación con múltiples items de forma atómica. Si alguna operación falla, se hace rollback completo.';
+
+-- Otorgar permisos de ejecución
+GRANT EXECUTE ON FUNCTION public.create_donation_atomic(BIGINT, BIGINT, JSONB, DATE) TO anon, authenticated, service_role;
 

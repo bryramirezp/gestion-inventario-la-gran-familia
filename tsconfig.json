@@ -12,8 +12,15 @@
     "moduleDetection": "force",
     "allowJs": true,
     "jsx": "react-jsx",
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./src/*"],
+      "@/app/*": ["./src/app/*"],
+      "@/presentation/*": ["./src/presentation/*"],
+      "@/domain/*": ["./src/domain/*"],
+      "@/data/*": ["./src/data/*"],
+      "@/infrastructure/*": ["./src/infrastructure/*"],
+      "@/shared/*": ["./src/shared/*"]
     },
     "allowImportingTsExtensions": true,
     "noEmit": true

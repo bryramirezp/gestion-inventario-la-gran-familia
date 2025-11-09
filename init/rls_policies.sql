@@ -100,8 +100,9 @@ ALTER TABLE public.stock_lots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.donors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.donation_transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.donation_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.transaction_details ENABLE ROW LEVEL SECURITY;
+-- Módulo de cocina removido - transactions y transaction_details ya no se usan
+-- ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.transaction_details ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================================
 -- POLÍTICAS PARA: public.users
@@ -193,18 +194,50 @@ WITH CHECK (public.is_admin());
 -- ============================================================================
 
 DROP POLICY IF EXISTS "warehouses_select_authenticated" ON public.warehouses;
+DROP POLICY IF EXISTS "warehouses_insert_admin" ON public.warehouses;
+DROP POLICY IF EXISTS "warehouses_update_admin_operator" ON public.warehouses;
+DROP POLICY IF EXISTS "warehouses_delete_admin" ON public.warehouses;
 DROP POLICY IF EXISTS "warehouses_modify_admin_operator" ON public.warehouses;
 
+-- SELECT: Admin ven todos, Operador y Consultor solo sus almacenes asignados
 CREATE POLICY "warehouses_select_authenticated"
 ON public.warehouses FOR SELECT
 TO authenticated
-USING (true);
+USING (
+  -- Admin puede ver todo
+  public.is_admin()
+  OR
+  -- Operador solo puede ver sus almacenes asignados
+  (public.is_operator() AND public.has_warehouse_access(warehouse_id))
+  OR
+  -- Consultor solo puede ver sus almacenes asignados
+  (public.is_consultor() AND public.has_warehouse_access(warehouse_id))
+);
 
-CREATE POLICY "warehouses_modify_admin_operator"
-ON public.warehouses FOR ALL
+-- INSERT: Solo Admin puede crear almacenes
+CREATE POLICY "warehouses_insert_admin"
+ON public.warehouses FOR INSERT
 TO authenticated
-USING (public.is_admin() OR public.is_operator())
-WITH CHECK (public.is_admin() OR public.is_operator());
+WITH CHECK (public.is_admin());
+
+-- UPDATE: Admin puede actualizar cualquier almacén, Operador solo sus almacenes asignados
+CREATE POLICY "warehouses_update_admin_operator"
+ON public.warehouses FOR UPDATE
+TO authenticated
+USING (
+  public.is_admin()
+  OR (public.is_operator() AND public.has_warehouse_access(warehouse_id))
+)
+WITH CHECK (
+  public.is_admin()
+  OR (public.is_operator() AND public.has_warehouse_access(warehouse_id))
+);
+
+-- DELETE: Solo Admin puede eliminar almacenes
+CREATE POLICY "warehouses_delete_admin"
+ON public.warehouses FOR DELETE
+TO authenticated
+USING (public.is_admin());
 
 -- ============================================================================
 -- POLÍTICAS PARA: public.categories
@@ -302,7 +335,7 @@ DROP POLICY IF EXISTS "stock_lots_insert" ON public.stock_lots;
 DROP POLICY IF EXISTS "stock_lots_update" ON public.stock_lots;
 DROP POLICY IF EXISTS "stock_lots_delete" ON public.stock_lots;
 
--- SELECT: Admin y Consultor ven todos, Operador solo sus almacenes
+-- SELECT: Admin ven todos, Operador y Consultor solo sus almacenes asignados
 CREATE POLICY "stock_lots_select"
 ON public.stock_lots FOR SELECT
 TO authenticated
@@ -310,11 +343,11 @@ USING (
   -- Admin puede ver todo
   public.is_admin()
   OR
-  -- Consultor puede ver todo (solo lectura para consulta)
-  public.is_consultor()
-  OR
   -- Operador solo puede ver sus almacenes asignados
   (public.is_operator() AND public.has_warehouse_access(warehouse_id))
+  OR
+  -- Consultor solo puede ver sus almacenes asignados
+  (public.is_consultor() AND public.has_warehouse_access(warehouse_id))
 );
 
 -- INSERT: Admin puede insertar en cualquier almacén, Operador solo en sus almacenes
@@ -427,112 +460,114 @@ TO authenticated
 USING (public.is_admin());
 
 -- ============================================================================
--- POLÍTICAS PARA: public.transactions (Solicitudes de Cocina)
+-- POLÍTICAS PARA: public.transactions (MÓDULO REMOVIDO)
 -- ============================================================================
+-- NOTA: El módulo de cocina fue removido del sistema.
+-- Las políticas RLS para transactions y transaction_details ya no son necesarias.
+-- Si deseas restaurar el módulo de cocina, descomenta estas políticas.
 
-DROP POLICY IF EXISTS "transactions_select" ON public.transactions;
-DROP POLICY IF EXISTS "transactions_insert" ON public.transactions;
-DROP POLICY IF EXISTS "transactions_update_admin_operator" ON public.transactions;
-DROP POLICY IF EXISTS "transactions_delete_admin" ON public.transactions;
+-- DROP POLICY IF EXISTS "transactions_select" ON public.transactions;
+-- DROP POLICY IF EXISTS "transactions_insert" ON public.transactions;
+-- DROP POLICY IF EXISTS "transactions_update_admin_operator" ON public.transactions;
+-- DROP POLICY IF EXISTS "transactions_delete_admin" ON public.transactions;
 
--- SELECT: Usuario puede ver sus propias solicitudes, Admin/Operador/Consultor pueden ver todas
-CREATE POLICY "transactions_select"
-ON public.transactions FOR SELECT
-TO authenticated
-USING (
-  requester_id = auth.uid()::TEXT
-  OR public.is_admin()
-  OR public.is_operator()
-  OR public.is_consultor()
-);
+-- CREATE POLICY "transactions_select"
+-- ON public.transactions FOR SELECT
+-- TO authenticated
+-- USING (
+--   requester_id = auth.uid()::TEXT
+--   OR public.is_admin()
+--   OR public.is_operator()
+--   OR public.is_consultor()
+-- );
 
--- INSERT: Todos pueden crear solicitudes, pero Consultor solo con status='Pending'
-CREATE POLICY "transactions_insert"
-ON public.transactions FOR INSERT
-TO authenticated
-WITH CHECK (
-  -- Consultor solo puede crear con status='Pending'
-  (public.is_consultor() AND status = 'Pending')
-  OR
-  -- Admin y Operador pueden crear con cualquier status
-  (public.is_admin() OR public.is_operator())
-);
+-- CREATE POLICY "transactions_insert"
+-- ON public.transactions FOR INSERT
+-- TO authenticated
+-- WITH CHECK (
+--   (public.is_consultor() AND status = 'Pending')
+--   OR
+--   (public.is_admin() OR public.is_operator())
+-- );
 
--- UPDATE: Solo Admin y Operador pueden actualizar (Consultor NO puede modificar)
-CREATE POLICY "transactions_update_admin_operator"
-ON public.transactions FOR UPDATE
-TO authenticated
-USING (public.is_admin() OR public.is_operator())
-WITH CHECK (public.is_admin() OR public.is_operator());
+-- CREATE POLICY "transactions_update_admin_operator"
+-- ON public.transactions FOR UPDATE
+-- TO authenticated
+-- USING (public.is_admin() OR public.is_operator())
+-- WITH CHECK (public.is_admin() OR public.is_operator());
 
--- DELETE: Solo Admin
-CREATE POLICY "transactions_delete_admin"
-ON public.transactions FOR DELETE
-TO authenticated
-USING (public.is_admin());
+-- CREATE POLICY "transactions_delete_admin"
+-- ON public.transactions FOR DELETE
+-- TO authenticated
+-- USING (public.is_admin());
 
 -- ============================================================================
--- POLÍTICAS PARA: public.transaction_details
+-- POLÍTICAS PARA: public.transaction_details (MÓDULO REMOVIDO)
+-- ============================================================================
+-- NOTA: El módulo de cocina fue removido del sistema.
+-- Las políticas RLS para transaction_details ya no son necesarias.
+
+-- DROP POLICY IF EXISTS "transaction_details_select" ON public.transaction_details;
+-- DROP POLICY IF EXISTS "transaction_details_insert" ON public.transaction_details;
+-- DROP POLICY IF EXISTS "transaction_details_update_admin_operator" ON public.transaction_details;
+-- DROP POLICY IF EXISTS "transaction_details_delete_admin" ON public.transaction_details;
+
+-- CREATE POLICY "transaction_details_select"
+-- ON public.transaction_details FOR SELECT
+-- TO authenticated
+-- USING (
+--   EXISTS (
+--     SELECT 1 FROM public.transactions t
+--     WHERE t.transaction_id = transaction_details.transaction_id
+--     AND (
+--       t.requester_id = auth.uid()::TEXT
+--       OR
+--       public.is_admin()
+--       OR public.is_operator()
+--       OR public.is_consultor()
+--     )
+--   )
+-- );
+
+-- CREATE POLICY "transaction_details_insert"
+-- ON public.transaction_details FOR INSERT
+-- TO authenticated
+-- WITH CHECK (
+--   EXISTS (
+--     SELECT 1 FROM public.transactions t
+--     WHERE t.transaction_id = transaction_details.transaction_id
+--     AND (
+--       t.requester_id = auth.uid()::TEXT
+--       OR
+--       public.is_admin()
+--       OR public.is_operator()
+--     )
+--   )
+-- );
+
+-- CREATE POLICY "transaction_details_update_admin_operator"
+-- ON public.transaction_details FOR UPDATE
+-- TO authenticated
+-- USING (public.is_admin() OR public.is_operator())
+-- WITH CHECK (public.is_admin() OR public.is_operator());
+
+-- CREATE POLICY "transaction_details_delete_admin"
+-- ON public.transaction_details FOR DELETE
+-- TO authenticated
+-- USING (public.is_admin());
+
+-- ============================================================================
+-- PERMISOS DE FUNCIONES HELPER
 -- ============================================================================
 
-DROP POLICY IF EXISTS "transaction_details_select" ON public.transaction_details;
-DROP POLICY IF EXISTS "transaction_details_insert" ON public.transaction_details;
-DROP POLICY IF EXISTS "transaction_details_update_admin_operator" ON public.transaction_details;
-DROP POLICY IF EXISTS "transaction_details_delete_admin" ON public.transaction_details;
-
--- SELECT: Basado en acceso a la transacción padre
--- Todos los usuarios autenticados pueden ver detalles de transacciones que pueden ver
-CREATE POLICY "transaction_details_select"
-ON public.transaction_details FOR SELECT
-TO authenticated
-USING (
-  EXISTS (
-    SELECT 1 FROM public.transactions t
-    WHERE t.transaction_id = transaction_details.transaction_id
-    AND (
-      -- Usuario puede ver sus propias solicitudes
-      t.requester_id = auth.uid()::TEXT
-      OR
-      -- Admin, Operador y Consultor pueden ver todas
-      public.is_admin()
-      OR public.is_operator()
-      OR public.is_consultor()
-    )
-  )
-);
-
--- INSERT: Permitir insertar detalles si el usuario creó la transacción o es Admin/Operador
--- La validación de status='Pending' para Consultor se hace en la política de transactions
-CREATE POLICY "transaction_details_insert"
-ON public.transaction_details FOR INSERT
-TO authenticated
-WITH CHECK (
-  EXISTS (
-    SELECT 1 FROM public.transactions t
-    WHERE t.transaction_id = transaction_details.transaction_id
-    AND (
-      -- El usuario creó la transacción (puede crear detalles)
-      t.requester_id = auth.uid()::TEXT
-      OR
-      -- Admin y Operador pueden crear detalles para cualquier transacción
-      public.is_admin()
-      OR public.is_operator()
-    )
-  )
-);
-
--- UPDATE: Solo Admin y Operador pueden actualizar
-CREATE POLICY "transaction_details_update_admin_operator"
-ON public.transaction_details FOR UPDATE
-TO authenticated
-USING (public.is_admin() OR public.is_operator())
-WITH CHECK (public.is_admin() OR public.is_operator());
-
--- DELETE: Solo Admin
-CREATE POLICY "transaction_details_delete_admin"
-ON public.transaction_details FOR DELETE
-TO authenticated
-USING (public.is_admin());
+-- Otorgar permisos de ejecución a las funciones helper de RLS
+-- NOTA: Estos permisos se otorgan aquí porque estas funciones se crean en este archivo
+-- Los permisos generales se otorgan en grant_permissions.sql al final
+GRANT EXECUTE ON FUNCTION public.get_user_role_name() TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.is_admin() TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.is_operator() TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.is_consultor() TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.has_warehouse_access(BIGINT) TO anon, authenticated, service_role;
 
 -- ============================================================================
 -- COMENTARIOS Y DOCUMENTACIÓN
@@ -550,14 +585,18 @@ COMMENT ON POLICY "users_select_own" ON public.users IS
 COMMENT ON POLICY "users_select_admin_all" ON public.users IS 
 'Permite que usuarios con rol Administrador lean todos los perfiles.';
 
+COMMENT ON POLICY "warehouses_select_authenticated" ON public.warehouses IS 
+'Admin puede ver todos los almacenes. Operador y Consultor solo pueden ver sus almacenes asignados.';
+
 COMMENT ON POLICY "stock_lots_select" ON public.stock_lots IS 
-'Admin y Consultor pueden ver todos los stock_lots. Operador solo puede ver los de sus almacenes asignados.';
+'Admin puede ver todos los stock_lots. Operador y Consultor solo pueden ver los de sus almacenes asignados.';
 
-COMMENT ON POLICY "transactions_insert" ON public.transactions IS 
-'Todos pueden crear solicitudes. Consultor solo puede crear con status=''Pending''. Admin y Operador pueden crear con cualquier status.';
+-- Comentarios de políticas de cocina - DESHABILITADOS (módulo removido)
+-- COMMENT ON POLICY "transactions_insert" ON public.transactions IS 
+-- 'Todos pueden crear solicitudes. Consultor solo puede crear con status=''Pending''. Admin y Operador pueden crear con cualquier status.';
 
-COMMENT ON POLICY "transactions_update_admin_operator" ON public.transactions IS 
-'Solo Admin y Operador pueden actualizar transacciones (aprobar, completar, rechazar). Consultor NO puede modificar.';
+-- COMMENT ON POLICY "transactions_update_admin_operator" ON public.transactions IS 
+-- 'Solo Admin y Operador pueden actualizar transacciones (aprobar, completar, rechazar). Consultor NO puede modificar.';
 
 -- ============================================================================
 -- NOTAS IMPORTANTES
@@ -566,13 +605,13 @@ COMMENT ON POLICY "transactions_update_admin_operator" ON public.transactions IS
 -- 1. Las funciones helper tienen SECURITY DEFINER para poder acceder a las
 --    tablas sin restricciones RLS durante la verificación de permisos.
 --
--- 2. Las políticas de stock_lots filtran por user_warehouse_access para
---    Operadores, permitiendo que solo modifiquen stock en sus almacenes.
+-- 2. Las políticas de warehouses y stock_lots filtran por user_warehouse_access
+--    para Operadores y Consultores, permitiendo que solo vean y modifiquen almacenes asignados.
 --
--- 3. Las políticas de transactions permiten que Consultores creen solicitudes
---    pero no las modifiquen (no pueden aprobar/completar/rechazar).
+-- 3. El módulo de cocina fue removido. Las políticas de transactions y transaction_details
+--    están comentadas pero pueden restaurarse si se necesita el módulo en el futuro.
 --
--- 4. Las funciones PostgreSQL (create_donation_atomic, complete_kitchen_transaction)
+-- 4. Las funciones PostgreSQL (create_donation_atomic)
 --    deben ejecutarse con permisos del usuario autenticado, no con SECURITY DEFINER,
 --    para que las políticas RLS se apliquen correctamente.
 --

@@ -5,35 +5,44 @@
 ### Orden de Ejecución:
 
 1. **`database-schema-synced-with-code.sql`** ⭐ ESENCIAL
-   - Crea todas las tablas, funciones, triggers e índices
+   - Crea todas las tablas, funciones auxiliares, triggers e índices
    - **Ejecutar primero**
 
-2. **`grant_permissions.sql`** ⭐ ESENCIAL
-   - Otorga permisos a los roles `anon` y `authenticated` en el esquema `public`
-   - **⚠️ CRÍTICO:** Debe ejecutarse después del esquema
-   - **⚠️ CRÍTICO:** Sin estos permisos, obtendrás error 403 (permission denied)
+2. **`seed_data.sql`** ⭐ ESENCIAL
+   - Inserta roles, almacenes, categorías, unidades, tipos de donantes, marcas
+   - **⚠️ CRÍTICO:** Debe ejecutarse antes de RLS (los roles deben existir)
    - **Ejecutar después del esquema**
 
-3. **`seed_data.sql`** ⭐ ESENCIAL
-   - Inserta roles, almacenes, categorías, unidades, tipos de donantes, marcas
-   - **Ejecutar después de los permisos**
-
-4. **`rls_policies.sql`** ⭐ ESENCIAL
+3. **`rls_policies.sql`** ⭐ ESENCIAL
    - Configura Row Level Security (RLS) para todos los roles
+   - Crea funciones helper de RLS (get_user_role_name, is_admin, etc.)
    - **⚠️ CRÍTICO:** Debe ejecutarse después de `seed_data.sql` (los roles deben existir)
    - **Ejecutar después de los datos básicos**
 
-5. **`functions/validate_stock_available.sql`** ⭐ ESENCIAL
+4. **`functions/validate_stock_available.sql`** ⭐ ESENCIAL
    - Función para validar stock disponible
    - **Ejecutar después de RLS**
+   - **⚠️ IMPORTANTE:** Debe ejecutarse antes de las funciones que la usan
 
-6. **`functions/complete_kitchen_transaction.sql`** ⭐ ESENCIAL
-   - Función para completar transacciones de cocina (FIFO)
-   - **Ejecutar después de RLS**
-
-7. **`functions/create_donation_atomic.sql`** ⭐ ESENCIAL
+5. **`functions/create_donation_atomic.sql`** ⭐ ESENCIAL
    - Función para crear donaciones atómicamente
-   - **Ejecutar después de RLS**
+   - **Ejecutar después de validate_stock_available**
+
+6. **`functions/create_kitchen_request_atomic.sql`** ⭐ ESENCIAL
+   - Función para crear solicitudes de cocina atómicamente
+   - **Ejecutar después de validate_stock_available**
+   - **Usa:** `validate_stock_available`
+
+7. **`functions/complete_kitchen_transaction.sql`** ⭐ ESENCIAL
+   - Función para completar transacciones de cocina (FIFO)
+   - **Ejecutar después de validate_stock_available**
+   - **Usa:** `validate_stock_available`
+
+8. **`grant_permissions.sql`** ⭐ ESENCIAL
+   - Otorga permisos a los roles `anon` y `authenticated` en el esquema `public`
+   - **⚠️ CRÍTICO:** Debe ejecutarse DESPUÉS de todas las funciones (pasos 3-7)
+   - **⚠️ CRÍTICO:** Sin estos permisos, obtendrás error 403 (permission denied)
+   - **Ejecutar al final, después de todas las funciones**
 
 ---
 
@@ -46,7 +55,7 @@ Si ya tienes una base de datos y necesitas sincronizarla:
    - **⚠️ Hacer backup primero** - Esta migración puede ser destructiva
    - **Solo ejecutar si es necesario**
 
-2. Luego seguir con los pasos 2-6 de "Base de Datos Nueva"
+2. Luego seguir con los pasos 2-8 de "Base de Datos Nueva" (NOTA: el orden ha cambiado, `grant_permissions.sql` ahora va al final)
 
 ---
 
@@ -69,34 +78,35 @@ Si ya tienes una base de datos y necesitas sincronizarla:
 
 ## ✅ Resumen de Archivos Esenciales
 
-### Mínimo Absoluto (7 archivos):
+### Mínimo Absoluto (8 archivos):
 
 ```
 init/
 ├── database-schema-synced-with-code.sql  ⭐
-├── grant_permissions.sql                  ⭐ (nuevo)
 ├── seed_data.sql                          ⭐
 ├── rls_policies.sql                       ⭐
-└── functions/
-    ├── validate_stock_available.sql      ⭐
-    ├── complete_kitchen_transaction.sql  ⭐
-    └── create_donation_atomic.sql        ⭐
-```
+├── functions/
+│   ├── validate_stock_available.sql      ⭐ (ejecutar primero)
+│   ├── create_donation_atomic.sql        ⭐
+│   ├── create_kitchen_request_atomic.sql ⭐
+│   └── complete_kitchen_transaction.sql  ⭐
+└── grant_permissions.sql                  ⭐ (ejecutar AL FINAL)
 
-### Con Migración (8 archivos):
+### Con Migración (9 archivos):
 
 ```
 init/
 ├── database-schema-synced-with-code.sql  ⭐
-├── grant_permissions.sql                  ⭐ (nuevo)
 ├── seed_data.sql                          ⭐
 ├── rls_policies.sql                       ⭐
 ├── migrations/
 │   └── 001_sync_schema_with_code.sql     ⚠️ (solo si es necesario)
-└── functions/
-    ├── validate_stock_available.sql      ⭐
-    ├── complete_kitchen_transaction.sql  ⭐
-    └── create_donation_atomic.sql        ⭐
+├── functions/
+│   ├── validate_stock_available.sql      ⭐ (ejecutar primero)
+│   ├── create_donation_atomic.sql        ⭐
+│   ├── create_kitchen_request_atomic.sql ⭐
+│   └── complete_kitchen_transaction.sql  ⭐
+└── grant_permissions.sql                  ⭐ (ejecutar AL FINAL)
 ```
 
 ---
@@ -106,12 +116,13 @@ init/
 ```bash
 # Base de datos nueva
 psql -h tu-host -U tu-usuario -d tu-database -f database-schema-synced-with-code.sql
-psql -h tu-host -U tu-usuario -d tu-database -f grant_permissions.sql
 psql -h tu-host -U tu-usuario -d tu-database -f seed_data.sql
 psql -h tu-host -U tu-usuario -d tu-database -f rls_policies.sql
 psql -h tu-host -U tu-usuario -d tu-database -f functions/validate_stock_available.sql
-psql -h tu-host -U tu-usuario -d tu-database -f functions/complete_kitchen_transaction.sql
 psql -h tu-host -U tu-usuario -d tu-database -f functions/create_donation_atomic.sql
+psql -h tu-host -U tu-usuario -d tu-database -f functions/create_kitchen_request_atomic.sql
+psql -h tu-host -U tu-usuario -d tu-database -f functions/complete_kitchen_transaction.sql
+psql -h tu-host -U tu-usuario -d tu-database -f grant_permissions.sql
 ```
 
 ---
@@ -120,9 +131,11 @@ psql -h tu-host -U tu-usuario -d tu-database -f functions/create_donation_atomic
 
 1. **Orden de ejecución:** Respetar el orden indicado arriba
 2. **Backup:** Siempre hacer backup antes de ejecutar en producción
-3. **Permisos críticos:** `grant_permissions.sql` DEBE ejecutarse después del esquema. Sin estos permisos, obtendrás error 403 (permission denied)
-4. **RLS crítico:** `rls_policies.sql` DEBE ejecutarse después de `seed_data.sql`
-5. **Permisos de funciones:** Algunas funciones requieren permisos de administrador (especialmente el trigger en `auth.users`)
+3. **Permisos críticos:** `grant_permissions.sql` DEBE ejecutarse AL FINAL, después de todas las funciones. Sin estos permisos, obtendrás error 403 (permission denied)
+4. **RLS crítico:** `rls_policies.sql` DEBE ejecutarse después de `seed_data.sql` (los roles deben existir)
+5. **Orden de funciones:** `validate_stock_available.sql` debe ejecutarse antes que las funciones que la usan (`create_kitchen_request_atomic.sql` y `complete_kitchen_transaction.sql`)
+6. **Permisos de funciones:** Algunas funciones requieren permisos de administrador (especialmente el trigger en `auth.users`)
+7. **Importante:** `grant_permissions.sql` otorga permisos a funciones que deben existir antes. Si se ejecuta antes, fallará.
 
 ---
 

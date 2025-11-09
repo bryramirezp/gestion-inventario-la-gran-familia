@@ -11,6 +11,16 @@ module.exports = {
   ],
   theme: {
     extend: {
+      spacing: {
+        // Extend default spacing with CSS variables for consistency
+        // Note: These extend Tailwind's default spacing scale
+        'card': 'var(--spacing-card-padding)',
+        'section': 'var(--spacing-section-gap)',
+        'page': 'var(--spacing-page-padding)',
+        'content': 'var(--spacing-content-gap)',
+        'form': 'var(--spacing-form-gap)',
+        'button': 'var(--spacing-button-gap)',
+      },
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
       },
@@ -104,6 +114,8 @@ module.exports = {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/container-queries'),
+  ],
   darkMode: 'class',
 }

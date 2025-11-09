@@ -1,0 +1,228 @@
+/* Inter Font - Auto-hosted (CSP compliant) */
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/inter-v20-latin-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/inter-v20-latin-500.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/inter-v20-latin-600.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/inter-v20-latin-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/inter-v20-latin-800.woff2') format('woff2');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Theme CSS Variables (moved from index.html for CSP compliance) */
+@layer base {
+  :root {
+    /* Spacing System - Based on 4px base unit */
+    --spacing-xs: 0.25rem;    /* 4px */
+    --spacing-sm: 0.5rem;     /* 8px */
+    --spacing-md: 1rem;       /* 16px */
+    --spacing-lg: 1.5rem;     /* 24px */
+    --spacing-xl: 2rem;       /* 32px */
+    --spacing-2xl: 3rem;      /* 48px */
+    --spacing-3xl: 4rem;      /* 64px */
+    --spacing-4xl: 6rem;      /* 96px */
+
+    /* Component-specific spacing */
+    --spacing-card-padding: var(--spacing-lg);     /* 24px */
+    --spacing-section-gap: var(--spacing-xl);      /* 32px */
+    --spacing-page-padding: var(--spacing-md);     /* 16px */
+    --spacing-content-gap: var(--spacing-md);      /* 16px */
+    --spacing-form-gap: var(--spacing-lg);         /* 24px */
+    --spacing-button-gap: var(--spacing-sm);       /* 8px */
+
+    /* Responsive spacing multipliers */
+    --spacing-mobile-multiplier: 0.75;
+    --spacing-tablet-multiplier: 1;
+    --spacing-desktop-multiplier: 1.25;
+
+    --background: 210 20% 98%;
+    --foreground: 215 25% 27%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 27%;
+    --card-hover: 210 15% 96%;
+
+    --primary: 31 72% 56%;
+    --primary-foreground: 0 0% 98%;
+    --primary-hover: 31 72% 50%;
+    --primary-light: 31 72% 92%;
+
+    --secondary: 215 15% 92%;
+    --secondary-foreground: 215 25% 27%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 98%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 215 25% 27%;
+
+    --muted: 215 20% 96%;
+    --muted-foreground: 215 16% 46%;
+
+    --accent: 31 72% 96%;
+    --accent-foreground: 31 72% 20%;
+
+    --border: 215 20% 88%;
+    --input: 215 20% 92%;
+    --ring: 31 72% 56%;
+
+    --inventory-high: 142 76% 36%;
+    --inventory-medium: 38 92% 50%;
+    --inventory-low: 0 84% 60%;
+    --inventory-expired: 0 72% 35%;
+
+    /* Colores para gráficos - Basados en la paleta existente del proyecto */
+    --chart-color-1: 31 72% 56%;   /* Primary (naranja) - mismo que --primary */
+    --chart-color-2: 31 72% 45%;   /* Naranja más oscuro (variación del primary) */
+    --chart-color-3: 31 72% 67%;   /* Naranja más claro (variación del primary) */
+    --chart-color-4: 142 76% 36%;  /* Success (verde) - mismo que --success */
+    --chart-color-5: 38 92% 50%;   /* Warning (amarillo) - mismo que --warning */
+
+    --hero-gradient-start: 215 20% 96%;
+    --hero-gradient-end: 210 20% 98%;
+  }
+
+  .dark {
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 47% 14%;
+    --card-foreground: 210 40% 98%;
+    --card-hover: 222 47% 18%;
+
+    --primary: 31 72% 56%;
+    --primary-foreground: 0 0% 98%;
+    --primary-hover: 31 72% 62%;
+    --primary-light: 31 72% 92% / 0.1;
+
+    --secondary: 215 28% 22%;
+    --secondary-foreground: 210 40% 98%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 98%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 215 25% 27%;
+
+    --muted: 215 28% 18%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 31 72% 96% / 0.1;
+    --accent-foreground: 31 72% 80%;
+
+    --border: 215 28% 18%;
+    --input: 215 28% 22%;
+    --ring: 31 72% 56%;
+
+    --dark-input: 215 28% 22%;
+    --dark-muted-foreground: 215 20% 65%;
+    --dark-ring: 31 72% 56%;
+    --dark-foreground: 210 40% 98%;
+    --dark-background: 222 47% 11%;
+    --dark-border: 215 28% 18%;
+    --dark-card: 222 47% 14%;
+    --dark-muted: 215 28% 18%;
+    --dark-accent: 31 72% 96% / 0.1;
+    --dark-accent-foreground: 31 72% 80%;
+
+    --inventory-high: 142 76% 36%;
+    --inventory-medium: 38 92% 50%;
+    --inventory-low: 0 84% 60%;
+    --inventory-expired: 0 72% 35%;
+
+    /* Colores para gráficos en modo oscuro - Más claros para mejor contraste */
+    --chart-color-1: 31 72% 62%;   /* Primary más claro (mismo que --primary-hover en dark) */
+    --chart-color-2: 31 72% 52%;   /* Naranja medio */
+    --chart-color-3: 31 72% 72%;   /* Naranja más claro */
+    --chart-color-4: 142 76% 42%;  /* Success más claro */
+    --chart-color-5: 38 92% 56%;   /* Warning más claro */
+
+    --hero-gradient-start: 222 47% 14%;
+    --hero-gradient-end: 222 47% 11%;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Responsive spacing utilities */
+@layer utilities {
+  /* Mobile-first responsive spacing */
+  .spacing-responsive {
+    padding: calc(var(--spacing-page-padding) * var(--spacing-mobile-multiplier));
+  }
+
+  @media (min-width: 640px) {
+    .spacing-responsive {
+      padding: calc(var(--spacing-page-padding) * var(--spacing-tablet-multiplier));
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .spacing-responsive {
+      padding: calc(var(--spacing-page-padding) * var(--spacing-desktop-multiplier));
+    }
+  }
+
+  /* Component spacing utilities */
+  .spacing-card {
+    padding: var(--spacing-card-padding);
+  }
+
+  .spacing-section {
+    gap: var(--spacing-section-gap);
+  }
+
+  .spacing-content {
+    gap: var(--spacing-content-gap);
+  }
+
+  .spacing-form {
+    gap: var(--spacing-form-gap);
+  }
+
+  .spacing-button {
+    gap: var(--spacing-button-gap);
+  }
+}

@@ -17,7 +17,7 @@ El sistema utiliza un backend serverless a través de Supabase y un frontend rea
 - **Backend: Supabase 2.76.1 (PostgreSQL + Auth + Realtime)** - Plataforma backend-as-a-service con base de datos PostgreSQL, autenticación y actualizaciones en tiempo real.
 - **Routing: React Router DOM 6.30.1** - Manejo de navegación y rutas en la aplicación de una sola página.
 - **Charts: Recharts 2.15.4** - Biblioteca para crear gráficos interactivos y responsivos en React.
-- **Development: ESLint, Prettier, Husky, PWA (Service Worker)** - Herramientas para linting de código, formateo automático, hooks de Git y funcionalidad offline mediante Progressive Web App.
+- **Development: ESLint, Prettier, Husky** - Herramientas para linting de código, formateo automático y hooks de Git.
 
 ## **Acerca de La Gran Familia**
 

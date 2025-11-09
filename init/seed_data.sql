@@ -101,8 +101,8 @@ ON CONFLICT (type_name) DO NOTHING;
 -- ============================================================================
 -- TIPOS DE TRANSACCIÓN
 -- ============================================================================
--- Nota: Esta tabla se mantiene por compatibilidad pero no se usa en el código actual
--- Las transacciones ahora usan el campo 'status' en lugar de 'transaction_type_id'
+-- Nota: Esta tabla se mantiene para uso futuro. Actualmente no se utiliza
+-- en el código, pero puede ser útil para categorizar diferentes tipos de transacciones.
 
 INSERT INTO public.transaction_types (type_name, is_active) VALUES
   ('Entrada', TRUE),

@@ -104,7 +104,6 @@ gestion-inventario-la-gran-familia/
 │   ├── lib/
 │   ├── favicon.ico
 │   ├── logo-lagranfamilia.png
-│   └── sw.js
 │
 ├── readmes/                      # Documentación
 │   ├── AUDITORIA_DESIGN_SYSTEM.md
