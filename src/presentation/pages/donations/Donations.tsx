@@ -9,13 +9,11 @@ import {
   CardDescription,
 } from '@/presentation/components/ui/Card';
 import { Button } from '@/presentation/components/ui/Button';
-import { Label, Input, FormError } from '@/presentation/components/forms';
+import { Input } from '@/presentation/components/forms';
 import { AnimatedWrapper } from '@/presentation/components/animated/Animated';
 import { donationApi, donorApi, productApi, warehouseApi, getDonorTypes } from '@/data/api';
 import { Donor, Product, Warehouse, Donation, DonorType, NewDonor, NewDonation } from '@/domain/types';
-import { Combobox } from '@/presentation/features/shared/Combobox';
 import {
-  TrashIcon,
   CalendarIcon,
   CubeIcon,
   BuildingStorefrontIcon,
@@ -32,7 +30,7 @@ import {
   DialogDescription,
 } from '@/presentation/components/ui/Dialog';
 import DonorForm from '@/presentation/features/donations/DonorForm';
-import { DatePicker } from '@/presentation/features/shared/DatePicker';
+import DonationForm from '@/presentation/features/donations/DonationForm';
 import Pagination from '@/presentation/components/ui/Pagination';
 import { useApiQuery, useApiMutation } from '@/infrastructure/hooks/useApiQuery';
 
@@ -154,15 +152,9 @@ const ITEMS_PER_PAGE_HISTORY = 6;
 const Donations: React.FC = () => {
   const { addAlert } = useAlerts();
 
-  const [selectedDonor, setSelectedDonor] = useState<number | null>(null);
-  const [selectedWarehouse, setSelectedWarehouse] = useState<number | null>(null);
-  const [items, setItems] = useState<DonationItemForm[]>([]);
   const [historySearchTerm, setHistorySearchTerm] = useState('');
-  const [formErrors, setFormErrors] = useState<{
-    general?: string;
-    items?: Record<number, string>;
-  }>({});
   const [isDonorModalOpen, setIsDonorModalOpen] = useState(false);
+  const [isDonationModalOpen, setIsDonationModalOpen] = useState(false);
   const [newDonorName, setNewDonorName] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [viewingDonation, setViewingDonation] = useState<Donation | null>(null);
@@ -258,77 +250,8 @@ const Donations: React.FC = () => {
     setCurrentPage(1);
   }, [historySearchTerm]);
 
-  // Filtrar warehouses activos
-  const activeWarehouses = useMemo(
-    () => warehouses.filter((w) => w.is_active),
-    [warehouses]
-  );
-
   // Los datos ya vienen filtrados y paginados del backend
   const paginatedHistory = history;
-
-  const handleAddItem = useCallback(() => {
-    setItems((prevItems) => [
-      ...prevItems,
-      { product_id: null, quantity: 1, expiry_date: null, market_unit_price: 0, actual_unit_price: 0 },
-    ]);
-    // Add micro-interaction feedback
-    setTimeout(() => {
-      const newItemIndex = items.length; // Use current items.length for the new item's index
-      const newItemElement = document.querySelector(`[data-item-index="${newItemIndex}"]`);
-      if (newItemElement) {
-        newItemElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        newItemElement.classList.add('animate-pulse');
-        setTimeout(() => newItemElement.classList.remove('animate-pulse'), 1000);
-      }
-    }, 100);
-  }, [items.length]); // Dependency on items.length to correctly target the new item
-
-  const handleItemChange = useCallback((index: number, field: keyof DonationItemForm, value: string | number | null) => {
-    setItems((prevItems) => {
-      const newItems = [...prevItems];
-      newItems[index] = { ...newItems[index], [field]: value };
-      return newItems;
-    });
-  }, []);
-
-  const handleRemoveItem = useCallback((index: number) => {
-    setItems((prevItems) => prevItems.filter((_, i) => i !== index));
-  }, []);
-
-  const resetForm = useCallback(() => {
-    setSelectedDonor(null);
-    setSelectedWarehouse(null);
-    setItems([]);
-    setFormErrors({});
-  }, []);
-
-  const validateForm = useCallback(() => {
-    const errors: { general?: string; items?: Record<number, string> } = { items: {} };
-    let isValid = true;
-    if (!selectedDonor) {
-      errors.general = 'Se debe seleccionar un donante.';
-      isValid = false;
-    }
-    if (!selectedWarehouse) {
-      errors.general = (errors.general || '') + ' Se debe seleccionar un almacén.';
-      isValid = false;
-    }
-    if (items.length === 0) {
-      errors.general = (errors.general || '') + ' Se debe agregar al menos un artículo.';
-      isValid = false;
-    }
-    items.forEach((item, index) => {
-      if (!item.product_id || !item.quantity || item.quantity <= 0 || !item.market_unit_price || !item.actual_unit_price) {
-        errors.items![index] =
-          'Se requiere un producto, cantidad válida (>0), precio de mercado y precio real para cada artículo.';
-        isValid = false;
-      }
-    });
-
-    setFormErrors(errors);
-    return isValid;
-  }, [selectedDonor, selectedWarehouse, items]);
 
   // React Query Mutation: Crear donación
   const createDonationMutation = useApiMutation<
@@ -341,7 +264,6 @@ const Donations: React.FC = () => {
     {
       onSuccess: () => {
         addAlert('¡Donación registrada con éxito!', 'success');
-        resetForm();
       },
       onError: (error) => {
         addAlert(`Error al registrar la donación: ${error.message}`, 'error');
@@ -352,30 +274,23 @@ const Donations: React.FC = () => {
     }
   );
 
-  const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!validateForm()) {
-        addAlert('Por favor, corrige los errores antes de enviar.', 'warning');
-        return;
-      }
+  const handleSaveDonation = useCallback(
+    async (donationData: NewDonation) => {
       try {
-        await createDonationMutation.mutateAsync({
-          donor_id: selectedDonor!,
-          warehouse_id: selectedWarehouse!,
-          items: items,
-        });
+        await createDonationMutation.mutateAsync(donationData);
+        setIsDonationModalOpen(false);
       } catch (error) {
         // Error ya manejado en onError del mutation
+        throw error;
       }
     },
-    [validateForm, selectedDonor, selectedWarehouse, items, addAlert, resetForm, createDonationMutation]
+    [createDonationMutation]
   );
 
-  const handleCreateDonor = (name: string) => {
+  const handleCreateDonor = useCallback((name: string) => {
     setNewDonorName(name);
     setIsDonorModalOpen(true);
-  };
+  }, []);
 
   // React Query Mutation: Crear donante
   const createDonorMutation = useApiMutation<Donor, NewDonor>(
@@ -407,22 +322,6 @@ const Donations: React.FC = () => {
     }
   };
 
-  const donorOptions = useMemo(
-    () => donors.map((d) => ({ value: d.donor_id, label: d.donor_name })),
-    [donors]
-  );
-  const warehouseOptions = useMemo(
-    () =>
-      activeWarehouses.map((w) => ({
-        value: w.warehouse_id,
-        label: w.warehouse_name,
-      })),
-    [activeWarehouses]
-  );
-  const productOptions = useMemo(
-    () => products.map((p) => ({ value: p.product_id, label: p.product_name })),
-    [products]
-  );
 
   if (loading) return <LoadingSpinner size="lg" message="Cargando donaciones..." fullScreen />;
 
@@ -431,10 +330,12 @@ const Donations: React.FC = () => {
       <Header
         title="Gestión de Donaciones"
         description="Registra nuevas donaciones y consulta el historial."
+        buttonText="Registrar Donación"
+        onButtonClick={() => setIsDonationModalOpen(true)}
       />
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        {/* Donation History Column - Left Side (Large) */}
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 gap-6 items-start">
+        {/* Donation History Column */}
+        <div>
           <Card>
             <CardHeader
               renderHeaderActions={() => (
@@ -491,184 +392,27 @@ const Donations: React.FC = () => {
             </CardContent>
           </Card>
         </div>
-
-        {/* Donation Form Column - Right Side (Small) */}
-        <div className="lg:col-span-1">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">1. Detalles de la Donación</CardTitle>
-                <CardDescription className="text-xs">
-                  Selecciona el donante y el almacén de destino.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3 pt-0">
-                <div>
-                  <Label className="text-sm">Donante *</Label>
-                  <CreatableCombobox
-                    options={donorOptions}
-                    value={selectedDonor}
-                    onChange={(val) => setSelectedDonor(val as number)}
-                    onCreate={handleCreateDonor}
-                    placeholder="Selecciona o crea un donante..."
-                  />
-                </div>
-                <div>
-                  <Label className="text-sm">Almacén de Destino *</Label>
-                  <Combobox
-                    options={warehouseOptions}
-                    value={selectedWarehouse}
-                    onChange={(val) => setSelectedWarehouse(val as number)}
-                    placeholder="Selecciona un almacén..."
-                  />
-                </div>
-                {formErrors.general && <FormError message={formErrors.general} />}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">2. Artículos Donados</CardTitle>
-                <CardDescription className="text-xs">
-                  Agrega cada producto incluido en la donación.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
-                  {items.map((item, index) => (
-                    <AnimatedWrapper
-                      key={index}
-                      delay={index * 0.05}
-                      className="rounded-lg border p-3 relative group hover:border-primary/50 transition-all duration-300 bg-muted/30 hover:bg-muted/50"
-                      data-item-index={index}
-                    >
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleRemoveItem(index)}
-                        className="absolute top-1.5 right-1.5 opacity-50 group-hover:opacity-100 z-10 h-6 w-6"
-                      >
-                        <TrashIcon className="h-3 w-3 text-destructive" />
-                      </Button>
-                      <div className="space-y-2 pr-6">
-                        <div>
-                          <Label className="text-xs">Producto *</Label>
-                          <Combobox
-                            options={productOptions}
-                            value={item.product_id || null}
-                            onChange={(val) => handleItemChange(index, 'product_id', val)}
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <Label className="text-xs">Cantidad *</Label>
-                            <Input
-                              type="number"
-                              value={item.quantity}
-                              onChange={(e) =>
-                                handleItemChange(index, 'quantity', parseInt(e.target.value) || 0)
-                              }
-                              min="1"
-                              placeholder="10"
-                              className="h-8 text-sm"
-                            />
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <Label className="text-xs">Precio de Mercado *</Label>
-                            <Input
-                              type="number"
-                              value={item.market_unit_price}
-                              onChange={(e) =>
-                                handleItemChange(
-                                  index,
-                                  'market_unit_price',
-                                  parseFloat(e.target.value) || 0
-                                )
-                              }
-                              min="0"
-                              step="0.01"
-                              placeholder="15.50"
-                              className="h-8 text-sm"
-                              required
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-xs">Precio Real *</Label>
-                            <Input
-                              type="number"
-                              value={item.actual_unit_price}
-                              onChange={(e) =>
-                                handleItemChange(
-                                  index,
-                                  'actual_unit_price',
-                                  parseFloat(e.target.value) || 0
-                                )
-                              }
-                              min="0"
-                              step="0.01"
-                              placeholder="12.00"
-                              className="h-8 text-sm"
-                              required
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <Label className="text-xs">Caducidad</Label>
-                          <DatePicker
-                            selectedDate={item.expiry_date || null}
-                            onSelectDate={(date) => handleItemChange(index, 'expiry_date', date)}
-                          />
-                        </div>
-                      </div>
-                      {formErrors.items?.[index] && (
-                        <FormError message={formErrors.items?.[index]} className="mt-1 text-xs" />
-                      )}
-                    </AnimatedWrapper>
-                  ))}
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleAddItem}
-                  className="w-full mt-3 text-sm h-8"
-                >
-                  Agregar Otro Artículo
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">3. Finalizar Donación</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="text-right p-3 border-t border-b border-border dark:border-dark-border mb-3">
-                  <p className="text-xs text-muted-foreground">Valor Total (Precio Real)</p>
-                  <p className="text-xl font-bold text-foreground">
-                    $
-                    {items
-                      .reduce((acc, item) => {
-                        return acc + (item.actual_unit_price || 0) * (item.quantity || 0);
-                      }, 0)
-                      .toFixed(2)}
-                  </p>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Button type="submit" className="w-full text-sm h-9">
-                    Registrar Donación
-                  </Button>
-                  <Button type="button" variant="ghost" onClick={resetForm} className="w-full text-sm h-8">
-                    Cancelar
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </form>
-        </div>
       </div>
+
+      <Dialog isOpen={isDonationModalOpen} onClose={() => setIsDonationModalOpen(false)}>
+        <DialogContent className="max-w-4xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>Registrar Nueva Donación</DialogTitle>
+            <DialogDescription>
+              Completa los detalles de la donación y agrega los artículos incluidos.
+            </DialogDescription>
+          </DialogHeader>
+          <DonationForm
+            donors={donors}
+            products={products}
+            warehouses={warehouses}
+            onSave={handleSaveDonation}
+            onCancel={() => setIsDonationModalOpen(false)}
+            onCreateDonor={handleCreateDonor}
+            isLoading={createDonationMutation.isLoading}
+          />
+        </DialogContent>
+      </Dialog>
 
       <Dialog isOpen={isDonorModalOpen} onClose={() => setIsDonorModalOpen(false)}>
         <DialogContent>

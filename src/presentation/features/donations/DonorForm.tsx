@@ -1,7 +1,15 @@
 import React from 'react';
 import { NewDonor, DonorType } from '@/domain/types';
 import { useForm } from '@/infrastructure/hooks/useForm';
-import { Label, Input, Select, FormError } from '@/presentation/components/forms';
+import {
+  Label,
+  Input,
+  Select,
+  FormError,
+  FormContainer,
+  FormField,
+  FormFieldGroup,
+} from '@/presentation/components/forms';
 import { Button } from '@/presentation/components/ui/Button';
 import { DialogFooter } from '@/presentation/components/ui/Dialog';
 
@@ -43,79 +51,103 @@ const DonorForm: React.FC<DonorFormProps> = ({ donor, onSave, onCancel, donorTyp
   };
 
   return (
-    <form onSubmit={(e) => handleSubmit(e, handleFormSubmit)} className="space-y-4 p-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="donor_name">Nombre del Donante</Label>
+    <>
+      <FormContainer id="donor-form" onSubmit={(e) => handleSubmit(e, handleFormSubmit)}>
+        <FormFieldGroup columns={2}>
+          <FormField error={errors.donor_name} errorId="donor_name-error">
+            <Label htmlFor="donor_name">Nombre del Donante *</Label>
+            <Input
+              id="donor_name"
+              name="donor_name"
+              value={values.donor_name || ''}
+              onChange={handleChange}
+              required
+              error={!!errors.donor_name}
+              aria-describedby={errors.donor_name ? 'donor_name-error' : undefined}
+              placeholder="Nombre completo del donante"
+            />
+          </FormField>
+          <FormField error={errors.donor_type_id} errorId="donor_type_id-error">
+            <Label htmlFor="donor_type_id">Tipo de Donante *</Label>
+            <Select
+              id="donor_type_id"
+              name="donor_type_id"
+              value={values.donor_type_id || ''}
+              onChange={handleChange}
+              required
+              error={!!errors.donor_type_id}
+              aria-describedby={errors.donor_type_id ? 'donor_type_id-error' : undefined}
+            >
+              <option value="">Selecciona Tipo de Donante</option>
+              {donorTypes.map((dt) => (
+                <option key={dt.donor_type_id} value={dt.donor_type_id}>
+                  {dt.type_name}
+                </option>
+              ))}
+            </Select>
+          </FormField>
+        </FormFieldGroup>
+        <FormField>
+          <Label htmlFor="contact_person">Persona de Contacto</Label>
           <Input
-            id="donor_name"
-            name="donor_name"
-            value={values.donor_name || ''}
+            id="contact_person"
+            name="contact_person"
+            value={values.contact_person || ''}
             onChange={handleChange}
-            required
-            error={!!errors.donor_name}
+            placeholder="Nombre de la persona de contacto"
           />
-          <FormError message={errors.donor_name} />
-        </div>
-        <div>
-          <Label htmlFor="donor_type_id">Tipo de Donante</Label>
-          <Select
-            id="donor_type_id"
-            name="donor_type_id"
-            value={values.donor_type_id || ''}
-            onChange={handleChange}
-            required
-            error={!!errors.donor_type_id}
-          >
-            <option value="">Selecciona Tipo de Donante</option>
-            {donorTypes.map((dt) => (
-              <option key={dt.donor_type_id} value={dt.donor_type_id}>
-                {dt.type_name}
-              </option>
-            ))}
-          </Select>
-          <FormError message={errors.donor_type_id} />
-        </div>
-      </div>
-      <div>
-        <Label htmlFor="contact_person">Persona de Contacto</Label>
-        <Input
-          id="contact_person"
-          name="contact_person"
-          value={values.contact_person || ''}
-          onChange={handleChange}
-        />
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="phone">Teléfono</Label>
-          <Input id="phone" name="phone" value={values.phone || ''} onChange={handleChange} />
-        </div>
-        <div>
-          <Label htmlFor="email">Correo Electrónico</Label>
+        </FormField>
+        <FormFieldGroup columns={2}>
+          <FormField>
+            <Label htmlFor="phone">Teléfono</Label>
+            <Input
+              id="phone"
+              name="phone"
+              type="tel"
+              value={values.phone || ''}
+              onChange={handleChange}
+              placeholder="Número de teléfono"
+            />
+          </FormField>
+          <FormField error={errors.email} errorId="email-error">
+            <Label htmlFor="email">Correo Electrónico</Label>
+            <Input
+              id="email"
+              type="email"
+              name="email"
+              value={values.email || ''}
+              onChange={handleChange}
+              error={!!errors.email}
+              aria-describedby={errors.email ? 'email-error' : undefined}
+              placeholder="correo@ejemplo.com"
+            />
+          </FormField>
+        </FormFieldGroup>
+        <FormField>
+          <Label htmlFor="address">Dirección</Label>
           <Input
-            id="email"
-            type="email"
-            name="email"
-            value={values.email || ''}
+            id="address"
+            name="address"
+            value={values.address || ''}
             onChange={handleChange}
-            error={!!errors.email}
+            placeholder="Dirección completa"
           />
-          <FormError message={errors.email} />
-        </div>
-      </div>
-      <div>
-        <Label htmlFor="address">Dirección</Label>
-        <Input id="address" name="address" value={values.address || ''} onChange={handleChange} />
-      </div>
-      <FormError message={errors.form} />
+        </FormField>
+        {errors.form && (
+          <FormField>
+            <FormError message={errors.form} />
+          </FormField>
+        )}
+      </FormContainer>
       <DialogFooter>
         <Button type="button" variant="ghost" onClick={onCancel}>
           Cancelar
         </Button>
-        <Button type="submit">Guardar Donante</Button>
+        <Button type="submit" form="donor-form">
+          Guardar Donante
+        </Button>
       </DialogFooter>
-    </form>
+    </>
   );
 };
 

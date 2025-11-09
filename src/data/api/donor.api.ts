@@ -58,6 +58,10 @@ const getDonorAnalysisData = async (
     0
   );
 
+  // Calcular fecha de referencia para donaciones recientes (últimos 90 días)
+  const ninetyDaysAgo = new Date();
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
   const analysis = donors.map((donor) => {
     const donorTransactions = transactions.filter((t) => t.donor_id === donor.donor_id);
 
@@ -66,18 +70,76 @@ const getDonorAnalysisData = async (
         ...donor,
         total_donations_count: 0,
         total_value_donated: 0,
+        total_market_value: 0,
         average_donation_value: 0,
         last_donation_date: null,
+        first_donation_date: null,
         top_donated_category: 'N/A',
         contribution_percentage: 0,
+        donation_frequency_days: null,
+        relationship_duration_days: null,
+        recent_donations_count: 0,
+        market_vs_actual_ratio: 0,
+        ranking_position: 0,
       };
     }
 
+    // Ordenar transacciones por fecha
+    const sortedTransactions = [...donorTransactions].sort(
+      (a, b) => new Date(a.donation_date).getTime() - new Date(b.donation_date).getTime()
+    );
+
+    const firstDonationDate = sortedTransactions[0].donation_date;
+    const lastDonationDate = sortedTransactions[sortedTransactions.length - 1].donation_date;
+
+    // Calcular valores totales
     const total_value_donated = donorTransactions.reduce(
       (sum, t) => sum + (t.total_actual_value || 0),
       0
     );
 
+    const total_market_value = donorTransactions.reduce(
+      (sum, t) => sum + (t.total_market_value || 0),
+      0
+    );
+
+    // Calcular frecuencia de donaciones (promedio de días entre donaciones)
+    let donation_frequency_days: number | null = null;
+    if (sortedTransactions.length > 1) {
+      const dateDifferences: number[] = [];
+      for (let i = 1; i < sortedTransactions.length; i++) {
+        const diffTime =
+          new Date(sortedTransactions[i].donation_date).getTime() -
+          new Date(sortedTransactions[i - 1].donation_date).getTime();
+        const diffDays = diffTime / (1000 * 60 * 60 * 24);
+        dateDifferences.push(diffDays);
+      }
+      donation_frequency_days =
+        dateDifferences.length > 0
+          ? dateDifferences.reduce((sum, diff) => sum + diff, 0) / dateDifferences.length
+          : null;
+    }
+
+    // Calcular duración de la relación (días desde primera hasta última donación)
+    const relationship_duration_days =
+      sortedTransactions.length > 1
+        ? Math.round(
+            (new Date(lastDonationDate).getTime() - new Date(firstDonationDate).getTime()) /
+              (1000 * 60 * 60 * 24)
+          )
+        : null;
+
+    // Calcular donaciones recientes (últimos 90 días)
+    const recent_donations_count = donorTransactions.filter((t) => {
+      const donationDate = new Date(t.donation_date);
+      return donationDate >= ninetyDaysAgo;
+    }).length;
+
+    // Calcular ratio mercado vs real
+    const market_vs_actual_ratio =
+      total_value_donated > 0 ? (total_market_value / total_value_donated) * 100 : 0;
+
+    // Calcular categoría principal
     const categoryCounts: Record<string, number> = {};
     donorTransactions.forEach((t) => {
       t.items.forEach((item) => {
@@ -96,20 +158,34 @@ const getDonorAnalysisData = async (
       ...donor,
       total_donations_count: donorTransactions.length,
       total_value_donated,
+      total_market_value,
       average_donation_value: total_value_donated / donorTransactions.length,
-      last_donation_date: donorTransactions.sort(
-        (a, b) => new Date(b.donation_date).getTime() - new Date(a.donation_date).getTime()
-      )[0].donation_date,
-      contribution_percentage:
-        grandTotalValue > 0 ? (total_value_donated / grandTotalValue) * 100 : 0,
+      last_donation_date: lastDonationDate,
+      first_donation_date: firstDonationDate,
       top_donated_category:
         Object.keys(categoryCounts).length > 0
           ? Object.entries(categoryCounts).sort((a, b) => b[1] - a[1])[0][0]
           : 'N/A',
+      contribution_percentage:
+        grandTotalValue > 0 ? (total_value_donated / grandTotalValue) * 100 : 0,
+      donation_frequency_days: donation_frequency_days ? Math.round(donation_frequency_days) : null,
+      relationship_duration_days,
+      recent_donations_count,
+      market_vs_actual_ratio: Math.round(market_vs_actual_ratio * 100) / 100,
+      ranking_position: 0, // Se calculará después de ordenar
     };
   });
 
-  return analysis;
+  // Ordenar por valor total donado y asignar ranking
+  const sortedAnalysis = analysis.sort(
+    (a, b) => b.total_value_donated - a.total_value_donated
+  );
+
+  sortedAnalysis.forEach((donor, index) => {
+    donor.ranking_position = index + 1;
+  });
+
+  return sortedAnalysis;
 };
 
 export const donorApi = {

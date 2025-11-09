@@ -95,3 +95,75 @@ export const FormError: React.FC<{ message?: string; className?: string; id?: st
     </p>
   );
 };
+
+// --- FormContainer ---
+interface FormContainerProps {
+  children: React.ReactNode;
+  className?: string;
+  onSubmit?: (e: React.FormEvent<HTMLFormElement>) => void;
+  id?: string;
+}
+
+export const FormContainer: React.FC<FormContainerProps> = ({
+  children,
+  className,
+  onSubmit,
+  id,
+}) => {
+  return (
+    <form
+      id={id}
+      onSubmit={onSubmit}
+      className={`px-6 py-4 space-y-6 overflow-y-auto flex-1 ${className || ''}`}
+    >
+      {children}
+    </form>
+  );
+};
+
+// --- FormField ---
+interface FormFieldProps {
+  children: React.ReactNode;
+  className?: string;
+  error?: string;
+  errorId?: string;
+}
+
+export const FormField: React.FC<FormFieldProps> = ({
+  children,
+  className,
+  error,
+  errorId,
+}) => {
+  return (
+    <div className={`space-y-2 ${className || ''}`}>
+      {children}
+      {error && <FormError message={error} id={errorId} />}
+    </div>
+  );
+};
+
+// --- FormFieldGroup ---
+interface FormFieldGroupProps {
+  children: React.ReactNode;
+  className?: string;
+  columns?: 1 | 2 | 3;
+}
+
+export const FormFieldGroup: React.FC<FormFieldGroupProps> = ({
+  children,
+  className,
+  columns = 1,
+}) => {
+  const gridClasses = {
+    1: 'grid-cols-1',
+    2: 'grid-cols-1 sm:grid-cols-2',
+    3: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',
+  };
+
+  return (
+    <div className={`grid ${gridClasses[columns]} gap-4 ${className || ''}`}>
+      {children}
+    </div>
+  );
+};

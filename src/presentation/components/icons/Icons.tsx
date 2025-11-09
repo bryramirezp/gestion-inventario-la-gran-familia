@@ -451,3 +451,22 @@ export const MailIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     <polyline points="22,6 12,13 2,6" />
   </svg>
 );
+
+export const GripVerticalIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg
+    {...baseProps}
+    {...props}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="9" cy="5" r="1" />
+    <circle cx="9" cy="12" r="1" />
+    <circle cx="9" cy="19" r="1" />
+    <circle cx="15" cy="5" r="1" />
+    <circle cx="15" cy="12" r="1" />
+    <circle cx="15" cy="19" r="1" />
+  </svg>
+);

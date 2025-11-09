@@ -6,6 +6,7 @@ import {
   ArrowUpIcon,
   ArrowDownIcon,
   PlusCircleIcon,
+  GripVerticalIcon,
 } from '@/presentation/components/icons/Icons';
 import { Button } from '@/presentation/components/ui/Button';
 import { AnimatedWrapper } from '@/presentation/components/animated/Animated';
@@ -48,6 +49,9 @@ const Table = <T extends { [key: string]: any }>({
   renderExpandedRow,
 }: TableProps<T>) => {
   const [expandedKey, setExpandedKey] = useState<string | number | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [draggedHeader, setDraggedHeader] = useState<string | null>(null);
+  const [dragOverHeader, setDragOverHeader] = useState<string | null>(null);
   const draggedColumn = useRef<string | null>(null);
   const resizeHandleRef = useRef<HTMLDivElement | null>(null);
   const startX = useRef(0);
@@ -55,14 +59,34 @@ const Table = <T extends { [key: string]: any }>({
 
   const handleDragStart = (header: string) => {
     draggedColumn.current = header;
+    setDraggedHeader(header);
+    setIsDragging(true);
   };
 
-  const handleDragOver = (e: React.DragEvent<HTMLTableCellElement>) => {
+  const handleDragEnd = () => {
+    draggedColumn.current = null;
+    setDraggedHeader(null);
+    setDragOverHeader(null);
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLTableCellElement>, header: string) => {
     e.preventDefault();
+    if (draggedColumn.current && draggedColumn.current !== header) {
+      setDragOverHeader(header);
+    }
   };
 
-  const handleDrop = (targetHeader: string) => {
-    if (!draggedColumn.current || draggedColumn.current === targetHeader) return;
+  const handleDragLeave = () => {
+    setDragOverHeader(null);
+  };
+
+  const handleDrop = (targetHeader: string, e: React.DragEvent<HTMLTableCellElement>) => {
+    e.preventDefault();
+    if (!draggedColumn.current || draggedColumn.current === targetHeader) {
+      handleDragEnd();
+      return;
+    }
     const newOrder = [...columnOrder];
     const draggedIndex = newOrder.indexOf(draggedColumn.current);
     const targetIndex = newOrder.indexOf(targetHeader);
@@ -71,7 +95,7 @@ const Table = <T extends { [key: string]: any }>({
     newOrder.splice(targetIndex, 0, draggedColumn.current);
 
     setColumnOrder(newOrder);
-    draggedColumn.current = null;
+    handleDragEnd();
   };
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>, header: string) => {
@@ -94,7 +118,12 @@ const Table = <T extends { [key: string]: any }>({
     document.addEventListener('mouseup', handleMouseUp);
   };
 
-  const handleSort = (header: string, isSortable?: boolean) => {
+  const handleSort = (header: string, isSortable?: boolean, e?: React.MouseEvent) => {
+    // Prevenir ordenar si se está arrastrando
+    if (isDragging) {
+      e?.preventDefault();
+      return;
+    }
     if (!setSortConfig || !isSortable) return;
 
     let direction: 'asc' | 'desc' = 'asc';
@@ -142,6 +171,9 @@ const Table = <T extends { [key: string]: any }>({
             <tr>
               {columns.map((col) => {
                 const isSortable = col.sortable && !!setSortConfig;
+                const isBeingDragged = draggedHeader === col.header;
+                const isDragOver = dragOverHeader === col.header;
+                
                 const sortIcon =
                   sortConfig?.key === col.header ? (
                     sortConfig.direction === 'asc' ? (
@@ -157,21 +189,56 @@ const Table = <T extends { [key: string]: any }>({
                   <th
                     key={col.header}
                     scope="col"
-                    className="group relative px-6 py-3 text-left text-xs font-medium text-muted-foreground dark:text-dark-muted-foreground uppercase tracking-wider select-none"
+                    className={`group relative px-6 py-3 text-left text-xs font-medium text-muted-foreground dark:text-dark-muted-foreground uppercase tracking-wider select-none transition-all duration-200 ${
+                      isBeingDragged ? 'opacity-50 border-2 border-dashed border-primary bg-primary/10' : ''
+                    } ${
+                      isDragOver && !isBeingDragged ? 'border-l-4 border-l-primary bg-primary/5 dark:bg-primary/10' : ''
+                    }`}
                     draggable
                     onDragStart={() => handleDragStart(col.header)}
-                    onDragOver={handleDragOver}
-                    onDrop={() => handleDrop(col.header)}
-                    onClick={() => handleSort(col.header, isSortable)}
-                    style={{ cursor: isSortable ? 'pointer' : 'move' }}
+                    onDragOver={(e) => handleDragOver(e, col.header)}
+                    onDragLeave={handleDragLeave}
+                    onDragEnd={handleDragEnd}
+                    onDrop={(e) => handleDrop(col.header, e)}
+                    onClick={(e) => handleSort(col.header, isSortable, e)}
+                    style={{ 
+                      cursor: isDragging 
+                        ? 'grabbing' 
+                        : isSortable
+                          ? 'pointer'
+                          : 'grab'
+                    }}
+                    title={isSortable ? 'Click para ordenar, arrastra para reordenar' : 'Arrastra para reordenar'}
                   >
-                    <div className="flex items-center">
-                      {col.header}
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className={`flex items-center transition-opacity duration-200 shrink-0 ${
+                          isDragging || isBeingDragged
+                            ? 'opacity-100'
+                            : 'opacity-0 group-hover:opacity-100'
+                        }`}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        draggable={false}
+                      >
+                        <GripVerticalIcon 
+                          className={`w-3.5 h-3.5 transition-colors duration-200 ${
+                            isDragging || isBeingDragged
+                              ? 'text-primary'
+                              : 'text-muted-foreground/60 group-hover:text-muted-foreground'
+                          }`}
+                          style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+                          title="Arrastra para reordenar"
+                        />
+                      </div>
+                      <span className="flex-1">{col.header}</span>
                       {sortIcon}
                     </div>
                     <div
-                      className="absolute top-0 right-0 h-full w-1 cursor-col-resize opacity-0 group-hover:opacity-100 bg-primary/50"
-                      onMouseDown={(e) => handleMouseDown(e, col.header)}
+                      className="absolute top-0 right-0 h-full w-1 cursor-col-resize opacity-0 group-hover:opacity-100 bg-primary/50 transition-opacity duration-200 z-10"
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        handleMouseDown(e, col.header);
+                      }}
                     />
                   </th>
                 );

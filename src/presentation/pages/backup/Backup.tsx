@@ -77,7 +77,7 @@ const handleBackup = async () => {
         donation_id,
         donation_date,
         total_market_value,
-        total_acquired_cost,
+        total_actual_value,
         donor:donors!inner (
           donor_id,
           donor_name,
@@ -118,8 +118,8 @@ const handleBackup = async () => {
         donation_id,
         product_id,
         quantity,
-        market_value_unit_price,
-        acquired_cost_unit_price,
+        market_unit_price,
+        actual_unit_price,
         expiry_date,
         product:products!inner (
           product_id,
@@ -193,12 +193,12 @@ const handleBackup = async () => {
       const unit = Array.isArray(product?.unit) ? product.unit[0] : product?.unit;
       
       // Calcular valores
-      const precioUnitario = item.market_value_unit_price || 0;
+      const precioUnitario = item.market_unit_price || 0;
       const cantidad = item.quantity || 0;
       const precioTotal = precioUnitario * cantidad;
       
-      // Calcular precio con descuento (si aplicara)
-      const costoAdquisicion = item.acquired_cost_unit_price || 0;
+      // Calcular precio con descuento (valor real vs valor de mercado)
+      const costoAdquisicion = item.actual_unit_price || 0;
       const precioConDescuento = costoAdquisicion * cantidad;
       const porcentajeDescuento = precioUnitario > 0 
         ? ((precioUnitario - costoAdquisicion) / precioUnitario * 100).toFixed(2)
@@ -504,12 +504,15 @@ const handleImport = async () => {
           }
 
           // 💾 Insertar item de donación
+          const precioUnitario = parseFloat(item['Precio Unitario']) || 0;
+          const precioConDescuento = parseFloat(item['Total con descuento']) || precioUnitario;
           await supabase.from('donation_items').insert({
             donation_id: donationTx.donation_id,
             product_id: productId,
             quantity: parseFloat(item['Cantidad']) || 0,
-            market_value_unit_price: parseFloat(item['Precio Unitario']) || 0,
-            acquired_cost_unit_price: 0,
+            market_unit_price: precioUnitario,
+            actual_unit_price: precioConDescuento / (parseFloat(item['Cantidad']) || 1),
+            expiry_date: item['Fecha de Caducidad'] ? new Date(item['Fecha de Caducidad']) : null,
           });
         }
       }

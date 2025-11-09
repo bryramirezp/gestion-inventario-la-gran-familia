@@ -52,7 +52,7 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-secondary dark:bg-dark-background">
+    <div className="flex items-center justify-center min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--hero-gradient-start),_var(--hero-gradient-end))]">
       <Card className="w-full max-w-sm shadow-medium">
         <CardHeader className="text-center">
           <div className="mx-auto flex items-center justify-center mb-4">

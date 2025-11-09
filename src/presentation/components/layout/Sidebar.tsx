@@ -118,15 +118,15 @@ const Sidebar: React.FC<{
       <div className="flex-shrink-0 pb-4 border-b border-border dark:border-dark-border">
         <div className="flex items-center justify-start">
             <div className={`flex items-center overflow-hidden transition-all duration-500 ease-in-out ${isCollapsed ? 'w-auto' : 'w-auto'}`}>
-              <div className="bg-primary p-2 rounded-lg flex-shrink-0">
+              <div className="flex-shrink-0">
                 <ResponsiveImage
                   src="/logo-lagranfamilia.png"
                   alt="La Gran Familia"
-                  className="w-6 h-6 object-contain"
+                  className="w-8 h-8 object-contain"
                   loading="eager"
-                  width={24}
-                  height={24}
-                  sizes="24px"
+                  width={32}
+                  height={32}
+                  sizes="32px"
                 />
               </div>
             <h1 className={`text-xl font-bold ml-3 text-foreground dark:text-dark-foreground whitespace-nowrap transition-all duration-500 ease-in-out ${isCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>

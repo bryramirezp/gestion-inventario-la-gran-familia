@@ -21,7 +21,7 @@ import {
 import { warehouseApi, getFullProductDetails } from '@/data/api';
 import { Warehouse, NewWarehouse } from '@/domain/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/presentation/components/ui/Card';
-import { Label, Input, Textarea, Select, FormError } from '@/presentation/components/forms';
+import { Label, Input, Textarea, Select, FormError, FormContainer, FormField } from '@/presentation/components/forms';
 import { Button } from '@/presentation/components/ui/Button';
 import { Badge } from '@/presentation/components/ui/Badge';
 import { AnimatedWrapper } from '@/presentation/components/animated/Animated';
@@ -59,49 +59,60 @@ const WarehouseForm: React.FC<{
   };
 
   return (
-    <form onSubmit={(e) => handleSubmit(e, handleFormSubmit)} className="space-y-4">
-      <div>
-        <Label htmlFor="warehouse_name">Nombre del Almacén</Label>
-        <Input
-          id="warehouse_name"
-          name="warehouse_name"
-          value={values.warehouse_name || ''}
-          onChange={handleChange}
-          required
-          error={!!errors.warehouse_name}
-        />
-        <FormError message={errors.warehouse_name} />
-      </div>
-      <div>
-        <Label htmlFor="location_description">Descripción de la Ubicación</Label>
-        <Textarea
-          id="location_description"
-          name="location_description"
-          value={values.location_description || ''}
-          onChange={handleChange}
-        />
-      </div>
-      <div className="flex items-center space-x-2">
-        <input
-          type="checkbox"
-          id="is_active"
-          name="is_active"
-          checked={values.is_active}
-          onChange={handleChange}
-          className="h-4 w-4 rounded border-border text-primary focus:ring-primary dark:border-dark-border"
-        />
-        <Label htmlFor="is_active" className="mb-0">
-          Activo
-        </Label>
-      </div>
-      <FormError message={errors.form} />
+    <>
+      <FormContainer id="warehouse-form" onSubmit={(e) => handleSubmit(e, handleFormSubmit)}>
+        <FormField error={errors.warehouse_name} errorId="warehouse_name-error">
+          <Label htmlFor="warehouse_name">Nombre del Almacén *</Label>
+          <Input
+            id="warehouse_name"
+            name="warehouse_name"
+            value={values.warehouse_name || ''}
+            onChange={handleChange}
+            required
+            error={!!errors.warehouse_name}
+            aria-describedby={errors.warehouse_name ? 'warehouse_name-error' : undefined}
+          />
+        </FormField>
+        <FormField>
+          <Label htmlFor="location_description">Descripción de la Ubicación</Label>
+          <Textarea
+            id="location_description"
+            name="location_description"
+            value={values.location_description || ''}
+            onChange={handleChange}
+            placeholder="Describe la ubicación o propósito del almacén"
+          />
+        </FormField>
+        <FormField>
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="is_active"
+              name="is_active"
+              checked={values.is_active}
+              onChange={handleChange}
+              className="h-4 w-4 rounded border-border text-primary focus:ring-primary dark:border-dark-border"
+            />
+            <Label htmlFor="is_active" className="mb-0 cursor-pointer">
+              Almacén activo
+            </Label>
+          </div>
+        </FormField>
+        {errors.form && (
+          <FormField>
+            <FormError message={errors.form} />
+          </FormField>
+        )}
+      </FormContainer>
       <DialogFooter>
         <Button type="button" variant="ghost" onClick={onCancel}>
           Cancelar
         </Button>
-        <Button type="submit">Guardar Almacén</Button>
+        <Button type="submit" form="warehouse-form">
+          Guardar Almacén
+        </Button>
       </DialogFooter>
-    </form>
+    </>
   );
 };
 
