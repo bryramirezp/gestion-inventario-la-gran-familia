@@ -13,7 +13,7 @@ export default defineConfig({
       'Cross-Origin-Opener-Policy': 'same-origin',
     },
   },
-  base: './',
+  base: '/',
   plugins: [
     react(),
     // Bundle analyzer - generates stats.html in dist folder after build

@@ -112,8 +112,10 @@ const DonationForm: React.FC<DonationFormProps> = ({
         !item.product_id ||
         !item.quantity ||
         item.quantity <= 0 ||
-        !item.market_unit_price ||
-        !item.actual_unit_price
+        item.market_unit_price === null ||
+        item.market_unit_price === undefined ||
+        item.actual_unit_price === null ||
+        item.actual_unit_price === undefined
       ) {
         errors.items![index] =
           'Se requiere un producto, cantidad válida (>0), precio de mercado y precio real para cada artículo.';
@@ -254,12 +256,13 @@ const DonationForm: React.FC<DonationFormProps> = ({
                         <Input
                           type="number"
                           value={item.market_unit_price}
-                          onChange={(e) =>
-                            handleItemChange(index, 'market_unit_price', parseFloat(e.target.value) || 0)
-                          }
+                          onChange={(e) => {
+                            const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
+                            handleItemChange(index, 'market_unit_price', isNaN(value) ? 0 : value);
+                          }}
                           min="0"
                           step="0.01"
-                          placeholder="15.50"
+                          placeholder="0.00 (gratis)"
                           className="h-9"
                           required
                         />
@@ -269,12 +272,13 @@ const DonationForm: React.FC<DonationFormProps> = ({
                         <Input
                           type="number"
                           value={item.actual_unit_price}
-                          onChange={(e) =>
-                            handleItemChange(index, 'actual_unit_price', parseFloat(e.target.value) || 0)
-                          }
+                          onChange={(e) => {
+                            const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
+                            handleItemChange(index, 'actual_unit_price', isNaN(value) ? 0 : value);
+                          }}
                           min="0"
                           step="0.01"
-                          placeholder="12.00"
+                          placeholder="0.00 (gratis)"
                           className="h-9"
                           required
                         />
