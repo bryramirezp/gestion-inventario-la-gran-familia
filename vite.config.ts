@@ -28,6 +28,10 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
+        // Ensure absolute paths for better CSP compatibility
+        assetFileNames: 'assets/[name]-[hash][extname]',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        entryFileNames: 'assets/[name]-[hash].js',
         // Manual chunking strategy for better code splitting
         manualChunks: (id) => {
           // Vendor chunks
