@@ -15,6 +15,7 @@ import { ThemeProvider } from '@/app/providers/ThemeProvider';
 import TopBar from '@/presentation/components/layout/TopBar';
 import { QueryProvider } from '@/app/providers/QueryProvider';
 import LoadingSpinner from '@/presentation/components/ui/LoadingSpinner';
+import { AppInitializer } from '@/app/components/AppInitializer';
 import { ROUTES, ROLE_PERMISSIONS } from '@/shared/constants';
 
 // Lazy load all page components
@@ -61,20 +62,36 @@ const MainLayout: React.FC = () => {
     );
 }
 
-const ProtectedRoute: React.FC<{ roles?: string[] }> = ({ roles }) => {
+const ProtectedRoute: React.FC<{ roles?: readonly string[] }> = ({ roles }) => {
     const { user, loading } = useAuth();
-    const { data: userProfile, isLoading: isProfileLoading } = useUserProfile(); // Use useUserProfile
+    const { data: userProfile, isLoading: isProfileLoading, error: profileError } = useUserProfile();
 
-    if (loading || isProfileLoading) { // Wait for both auth and profile to load
+    // Wait for auth to load first
+    if (loading) {
         return <LoadingSpinner size="lg" message="Cargando..." centerScreen />;
     }
 
+    // If no user, redirect to login (don't wait for profile)
     if (!user) {
         return <Navigate to={ROUTES.LOGIN} replace />;
     }
 
-    if (roles && (!userProfile || !roles.includes(userProfile.role_name))) { // Use userProfile.role_name
-        // Redirect to a default page if user doesn't have the required role
+    // If user exists, wait for profile to load
+    if (isProfileLoading) {
+        return <LoadingSpinner size="lg" message="Cargando perfil..." centerScreen />;
+    }
+
+    // If there's an error loading profile, still allow access but log the error
+    if (profileError) {
+        console.error('Error loading user profile:', profileError);
+        // Allow access but without role-based restrictions
+        if (roles && roles.length > 0) {
+            return <Navigate to={ROUTES.DASHBOARD} replace />;
+        }
+    }
+
+    // Check role-based access if roles are required
+    if (roles && roles.length > 0 && (!userProfile || !roles.includes(userProfile.role_name))) {
         return <Navigate to={ROUTES.DASHBOARD} replace />;
     }
 
@@ -89,62 +106,64 @@ const LoadingFallback: React.FC = () => (
 
 const App: React.FC = () => {
   return (
-    <QueryProvider>
-      <ThemeProvider>
-        <BrowserRouter>
-          <AuthProvider>
-              <NotificationProvider>
-                  <AlertProvider>
-                      <AlertContainer />
-                      <Suspense fallback={<LoadingFallback />}>
-                        <Routes>
-                            <Route path={ROUTES.LANDING} element={<Landing />} />
-                            <Route path={ROUTES.LOGIN} element={<Login />} />
-                            <Route path={ROUTES.CONFIRM_EMAIL} element={<ConfirmEmail />} />
-                            <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPassword />} />
-                            <Route path={ROUTES.UPDATE_PASSWORD} element={<UpdatePassword />} />
+    <AppInitializer>
+      <QueryProvider>
+        <ThemeProvider>
+          <BrowserRouter>
+            <AuthProvider>
+                <NotificationProvider>
+                    <AlertProvider>
+                        <AlertContainer />
+                        <Suspense fallback={<LoadingFallback />}>
+                          <Routes>
+                              <Route path={ROUTES.LANDING} element={<Landing />} />
+                              <Route path={ROUTES.LOGIN} element={<Login />} />
+                              <Route path={ROUTES.CONFIRM_EMAIL} element={<ConfirmEmail />} />
+                              <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPassword />} />
+                              <Route path={ROUTES.UPDATE_PASSWORD} element={<UpdatePassword />} />
 
-                            <Route element={<ProtectedRoute />}>
-                                <Route element={<MainLayout />}>
-                                    <Route path={ROUTES.DASHBOARD} element={<Dashboard />} />
-                                    <Route path={ROUTES.PROFILE} element={<Profile />} />
+                              <Route element={<ProtectedRoute />}>
+                                  <Route element={<MainLayout />}>
+                                      <Route path={ROUTES.DASHBOARD} element={<Dashboard />} />
+                                      <Route path={ROUTES.PROFILE} element={<Profile />} />
 
-                                    {/* Routes accessible by Administrador and Operador */}
-                                    <Route element={<ProtectedRoute roles={ROLE_PERMISSIONS.INVENTORY_ACCESS} />}>
-                                        <Route path={ROUTES.PRODUCTS} element={<Products />} />
-                                        <Route path={ROUTES.DONATIONS} element={<Donations />} />
-                                        <Route path={ROUTES.DONORS} element={<Donors />} />
-                                        <Route path={ROUTES.DONOR_DETAIL} element={<DonorDetail />} />
-                                        <Route path={ROUTES.WAREHOUSE_DETAIL} element={<WarehouseDetail />} />
-                                        <Route path={ROUTES.WAREHOUSES} element={<Warehouses />} />
-                                        <Route path={ROUTES.EXPIRY_REPORT} element={<ExpiryReport />} />
-                                        <Route path={ROUTES.DONOR_ANALYSIS} element={<DonorAnalysis />} />
-                                    </Route>
+                                      {/* Routes accessible by Administrador and Operador */}
+                                      <Route element={<ProtectedRoute roles={ROLE_PERMISSIONS.INVENTORY_ACCESS} />}>
+                                          <Route path={ROUTES.PRODUCTS} element={<Products />} />
+                                          <Route path={ROUTES.DONATIONS} element={<Donations />} />
+                                          <Route path={ROUTES.DONORS} element={<Donors />} />
+                                          <Route path={ROUTES.DONOR_DETAIL} element={<DonorDetail />} />
+                                          <Route path={ROUTES.WAREHOUSE_DETAIL} element={<WarehouseDetail />} />
+                                          <Route path={ROUTES.WAREHOUSES} element={<Warehouses />} />
+                                          <Route path={ROUTES.EXPIRY_REPORT} element={<ExpiryReport />} />
+                                          <Route path={ROUTES.DONOR_ANALYSIS} element={<DonorAnalysis />} />
+                                      </Route>
 
-                                    {/* Routes accessible only by Administrador */}
-                                    <Route element={<ProtectedRoute roles={ROLE_PERMISSIONS.ADMIN_ACCESS} />}>
-                                        <Route path={ROUTES.CATEGORIES} element={<Categories />} />
-                                        <Route path={ROUTES.BRANDS} element={<Brands />} />
-                                        <Route path={ROUTES.USERS} element={<Users />} />
-                                    </Route>
+                                      {/* Routes accessible only by Administrador */}
+                                      <Route element={<ProtectedRoute roles={ROLE_PERMISSIONS.ADMIN_ACCESS} />}>
+                                          <Route path={ROUTES.CATEGORIES} element={<Categories />} />
+                                          <Route path={ROUTES.BRANDS} element={<Brands />} />
+                                          <Route path={ROUTES.USERS} element={<Users />} />
+                                      </Route>
 
-                                    {/* Backup route for specific admins */}
-                                    <Route element={<ProtectedRoute roles={ROLE_PERMISSIONS.ADMIN_ACCESS} />}>
-                                        <Route path={ROUTES.BACKUP} element={<Backup />} />
-                                    </Route>
-                                </Route>
-                            </Route>
+                                      {/* Backup route for specific admins */}
+                                      <Route element={<ProtectedRoute roles={ROLE_PERMISSIONS.ADMIN_ACCESS} />}>
+                                          <Route path={ROUTES.BACKUP} element={<Backup />} />
+                                      </Route>
+                                  </Route>
+                              </Route>
 
-                            <Route path="/" element={<Navigate to={ROUTES.LANDING} replace />} />
+                              <Route path="/" element={<Navigate to={ROUTES.LANDING} replace />} />
 
-                        </Routes>
-                      </Suspense>
-                  </AlertProvider>
-              </NotificationProvider>
-          </AuthProvider>
-        </BrowserRouter>
-      </ThemeProvider>
-    </QueryProvider>
+                          </Routes>
+                        </Suspense>
+                    </AlertProvider>
+                </NotificationProvider>
+            </AuthProvider>
+          </BrowserRouter>
+        </ThemeProvider>
+      </QueryProvider>
+    </AppInitializer>
   );
 };
 

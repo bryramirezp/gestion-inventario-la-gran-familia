@@ -13,43 +13,66 @@ export interface UserProfile {
 }
 
 export const useUserProfile = () => {
-  const { user: authUser } = useAuth();
+  const { user: authUser, loading: authLoading } = useAuth();
 
   return useApiQuery<UserProfile>(
     ['userProfile', authUser?.id], // Agregar dependencia del user ID
     async (_token) => {
-      if (!authUser?.id) throw new Error('No authenticated user');
+      if (!authUser?.id) {
+        throw new Error('No authenticated user');
+      }
 
-      const { data: user, error } = await supabase
-        .from('users')
-        .select('user_id, full_name, role_id, is_active')
-        .eq('user_id', authUser.id) // Filtrar por el usuario autenticado
-        .single();
+      try {
+        const { data: user, error } = await supabase
+          .from('users')
+          .select('user_id, full_name, role_id, is_active')
+          .eq('user_id', authUser.id) // Filtrar por el usuario autenticado
+          .single();
 
-      if (error) throw error;
+        if (error) {
+          console.error('Error fetching user profile:', error);
+          throw error;
+        }
 
-      // Obtener datos adicionales en paralelo
-      const [roleResult, accessResult] = await Promise.all([
-        supabase
-          .from('roles')
-          .select('role_name')
-          .eq('role_id', user.role_id)
-          .single(),
-        supabase
-          .from('user_warehouse_access')
-          .select('warehouse_id')
-          .eq('user_id', user.user_id)
-      ]);
+        if (!user) {
+          throw new Error('User not found in database');
+        }
 
-      return {
-        ...user,
-        role_name: roleResult.data?.role_name || 'Unknown',
-        warehouse_access: accessResult.data?.map(a => a.warehouse_id) || []
-      };
+        // Obtener datos adicionales en paralelo
+        const [roleResult, accessResult] = await Promise.all([
+          supabase
+            .from('roles')
+            .select('role_name')
+            .eq('role_id', user.role_id)
+            .single(),
+          supabase
+            .from('user_warehouse_access')
+            .select('warehouse_id')
+            .eq('user_id', user.user_id)
+        ]);
+
+        if (roleResult.error) {
+          console.error('Error fetching role:', roleResult.error);
+        }
+
+        if (accessResult.error) {
+          console.error('Error fetching warehouse access:', accessResult.error);
+        }
+
+        return {
+          ...user,
+          role_name: roleResult.data?.role_name || 'Unknown',
+          warehouse_access: accessResult.data?.map(a => a.warehouse_id) || []
+        };
+      } catch (error) {
+        console.error('Error in useUserProfile:', error);
+        throw error;
+      }
     },
     {
       staleTime: 10 * 60 * 1000, // 10 minutos para el perfil
-      enabled: !!authUser?.id // Solo ejecutar si hay usuario autenticado
+      enabled: !authLoading && !!authUser?.id, // Solo ejecutar si auth terminó de cargar y hay usuario
+      retry: 1, // Solo reintentar una vez
     }
   );
 };

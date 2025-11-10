@@ -34,7 +34,9 @@ if (!rootElement) {
 }
 
 try {
-  ReactDOM.createRoot(rootElement).render(
+  const root = ReactDOM.createRoot(rootElement);
+  
+  root.render(
     <React.StrictMode>
       <ErrorBoundary>
         <EnvChecker>
@@ -43,13 +45,13 @@ try {
       </ErrorBoundary>
     </React.StrictMode>,
   );
-  // Ocultar el fallback después de un breve delay para permitir que React se monte
-  setTimeout(hideLoadingFallback, 100);
+  
+  console.log('React app rendering started');
 } catch (error) {
   console.error('Error mounting React app:', error);
   hideLoadingFallback();
   const errorElement = document.createElement('div');
   errorElement.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; background: #ef4444; color: white; padding: 1rem; z-index: 9999; text-align: center;';
-  errorElement.innerHTML = `<strong>Error al iniciar la aplicación</strong><br>${error instanceof Error ? error.message : 'Error desconocido'}`;
+  errorElement.innerHTML = `<strong>Error al iniciar la aplicación</strong><br>${error instanceof Error ? error.message : 'Error desconocido'}<br><small>Revisa la consola para más detalles</small>`;
   document.body.appendChild(errorElement);
 }
