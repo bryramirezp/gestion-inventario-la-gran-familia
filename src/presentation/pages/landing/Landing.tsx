@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { CubeIcon, UserGroupIcon, NutritionIcon } from '@/presentation/components/icons/Icons';
+import { ArchiveBoxIcon, SignatureIcon, TrendingUpIcon } from '@/presentation/components/icons/Icons';
 import { Button } from '@/presentation/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/presentation/components/ui/Card';
 import { AnimatedWrapper, SplitText } from '@/presentation/components/animated/Animated';
@@ -118,26 +118,26 @@ const Landing: React.FC = () => {
         >
           <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
             <FeatureCard
-              icon={CubeIcon}
-              title={'Control de Inventario'}
+              icon={ArchiveBoxIcon}
+              title={'Centralización del inventario'}
               description={
-                'Rastrea productos, administra lotes de stock en múltiples almacenes y monitorea fechas de caducidad con reportes detallados.'
+                'Unifica entradas y salidas en una sola plataforma, eliminando duplicaciones y mejorando el control de recursos.'
               }
               delay={0.2}
             />
             <FeatureCard
-              icon={NutritionIcon}
-              title={'Planeación Nutricional'}
+              icon={SignatureIcon}
+              title={'Trazabilidad completa'}
               description={
-                'Un módulo dedicado para que los nutricionistas planeen menús diarios y el personal de cocina solicite ingredientes según los niveles de stock.'
+                'Registra quién, cuándo y para qué se retiran los donativos, fortaleciendo la transparencia y la rendición de cuentas.'
               }
               delay={0.3}
             />
             <FeatureCard
-              icon={UserGroupIcon}
-              title={'Gestión de Donantes'}
+              icon={TrendingUpIcon}
+              title={'Eficiencia operativa'}
               description={
-                'Registra donaciones, administra una lista completa de donantes y obtén información valiosa con potentes análisis.'
+                'Automatiza tareas y simplifica el trabajo del personal, reduciendo errores y carga administrativa.'
               }
               delay={0.4}
             />

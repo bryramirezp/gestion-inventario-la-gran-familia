@@ -1,13 +1,17 @@
 import { Database } from './common.types';
-import { NewStockLot } from './warehouse.types';
+import { NewStockLot, StockLot } from './warehouse.types';
 
 export type DonationTransaction = Database['public']['Tables']['donation_transactions']['Row'];
 
 export interface DonationItem extends NewStockLot {
+  item_id?: number;
+  donation_id?: number;
   market_unit_price: number;
   actual_unit_price: number;
   // Campos enriquecidos (agregados por las APIs)
   product_name?: string;
+  // Lotes de stock asociados a este item de donación
+  stock_lots?: StockLot[];
 }
 
 export interface Donation {

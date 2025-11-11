@@ -4,6 +4,7 @@ import {
   DonationItem,
   SupabaseDonationTransactionResponse,
 } from '@/domain/types';
+import { StockLot } from '@/domain/types';
 import { supabase } from './client';
 
 export const donationApi = {
@@ -86,7 +87,9 @@ export const donationApi = {
   ): Promise<Donation[]> => {
     try {
       // Construir query con JOINs optimizados
-      // Cargamos donaciones con sus relaciones (donor, warehouse, items con products)
+      // Cargamos donaciones con sus relaciones (donor, warehouse, items con products y stock_lots)
+      // NOTA: La relación stock_lots se resuelve automáticamente por Supabase usando la foreign key
+      // donation_item_id en stock_lots que referencia a donation_items.item_id
       let query = supabase
         .from('donation_transactions')
         .select(
@@ -112,6 +115,19 @@ export const donationApi = {
             product:products!donation_items_product_id_fkey(
               product_id,
               product_name
+            ),
+            stock_lots(
+              lot_id,
+              product_id,
+              warehouse_id,
+              current_quantity,
+              received_date,
+              expiry_date,
+              is_expired,
+              unit_price,
+              donation_item_id,
+              created_at,
+              updated_at
             )
           )
         `,
@@ -166,11 +182,23 @@ export const donationApi = {
           ? donation.warehouse[0]
           : donation.warehouse;
 
-        // Extraer items con nombres de productos
+        // Extraer items con nombres de productos y lotes asociados
         const items = (donation.donation_items || []).map((item) => {
           const product = item.product
             ? (Array.isArray(item.product) ? item.product[0] : item.product)
             : null;
+          
+          // Extraer lotes asociados a este item de donación
+          // Los lotes pueden ser un array o un objeto único dependiendo de cómo Supabase los devuelva
+          const stockLotsRaw = item.stock_lots;
+          const stockLots: StockLot[] = stockLotsRaw
+            ? Array.isArray(stockLotsRaw)
+              ? stockLotsRaw.filter((lot): lot is StockLot => lot != null)
+              : stockLotsRaw != null
+              ? [stockLotsRaw]
+              : []
+            : [];
+          
           return {
             item_id: item.item_id,
             donation_id: item.donation_id,
@@ -186,6 +214,8 @@ export const donationApi = {
             warehouse_id: donation.warehouse_id, // Necesario para DonationItem
             received_date: donation.donation_date, // Usar donation_date como received_date
             unit_price: item.actual_unit_price, // Para compatibilidad con NewStockLot
+            // Lotes asociados a este item de donación
+            stock_lots: stockLots,
           } as DonationItem;
         });
 
@@ -228,6 +258,154 @@ export const donationApi = {
       return enrichedHistory;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Error al obtener historial de donaciones';
+      throw new Error(errorMessage);
+    }
+  },
+
+  /**
+   * Actualiza un item de donación.
+   * NOTA: Actualizar la cantidad puede afectar los lotes de stock asociados.
+   * Se recomienda actualizar los lotes manualmente si es necesario.
+   *
+   * @param _token - Token de autenticación (no usado actualmente, mantenido para compatibilidad)
+   * @param itemId - ID del item de donación a actualizar
+   * @param updates - Campos a actualizar (quantity, market_unit_price, actual_unit_price, expiry_date)
+   * @returns El item actualizado
+   */
+  updateDonationItem: async (
+    _token: string,
+    itemId: number,
+    updates: {
+      quantity?: number;
+      market_unit_price?: number;
+      actual_unit_price?: number;
+      expiry_date?: string | null;
+    }
+  ): Promise<DonationItem> => {
+    try {
+      // Actualizar el item de donación
+      const { data: updatedItem, error: updateError } = await supabase
+        .from('donation_items')
+        .update(updates)
+        .eq('item_id', itemId)
+        .select(
+          `
+          item_id,
+          donation_id,
+          product_id,
+          quantity,
+          market_unit_price,
+          actual_unit_price,
+          expiry_date,
+          created_at,
+          product:products!donation_items_product_id_fkey(
+            product_id,
+            product_name
+          )
+        `
+        )
+        .single();
+
+      if (updateError) {
+        throw new Error(`Error al actualizar item de donación: ${updateError.message}`);
+      }
+
+      if (!updatedItem) {
+        throw new Error('No se pudo actualizar el item de donación');
+      }
+
+      // Obtener información de la donación para calcular totales
+      const { data: donation, error: donationError } = await supabase
+        .from('donation_transactions')
+        .select('donation_id, warehouse_id, donation_date')
+        .eq('donation_id', updatedItem.donation_id)
+        .single();
+
+      if (donationError) {
+        throw new Error(`Error al obtener información de la donación: ${donationError.message}`);
+      }
+
+      // Obtener todos los items de la donación para recalcular totales
+      const { data: allItems, error: itemsError } = await supabase
+        .from('donation_items')
+        .select('quantity, market_unit_price, actual_unit_price')
+        .eq('donation_id', updatedItem.donation_id);
+
+      if (itemsError) {
+        throw new Error(`Error al obtener items de donación: ${itemsError.message}`);
+      }
+
+      // Calcular nuevos totales
+      const total_market_value =
+        allItems?.reduce((acc, item) => acc + (item.market_unit_price || 0) * Number(item.quantity || 0), 0) || 0;
+      const total_actual_value =
+        allItems?.reduce((acc, item) => acc + (item.actual_unit_price || 0) * Number(item.quantity || 0), 0) || 0;
+
+      // Actualizar totales en la transacción de donación
+      const { error: totalUpdateError } = await supabase
+        .from('donation_transactions')
+        .update({
+          total_market_value,
+          total_actual_value,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('donation_id', updatedItem.donation_id);
+
+      if (totalUpdateError) {
+        console.warn(`Error al actualizar totales de donación: ${totalUpdateError.message}`);
+        // No lanzar error, ya que el item se actualizó correctamente
+      }
+
+      // Formatear respuesta
+      const product = Array.isArray(updatedItem.product) ? updatedItem.product[0] : updatedItem.product;
+
+      return {
+        item_id: updatedItem.item_id,
+        donation_id: updatedItem.donation_id,
+        product_id: updatedItem.product_id,
+        quantity: updatedItem.quantity,
+        market_unit_price: updatedItem.market_unit_price,
+        actual_unit_price: updatedItem.actual_unit_price,
+        expiry_date: updatedItem.expiry_date,
+        created_at: updatedItem.created_at,
+        product_name: product?.product_name || 'Unknown Product',
+        current_quantity: updatedItem.quantity,
+        warehouse_id: donation.warehouse_id,
+        received_date: donation.donation_date,
+        unit_price: updatedItem.actual_unit_price,
+      } as DonationItem;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error al actualizar item de donación';
+      throw new Error(errorMessage);
+    }
+  },
+
+  /**
+   * Elimina una donación completa.
+   * NOTA: Esto eliminará la donación, sus items y establecerá donation_item_id a NULL en los lotes asociados
+   * (debido a ON DELETE SET NULL en stock_lots.donation_item_id).
+   * Solo los administradores pueden eliminar donaciones según las políticas RLS.
+   *
+   * @param _token - Token de autenticación (no usado actualmente, mantenido para compatibilidad)
+   * @param donationId - ID de la donación a eliminar
+   * @returns true si se eliminó correctamente
+   */
+  deleteDonation: async (_token: string, donationId: number): Promise<boolean> => {
+    try {
+      // Eliminar la donación (esto eliminará en cascada los donation_items debido a ON DELETE CASCADE)
+      // Los lotes de stock asociados tendrán donation_item_id establecido en NULL (ON DELETE SET NULL)
+      const { error: deleteError } = await supabase
+        .from('donation_transactions')
+        .delete()
+        .eq('donation_id', donationId);
+
+      if (deleteError) {
+        throw new Error(`Error al eliminar donación: ${deleteError.message}`);
+      }
+
+      return true;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error al eliminar donación';
       throw new Error(errorMessage);
     }
   },

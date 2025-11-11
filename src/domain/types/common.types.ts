@@ -469,6 +469,7 @@ export type Database = {
           expiry_date: string | null;
           is_expired: boolean;
           unit_price: number;
+          donation_item_id: number | null;
           created_at: string;
           updated_at: string;
         };
@@ -481,6 +482,7 @@ export type Database = {
           expiry_date?: string | null;
           is_expired?: boolean;
           unit_price?: number;
+          donation_item_id?: number | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -493,6 +495,7 @@ export type Database = {
           expiry_date?: string | null;
           is_expired?: boolean;
           unit_price?: number;
+          donation_item_id?: number | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -510,6 +513,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'warehouses';
             referencedColumns: ['warehouse_id'];
+          },
+          {
+            foreignKeyName: 'stock_lots_donation_item_id_fkey';
+            columns: ['donation_item_id'];
+            isOneToOne: false;
+            referencedRelation: 'donation_items';
+            referencedColumns: ['item_id'];
           },
         ];
       };

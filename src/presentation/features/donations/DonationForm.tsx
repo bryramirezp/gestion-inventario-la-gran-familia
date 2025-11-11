@@ -51,6 +51,8 @@ const DonationForm: React.FC<DonationFormProps> = ({
     general?: string;
     items?: Record<number, string>;
   }>({});
+  // Estado para manejar valores temporales mientras se editan los inputs numéricos
+  const [editingValues, setEditingValues] = useState<Record<string, string>>({});
 
   const activeWarehouses = warehouses.filter((w) => w.is_active);
 
@@ -79,8 +81,101 @@ const DonationForm: React.FC<DonationFormProps> = ({
     []
   );
 
+  const getInputKey = useCallback((index: number, field: string) => `${index}-${field}`, []);
+
+  const handleNumberInputChange = useCallback(
+    (index: number, field: 'quantity' | 'market_unit_price' | 'actual_unit_price', value: string) => {
+      const key = `${index}-${field}`;
+      // Guardar el valor temporal (puede ser string vacío para permitir borrar completamente)
+      setEditingValues((prev) => ({ ...prev, [key]: value }));
+      
+      // Si el valor no está vacío y es válido, actualizar el estado del item
+      if (value !== '' && value !== '-' && value !== '.') {
+        const numValue = field === 'quantity' ? parseInt(value, 10) : parseFloat(value);
+        if (!isNaN(numValue)) {
+          handleItemChange(index, field, numValue);
+        }
+      }
+      // Si está vacío, NO actualizar el estado del item todavía
+      // Se actualizará en onBlur si el usuario no escribe nada
+    },
+    [handleItemChange]
+  );
+
+  const handleNumberInputFocus = useCallback(
+    (index: number, field: 'quantity' | 'market_unit_price' | 'actual_unit_price', currentValue: number, e: React.FocusEvent<HTMLInputElement>) => {
+      const key = `${index}-${field}`;
+      // Al hacer focus, siempre establecer estado de edición para permitir borrar
+      // Si el valor es 0, establecer a string vacío; si no, convertir a string
+      const currentEditingValue = editingValues[key];
+      if (currentEditingValue === undefined) {
+        if (currentValue === 0) {
+          setEditingValues((prev) => ({ ...prev, [key]: '' }));
+          // Forzar el valor del input a vacío
+          setTimeout(() => {
+            e.target.value = '';
+          }, 0);
+        } else {
+          setEditingValues((prev) => ({ ...prev, [key]: currentValue.toString() }));
+        }
+      }
+      // Seleccionar todo el texto para que el usuario pueda escribir directamente
+      e.target.select();
+    },
+    [editingValues]
+  );
+
+  const handleNumberInputBlur = useCallback(
+    (index: number, field: 'quantity' | 'market_unit_price' | 'actual_unit_price', e: React.FocusEvent<HTMLInputElement>) => {
+      const key = `${index}-${field}`;
+      const value = e.target.value;
+      
+      // Limpiar el estado de edición
+      setEditingValues((prev) => {
+        const newState = { ...prev };
+        delete newState[key];
+        return newState;
+      });
+      
+      // Si el campo está vacío o inválido, establecer valor por defecto
+      if (value === '' || value === '-' || isNaN(parseFloat(value))) {
+        if (field === 'quantity') {
+          handleItemChange(index, field, 1);
+        } else {
+          handleItemChange(index, field, 0);
+        }
+      } else {
+        // Asegurar que el valor esté actualizado
+        const numValue = field === 'quantity' ? parseInt(value, 10) : parseFloat(value);
+        if (!isNaN(numValue)) {
+          handleItemChange(index, field, numValue);
+        }
+      }
+    },
+    [handleItemChange]
+  );
+
   const handleRemoveItem = useCallback((index: number) => {
     setItems((prevItems) => prevItems.filter((_, i) => i !== index));
+    // Limpiar valores de edición del item eliminado y reindexar los demás
+    setEditingValues((prev) => {
+      const newState: Record<string, string> = {};
+      // Reindexar: los items después del eliminado cambian de índice
+      Object.keys(prev).forEach((key) => {
+        const [idxStr, field] = key.split('-');
+        const idx = parseInt(idxStr, 10);
+        if (idx < index) {
+          // Mantener items antes del eliminado
+          newState[key] = prev[key];
+        } else if (idx > index) {
+          // Reindexar items después del eliminado
+          const newKey = `${idx - 1}-${field}`;
+          newState[newKey] = prev[key];
+        }
+        // Los items en el índice eliminado se descartan
+      });
+      return newState;
+    });
   }, []);
 
   const resetForm = useCallback(() => {
@@ -88,6 +183,7 @@ const DonationForm: React.FC<DonationFormProps> = ({
     setSelectedWarehouse(null);
     setItems([]);
     setFormErrors({});
+    setEditingValues({});
   }, []);
 
   const validateForm = useCallback(() => {
@@ -240,10 +336,18 @@ const DonationForm: React.FC<DonationFormProps> = ({
                         <Label className="text-sm">Cantidad *</Label>
                         <Input
                           type="number"
-                          value={item.quantity}
-                          onChange={(e) =>
-                            handleItemChange(index, 'quantity', parseInt(e.target.value) || 0)
+                          value={
+                            (() => {
+                              const key = getInputKey(index, 'quantity');
+                              if (editingValues[key] !== undefined) {
+                                return editingValues[key];
+                              }
+                              return item.quantity === 0 ? '' : item.quantity.toString();
+                            })()
                           }
+                          onChange={(e) => handleNumberInputChange(index, 'quantity', e.target.value)}
+                          onFocus={(e) => handleNumberInputFocus(index, 'quantity', item.quantity, e)}
+                          onBlur={(e) => handleNumberInputBlur(index, 'quantity', e)}
                           min="1"
                           placeholder="10"
                           className="h-9"
@@ -255,14 +359,21 @@ const DonationForm: React.FC<DonationFormProps> = ({
                         <Label className="text-sm">Precio de Mercado *</Label>
                         <Input
                           type="number"
-                          value={item.market_unit_price}
-                          onChange={(e) => {
-                            const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
-                            handleItemChange(index, 'market_unit_price', isNaN(value) ? 0 : value);
-                          }}
+                          value={
+                            (() => {
+                              const key = getInputKey(index, 'market_unit_price');
+                              if (editingValues[key] !== undefined) {
+                                return editingValues[key];
+                              }
+                              return item.market_unit_price === 0 ? '' : item.market_unit_price.toString();
+                            })()
+                          }
+                          onChange={(e) => handleNumberInputChange(index, 'market_unit_price', e.target.value)}
+                          onFocus={(e) => handleNumberInputFocus(index, 'market_unit_price', item.market_unit_price, e)}
+                          onBlur={(e) => handleNumberInputBlur(index, 'market_unit_price', e)}
                           min="0"
                           step="0.01"
-                          placeholder="0.00 (gratis)"
+                          placeholder="0.00"
                           className="h-9"
                           required
                         />
@@ -271,14 +382,21 @@ const DonationForm: React.FC<DonationFormProps> = ({
                         <Label className="text-sm">Precio Real *</Label>
                         <Input
                           type="number"
-                          value={item.actual_unit_price}
-                          onChange={(e) => {
-                            const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
-                            handleItemChange(index, 'actual_unit_price', isNaN(value) ? 0 : value);
-                          }}
+                          value={
+                            (() => {
+                              const key = getInputKey(index, 'actual_unit_price');
+                              if (editingValues[key] !== undefined) {
+                                return editingValues[key];
+                              }
+                              return item.actual_unit_price === 0 ? '' : item.actual_unit_price.toString();
+                            })()
+                          }
+                          onChange={(e) => handleNumberInputChange(index, 'actual_unit_price', e.target.value)}
+                          onFocus={(e) => handleNumberInputFocus(index, 'actual_unit_price', item.actual_unit_price, e)}
+                          onBlur={(e) => handleNumberInputBlur(index, 'actual_unit_price', e)}
                           min="0"
                           step="0.01"
-                          placeholder="0.00 (gratis)"
+                          placeholder="0.00"
                           className="h-9"
                           required
                         />

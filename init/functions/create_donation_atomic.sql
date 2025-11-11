@@ -25,6 +25,7 @@ CREATE OR REPLACE FUNCTION public.create_donation_atomic(
 DECLARE
   v_item JSONB;
   v_donation_id BIGINT;
+  v_donation_item_id BIGINT;
   v_stock_lot_id BIGINT;
   v_stock_lots_created INTEGER := 0;
   v_total_market_value NUMERIC := 0;
@@ -105,7 +106,8 @@ BEGIN
         THEN (v_item->>'expiry_date')::DATE
         ELSE NULL
       END
-    );
+    )
+    RETURNING item_id INTO v_donation_item_id;
     
     -- Crear lote de stock
     -- IMPORTANTE: Usar p_donation_date::TIMESTAMPTZ para FIFO correcto
@@ -116,7 +118,8 @@ BEGIN
       current_quantity,
       received_date,
       expiry_date,
-      unit_price
+      unit_price,
+      donation_item_id
     )
     VALUES (
       (v_item->>'product_id')::BIGINT,
@@ -128,7 +131,8 @@ BEGIN
         THEN (v_item->>'expiry_date')::DATE
         ELSE NULL
       END,
-      (v_item->>'actual_unit_price')::NUMERIC
+      (v_item->>'actual_unit_price')::NUMERIC,
+      v_donation_item_id
     )
     RETURNING lot_id INTO v_stock_lot_id;
     

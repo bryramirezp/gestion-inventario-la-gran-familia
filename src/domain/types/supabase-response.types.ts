@@ -13,6 +13,7 @@ type UserRow = Database['public']['Tables']['users']['Row'];
 type CategoryRow = Database['public']['Tables']['categories']['Row'];
 type BrandRow = Database['public']['Tables']['brands']['Row'];
 type UnitRow = Database['public']['Tables']['units']['Row'];
+type StockLotRow = Database['public']['Tables']['stock_lots']['Row'];
 
 // Tipos para respuestas de Supabase con relaciones (JOINs)
 
@@ -23,6 +24,7 @@ export interface SupabaseDonationTransactionResponse extends DonationTransaction
   donation_items?: Array<
     DonationItemRow & {
       product?: ProductRow | ProductRow[];
+      stock_lots?: StockLotRow | StockLotRow[];
     }
   >;
 }

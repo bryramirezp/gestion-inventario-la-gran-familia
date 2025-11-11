@@ -352,7 +352,7 @@ CREATE TABLE public.donors (
 );
 
 -- ============================================================================
--- TABLAS DE PRODUCTOS E INVENTARIO
+-- TABLAS DE PRODUCTOS
 -- ============================================================================
 
 -- Tabla de productos
@@ -375,23 +375,6 @@ CREATE TABLE public.products (
 -- Índice único para SKU (solo cuando no es NULL)
 DROP INDEX IF EXISTS products_sku_unique;
 CREATE UNIQUE INDEX products_sku_unique ON public.products(sku) WHERE sku IS NOT NULL;
-
--- Tabla de lotes de stock
-CREATE TABLE public.stock_lots (
-  lot_id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-  product_id BIGINT NOT NULL REFERENCES public.products(product_id),
-  warehouse_id BIGINT NOT NULL REFERENCES public.warehouses(warehouse_id),
-  current_quantity NUMERIC(10, 2) NOT NULL CHECK (current_quantity >= 0),
-  received_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  expiry_date DATE,
-  is_expired BOOLEAN DEFAULT FALSE,
-  unit_price NUMERIC(10, 2) DEFAULT 0.00 CHECK (unit_price >= 0),
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- NOTA: No hay constraint restrictivo en expiry_date para permitir productos ya vencidos
--- El campo is_expired se actualiza automáticamente por trigger
 
 -- ============================================================================
 -- TABLAS DE DONACIONES
@@ -420,6 +403,28 @@ CREATE TABLE public.donation_items (
   expiry_date DATE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- ============================================================================
+-- TABLAS DE INVENTARIO
+-- ============================================================================
+
+-- Tabla de lotes de stock
+CREATE TABLE public.stock_lots (
+  lot_id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  product_id BIGINT NOT NULL REFERENCES public.products(product_id),
+  warehouse_id BIGINT NOT NULL REFERENCES public.warehouses(warehouse_id),
+  current_quantity NUMERIC(10, 2) NOT NULL CHECK (current_quantity >= 0),
+  received_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  expiry_date DATE,
+  is_expired BOOLEAN DEFAULT FALSE,
+  unit_price NUMERIC(10, 2) DEFAULT 0.00 CHECK (unit_price >= 0),
+  donation_item_id BIGINT REFERENCES public.donation_items(item_id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- NOTA: No hay constraint restrictivo en expiry_date para permitir productos ya vencidos
+-- El campo is_expired se actualiza automáticamente por trigger
 
 -- ============================================================================
 -- TABLAS DE TRANSACCIONES DE COCINA (MÓDULO REMOVIDO)
@@ -524,6 +529,7 @@ CREATE INDEX IF NOT EXISTS idx_stock_lots_product_warehouse ON public.stock_lots
 CREATE INDEX IF NOT EXISTS idx_stock_lots_received_date ON public.stock_lots(received_date);
 CREATE INDEX IF NOT EXISTS idx_stock_lots_expiry ON public.stock_lots(expiry_date) WHERE expiry_date IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_stock_lots_expired ON public.stock_lots(is_expired) WHERE is_expired = TRUE;
+CREATE INDEX IF NOT EXISTS idx_stock_lots_donation_item ON public.stock_lots(donation_item_id) WHERE donation_item_id IS NOT NULL;
 
 -- Índices para transactions - DESHABILITADOS (módulo de cocina removido)
 -- CREATE INDEX IF NOT EXISTS idx_transactions_requester ON public.transactions(requester_id);
@@ -564,6 +570,7 @@ COMMENT ON COLUMN public.stock_lots.current_quantity IS 'Cantidad actual del lot
 COMMENT ON COLUMN public.stock_lots.received_date IS 'Fecha y hora de recepción del lote';
 COMMENT ON COLUMN public.stock_lots.is_expired IS 'Indica si el producto está vencido (calculado automáticamente por trigger)';
 COMMENT ON COLUMN public.stock_lots.expiry_date IS 'Fecha de caducidad (puede ser en el pasado - no hay constraint restrictivo)';
+COMMENT ON COLUMN public.stock_lots.donation_item_id IS 'ID del item de donación que originó este lote (NULL si el lote fue creado manualmente). Se establece en NULL automáticamente si se elimina el item de donación (ON DELETE SET NULL).';
 
 -- Comentarios de tablas de cocina - DESHABILITADOS (módulo removido)
 -- COMMENT ON TABLE public.transactions IS 'Transacciones de cocina (solicitudes). Estructura diferente a versiones anteriores.';
