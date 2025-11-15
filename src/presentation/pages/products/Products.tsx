@@ -42,6 +42,7 @@ import { useForm } from '@/infrastructure/hooks/useForm';
 import { DatePicker } from '@/presentation/features/shared/DatePicker';
 import Pagination from '@/presentation/components/ui/Pagination';
 import { useApiQuery, useApiMutation } from '@/infrastructure/hooks/useApiQuery';
+import { validateNumericInput, validateDate } from '@/infrastructure/utils/validation.util';
 // import { PlusCircleIcon } from '@/presentation/components/icons/Icons';
 
 type ProductDetail = Awaited<ReturnType<typeof getFullProductDetails>>[0];
@@ -74,8 +75,16 @@ const ProductForm: React.FC<{
         tempErrors.product_name = 'El nombre del producto es requerido.';
       if (!formData.category_id) tempErrors.category_id = 'La categoría es requerida.';
       if (!formData.official_unit_id) tempErrors.official_unit_id = 'La unidad es requerida.';
-      if (formData.low_stock_threshold === null || formData.low_stock_threshold < 0) {
-        tempErrors.low_stock_threshold = 'El límite de stock debe ser 0 o mayor.';
+      
+      const thresholdValidation = validateNumericInput(formData.low_stock_threshold, {
+        min: 0,
+        max: 1000000,
+        allowZero: true,
+        allowNegative: false,
+        defaultValue: 5,
+      });
+      if (!thresholdValidation.isValid) {
+        tempErrors.low_stock_threshold = thresholdValidation.error || 'El límite de stock debe ser 0 o mayor.';
       }
       return tempErrors;
     }
@@ -174,9 +183,59 @@ const ProductForm: React.FC<{
             id="low_stock_threshold"
             name="low_stock_threshold"
             value={values.low_stock_threshold ?? 5}
-            onChange={handleChange}
+            onChange={(e) => {
+              const inputValue = e.target.value;
+              // Permitir valores vacíos o valores que estén siendo escritos
+              if (inputValue === '' || inputValue === '-') {
+                handleChange(e);
+                return;
+              }
+              // Validar solo valores negativos o malformados durante la escritura
+              const numValue = Number(inputValue);
+              if (isNaN(numValue) || (numValue < 0 && inputValue !== '')) {
+                setErrors({ ...errors, low_stock_threshold: 'No se permiten valores negativos.' });
+                return;
+              }
+              // Si es válido, actualizar el valor
+              handleChange(e);
+              // Limpiar error si existe
+              if (errors.low_stock_threshold) {
+                setErrors({ ...errors, low_stock_threshold: undefined });
+              }
+            }}
+            onBlur={(e) => {
+              // Validar completamente al perder el foco
+              const validation = validateNumericInput(e.target.value, {
+                min: 0,
+                max: 1000000,
+                allowZero: true,
+                allowNegative: false,
+                defaultValue: 5,
+              });
+              if (!validation.isValid) {
+                setErrors({ ...errors, low_stock_threshold: validation.error });
+                // Restaurar valor por defecto si es inválido
+                handleChange({
+                  ...e,
+                  target: { ...e.target, value: String(validation.value) },
+                });
+              } else {
+                // Asegurar que el valor esté dentro del rango
+                const numValue = Number(e.target.value);
+                if (numValue > 1000000) {
+                  setErrors({ ...errors, low_stock_threshold: 'El valor debe ser menor o igual a 1000000.' });
+                  handleChange({
+                    ...e,
+                    target: { ...e.target, value: '1000000' },
+                  });
+                } else if (errors.low_stock_threshold) {
+                  setErrors({ ...errors, low_stock_threshold: undefined });
+                }
+              }
+            }}
             required
             min="0"
+            max="1000000"
             error={!!errors.low_stock_threshold}
           />
           <FormError message={errors.low_stock_threshold} />
@@ -206,7 +265,7 @@ interface RestockFormProps {
 
 const RestockForm: React.FC<RestockFormProps> = ({ warehouses, onSave, onCancel, isSubmitting = false }) => {
   const { values, errors, handleChange, handleSubmit, setErrors, setValues } =
-    useForm<RestockFormData>(
+    useForm<RestockFormData & { expiry_date?: string | null }>(
       {
         warehouse_id: 0,
         current_quantity: 1,
@@ -216,10 +275,37 @@ const RestockForm: React.FC<RestockFormProps> = ({ warehouses, onSave, onCancel,
       (formData) => {
         const tempErrors: Record<string, string> = {};
         if (!formData.warehouse_id) tempErrors.warehouse_id = 'Se debe seleccionar un almacén.';
-        if (!formData.current_quantity || formData.current_quantity <= 0)
-          tempErrors.current_quantity = 'La cantidad debe ser mayor a cero.';
-        if (!formData.unit_price && formData.unit_price !== 0)
-          tempErrors.unit_price = 'El precio unitario es requerido.';
+        
+        const quantityValidation = validateNumericInput(formData.current_quantity, {
+          min: 1,
+          max: 1000000,
+          allowZero: false,
+          allowNegative: false,
+          defaultValue: 1,
+        });
+        if (!quantityValidation.isValid) {
+          tempErrors.current_quantity = quantityValidation.error || 'La cantidad debe ser mayor a cero.';
+        }
+        
+        const priceValidation = validateNumericInput(formData.unit_price, {
+          min: 0,
+          max: 1000000000,
+          allowZero: true,
+          allowNegative: false,
+          defaultValue: 0,
+        });
+        if (!priceValidation.isValid) {
+          tempErrors.unit_price = priceValidation.error || 'El precio unitario es requerido.';
+        }
+        
+        if (formData.expiry_date) {
+          const today = new Date().toISOString().split('T')[0];
+          const dateValidation = validateDate(formData.expiry_date, today);
+          if (!dateValidation.isValid) {
+            tempErrors.expiry_date = dateValidation.error || 'La fecha de caducidad no puede ser anterior a hoy.';
+          }
+        }
+        
         return tempErrors;
       }
     );
@@ -268,9 +354,58 @@ const RestockForm: React.FC<RestockFormProps> = ({ warehouses, onSave, onCancel,
               name="current_quantity"
               type="number"
               value={values.current_quantity || ''}
-              onChange={handleChange}
+              onChange={(e) => {
+                const inputValue = e.target.value;
+                if (inputValue === '' || inputValue === '-') {
+                  handleChange(e);
+                  return;
+                }
+                const numValue = Number(inputValue);
+                if (isNaN(numValue) || (numValue < 0 && inputValue !== '')) {
+                  setErrors({ ...errors, current_quantity: 'No se permiten valores negativos.' });
+                  return;
+                }
+                handleChange(e);
+                if (errors.current_quantity) {
+                  setErrors({ ...errors, current_quantity: undefined });
+                }
+              }}
+              onBlur={(e) => {
+                const validation = validateNumericInput(e.target.value, {
+                  min: 1,
+                  max: 1000000,
+                  allowZero: false,
+                  allowNegative: false,
+                  defaultValue: 1,
+                });
+                if (!validation.isValid) {
+                  setErrors({ ...errors, current_quantity: validation.error });
+                  handleChange({
+                    ...e,
+                    target: { ...e.target, value: String(validation.value) },
+                  });
+                } else {
+                  const numValue = Number(e.target.value);
+                  if (numValue > 1000000) {
+                    setErrors({ ...errors, current_quantity: 'El valor debe ser menor o igual a 1000000.' });
+                    handleChange({
+                      ...e,
+                      target: { ...e.target, value: '1000000' },
+                    });
+                  } else if (numValue < 1) {
+                    setErrors({ ...errors, current_quantity: 'La cantidad debe ser mayor a cero.' });
+                    handleChange({
+                      ...e,
+                      target: { ...e.target, value: '1' },
+                    });
+                  } else if (errors.current_quantity) {
+                    setErrors({ ...errors, current_quantity: undefined });
+                  }
+                }
+              }}
               required
               min="1"
+              max="1000000"
               error={!!errors.current_quantity}
             />
             <FormError message={errors.current_quantity} />
@@ -282,9 +417,52 @@ const RestockForm: React.FC<RestockFormProps> = ({ warehouses, onSave, onCancel,
               name="unit_price"
               type="number"
               value={values.unit_price ?? '0'}
-              onChange={handleChange}
+              onChange={(e) => {
+                const inputValue = e.target.value;
+                if (inputValue === '' || inputValue === '-' || inputValue === '.') {
+                  handleChange(e);
+                  return;
+                }
+                const numValue = Number(inputValue);
+                if (isNaN(numValue) || (numValue < 0 && inputValue !== '')) {
+                  setErrors({ ...errors, unit_price: 'No se permiten valores negativos.' });
+                  return;
+                }
+                handleChange(e);
+                if (errors.unit_price) {
+                  setErrors({ ...errors, unit_price: undefined });
+                }
+              }}
+              onBlur={(e) => {
+                const validation = validateNumericInput(e.target.value, {
+                  min: 0,
+                  max: 1000000000,
+                  allowZero: true,
+                  allowNegative: false,
+                  defaultValue: 0,
+                });
+                if (!validation.isValid) {
+                  setErrors({ ...errors, unit_price: validation.error });
+                  handleChange({
+                    ...e,
+                    target: { ...e.target, value: String(validation.value) },
+                  });
+                } else {
+                  const numValue = Number(e.target.value);
+                  if (numValue > 1000000000) {
+                    setErrors({ ...errors, unit_price: 'El valor debe ser menor o igual a 1000000000.' });
+                    handleChange({
+                      ...e,
+                      target: { ...e.target, value: '1000000000' },
+                    });
+                  } else if (errors.unit_price) {
+                    setErrors({ ...errors, unit_price: undefined });
+                  }
+                }
+              }}
               required
               min="0"
+              max="1000000000"
               step="0.01"
               error={!!errors.unit_price}
             />
@@ -293,7 +471,11 @@ const RestockForm: React.FC<RestockFormProps> = ({ warehouses, onSave, onCancel,
         </div>
         <div>
           <Label>Fecha de Caducidad (Opcional)</Label>
-          <DatePicker selectedDate={values.expiry_date} onSelectDate={handleDateChange} />
+          <DatePicker
+            selectedDate={values.expiry_date}
+            onSelectDate={handleDateChange}
+            minDate={new Date().toISOString().split('T')[0]}
+          />
         </div>
         <FormError message={errors.form} />
       </div>
@@ -800,13 +982,14 @@ const Products: React.FC = () => {
       </Card>
 
       <Dialog isOpen={isModalOpen} onClose={handleCloseModal}>
-        <DialogContent>
+        <DialogContent maxWidth="4xl">
           <DialogHeader>
             <DialogTitle>
               {editingProduct ? 'Editar Producto' : 'Agregar Nuevo Producto'}
             </DialogTitle>
           </DialogHeader>
-          <ProductForm
+          <div className="overflow-y-auto flex-1">
+            <ProductForm
             product={editingProduct}
             onSave={handleSave}
             onCancel={handleCloseModal}
@@ -815,6 +998,7 @@ const Products: React.FC = () => {
             units={units}
             isSubmitting={saveProductMutation.isPending}
           />
+          </div>
         </DialogContent>
       </Dialog>
 

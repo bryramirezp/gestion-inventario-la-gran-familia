@@ -16,6 +16,7 @@ import { DatePicker } from '@/presentation/features/shared/DatePicker';
 import { TrashIcon } from '@/presentation/components/icons/Icons';
 import { AnimatedWrapper } from '@/presentation/components/animated/Animated';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/presentation/components/ui/Card';
+import { validateNumericInput, validateDate } from '@/infrastructure/utils/validation.util';
 
 export interface DonationItemForm {
   product_id: number | null;
@@ -109,9 +110,9 @@ const DonationForm: React.FC<DonationFormProps> = ({
       // Si el valor es 0, establecer a string vacío; si no, convertir a string
       const currentEditingValue = editingValues[key];
       if (currentEditingValue === undefined) {
-        if (currentValue === 0) {
+        // Para precios, permitir mostrar 0; para cantidad, convertir 0 a vacío
+        if (field === 'quantity' && currentValue === 0) {
           setEditingValues((prev) => ({ ...prev, [key]: '' }));
-          // Forzar el valor del input a vacío
           setTimeout(() => {
             e.target.value = '';
           }, 0);
@@ -142,13 +143,19 @@ const DonationForm: React.FC<DonationFormProps> = ({
         if (field === 'quantity') {
           handleItemChange(index, field, 1);
         } else {
+          // Para precios, permitir 0 explícitamente
           handleItemChange(index, field, 0);
         }
       } else {
         // Asegurar que el valor esté actualizado
         const numValue = field === 'quantity' ? parseInt(value, 10) : parseFloat(value);
         if (!isNaN(numValue)) {
-          handleItemChange(index, field, numValue);
+          // Permitir 0 para precios
+          if (field !== 'quantity' && numValue === 0) {
+            handleItemChange(index, field, 0);
+          } else if (numValue >= 0) {
+            handleItemChange(index, field, numValue);
+          }
         }
       }
     },
@@ -204,18 +211,55 @@ const DonationForm: React.FC<DonationFormProps> = ({
     }
 
     items.forEach((item, index) => {
-      if (
-        !item.product_id ||
-        !item.quantity ||
-        item.quantity <= 0 ||
-        item.market_unit_price === null ||
-        item.market_unit_price === undefined ||
-        item.actual_unit_price === null ||
-        item.actual_unit_price === undefined
-      ) {
-        errors.items![index] =
-          'Se requiere un producto, cantidad válida (>0), precio de mercado y precio real para cada artículo.';
+      if (!item.product_id) {
+        errors.items![index] = 'Se requiere un producto para cada artículo.';
         isValid = false;
+        return;
+      }
+      
+      const quantityValidation = validateNumericInput(item.quantity, {
+        min: 1,
+        max: 1000000,
+        allowZero: false,
+        allowNegative: false,
+        defaultValue: 1,
+      });
+      if (!quantityValidation.isValid) {
+        errors.items![index] = quantityValidation.error || 'La cantidad debe ser mayor a cero.';
+        isValid = false;
+      }
+      
+      const marketPriceValidation = validateNumericInput(item.market_unit_price, {
+        min: 0,
+        max: 1000000000,
+        allowZero: true,
+        allowNegative: false,
+        defaultValue: 0,
+      });
+      if (!marketPriceValidation.isValid) {
+        errors.items![index] = marketPriceValidation.error || 'El precio de mercado no es válido.';
+        isValid = false;
+      }
+      
+      const actualPriceValidation = validateNumericInput(item.actual_unit_price, {
+        min: 0,
+        max: 1000000000,
+        allowZero: true,
+        allowNegative: false,
+        defaultValue: 0,
+      });
+      if (!actualPriceValidation.isValid) {
+        errors.items![index] = actualPriceValidation.error || 'El precio real no es válido.';
+        isValid = false;
+      }
+      
+      if (item.expiry_date) {
+        const today = new Date().toISOString().split('T')[0];
+        const dateValidation = validateDate(item.expiry_date, today);
+        if (!dateValidation.isValid) {
+          errors.items![index] = dateValidation.error || 'La fecha de caducidad no puede ser anterior a hoy.';
+          isValid = false;
+        }
       }
     });
 
@@ -253,8 +297,8 @@ const DonationForm: React.FC<DonationFormProps> = ({
     [onCreateDonor]
   );
 
-  const totalValue = items.reduce((acc, item) => {
-    return acc + (item.actual_unit_price || 0) * (item.quantity || 0);
+  const totalMarketValue = items.reduce((acc, item) => {
+    return acc + (item.market_unit_price || 0) * (item.quantity || 0);
   }, 0);
 
   return (
@@ -319,7 +363,7 @@ const DonationForm: React.FC<DonationFormProps> = ({
                     onClick={() => handleRemoveItem(index)}
                     className="absolute top-2 right-2 opacity-50 group-hover:opacity-100 z-10 h-6 w-6"
                   >
-                    <TrashIcon className="h-3 w-3 text-destructive" />
+                    <TrashIcon className="h-4 w-4 text-destructive" />
                   </Button>
                   <div className="space-y-3 pr-8">
                     <FormField error={formErrors.items?.[index]}>
@@ -345,10 +389,22 @@ const DonationForm: React.FC<DonationFormProps> = ({
                               return item.quantity === 0 ? '' : item.quantity.toString();
                             })()
                           }
-                          onChange={(e) => handleNumberInputChange(index, 'quantity', e.target.value)}
+                          onChange={(e) => {
+                            const validation = validateNumericInput(e.target.value, {
+                              min: 1,
+                              max: 1000000,
+                              allowZero: false,
+                              allowNegative: false,
+                              defaultValue: 1,
+                            });
+                            if (validation.isValid) {
+                              handleNumberInputChange(index, 'quantity', String(validation.value));
+                            }
+                          }}
                           onFocus={(e) => handleNumberInputFocus(index, 'quantity', item.quantity, e)}
                           onBlur={(e) => handleNumberInputBlur(index, 'quantity', e)}
                           min="1"
+                          max="1000000"
                           placeholder="10"
                           className="h-9"
                         />
@@ -356,7 +412,7 @@ const DonationForm: React.FC<DonationFormProps> = ({
                     </FormFieldGroup>
                     <FormFieldGroup columns={2}>
                       <FormField>
-                        <Label className="text-sm">Precio de Mercado *</Label>
+                        <Label className="text-sm">Precio Unitario Mercado *</Label>
                         <Input
                           type="number"
                           value={
@@ -365,13 +421,28 @@ const DonationForm: React.FC<DonationFormProps> = ({
                               if (editingValues[key] !== undefined) {
                                 return editingValues[key];
                               }
-                              return item.market_unit_price === 0 ? '' : item.market_unit_price.toString();
+                              return item.market_unit_price.toString();
                             })()
                           }
-                          onChange={(e) => handleNumberInputChange(index, 'market_unit_price', e.target.value)}
+                          onChange={(e) => {
+                            const inputValue = e.target.value;
+                            // Permitir valores vacíos, punto decimal, o valores que estén siendo escritos
+                            if (inputValue === '' || inputValue === '-' || inputValue === '.' || inputValue === '0' || inputValue.startsWith('0.')) {
+                              handleNumberInputChange(index, 'market_unit_price', inputValue);
+                              return;
+                            }
+                            // Validar solo valores negativos o malformados durante la escritura
+                            const numValue = Number(inputValue);
+                            if (isNaN(numValue) || (numValue < 0 && inputValue !== '')) {
+                              return;
+                            }
+                            // Si es válido, actualizar el valor
+                            handleNumberInputChange(index, 'market_unit_price', inputValue);
+                          }}
                           onFocus={(e) => handleNumberInputFocus(index, 'market_unit_price', item.market_unit_price, e)}
                           onBlur={(e) => handleNumberInputBlur(index, 'market_unit_price', e)}
                           min="0"
+                          max="1000000000"
                           step="0.01"
                           placeholder="0.00"
                           className="h-9"
@@ -388,13 +459,28 @@ const DonationForm: React.FC<DonationFormProps> = ({
                               if (editingValues[key] !== undefined) {
                                 return editingValues[key];
                               }
-                              return item.actual_unit_price === 0 ? '' : item.actual_unit_price.toString();
+                              return item.actual_unit_price.toString();
                             })()
                           }
-                          onChange={(e) => handleNumberInputChange(index, 'actual_unit_price', e.target.value)}
+                          onChange={(e) => {
+                            const inputValue = e.target.value;
+                            // Permitir valores vacíos, punto decimal, o valores que estén siendo escritos
+                            if (inputValue === '' || inputValue === '-' || inputValue === '.' || inputValue === '0' || inputValue.startsWith('0.')) {
+                              handleNumberInputChange(index, 'actual_unit_price', inputValue);
+                              return;
+                            }
+                            // Validar solo valores negativos o malformados durante la escritura
+                            const numValue = Number(inputValue);
+                            if (isNaN(numValue) || (numValue < 0 && inputValue !== '')) {
+                              return;
+                            }
+                            // Si es válido, actualizar el valor
+                            handleNumberInputChange(index, 'actual_unit_price', inputValue);
+                          }}
                           onFocus={(e) => handleNumberInputFocus(index, 'actual_unit_price', item.actual_unit_price, e)}
                           onBlur={(e) => handleNumberInputBlur(index, 'actual_unit_price', e)}
                           min="0"
+                          max="1000000000"
                           step="0.01"
                           placeholder="0.00"
                           className="h-9"
@@ -407,6 +493,7 @@ const DonationForm: React.FC<DonationFormProps> = ({
                       <DatePicker
                         selectedDate={item.expiry_date || null}
                         onSelectDate={(date) => handleItemChange(index, 'expiry_date', date)}
+                        minDate={new Date().toISOString().split('T')[0]}
                       />
                     </FormField>
                     {formErrors.items?.[index] && (
@@ -434,8 +521,8 @@ const DonationForm: React.FC<DonationFormProps> = ({
           </CardHeader>
           <CardContent className="pt-0 px-0">
             <div className="p-4 border rounded-lg bg-muted/30">
-              <p className="text-sm text-muted-foreground mb-1">Valor Total (Precio Real)</p>
-              <p className="text-2xl font-bold text-foreground">${totalValue.toFixed(2)}</p>
+              <p className="text-sm text-muted-foreground mb-1">Valor Total de Mercado</p>
+              <p className="text-2xl font-bold text-foreground">${totalMarketValue.toFixed(2)}</p>
             </div>
           </CardContent>
         </Card>

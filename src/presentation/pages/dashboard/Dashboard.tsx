@@ -281,15 +281,23 @@ const DefaultDashboard: React.FC = () => {
 
   const chartTheme = {
     axis: {
-      stroke: theme === 'dark' ? 'hsl(215 20% 65%)' : 'hsl(215 16% 46%)',
-      tick: { fill: theme === 'dark' ? 'hsl(215 20% 65%)' : 'hsl(215 16% 46%)' },
+      stroke: theme === 'dark' ? 'hsl(215 20% 80%)' : 'hsl(215 16% 30%)',
+      tick: { 
+        fill: theme === 'dark' ? 'hsl(215 20% 80%)' : 'hsl(215 16% 30%)',
+        fontSize: 13,
+        fontWeight: 500,
+      },
     },
     grid: {
-      stroke: theme === 'dark' ? 'hsl(215 28% 18%)' : 'hsl(215 20% 92%)',
+      stroke: theme === 'dark' ? 'hsl(215 28% 25%)' : 'hsl(215 20% 85%)',
+      strokeWidth: 1,
     },
     tooltip: {
-      background: theme === 'dark' ? 'hsl(222 47% 11%)' : 'hsl(0 0% 100%)',
-      border: theme === 'dark' ? 'hsl(215 28% 18%)' : 'hsl(215 20% 88%)',
+      background: theme === 'dark' ? 'hsl(222 47% 15%)' : 'hsl(0 0% 100%)',
+      border: theme === 'dark' ? 'hsl(215 28% 30%)' : 'hsl(215 20% 75%)',
+      padding: '12px',
+      fontSize: '14px',
+      borderRadius: '8px',
     },
   };
 
@@ -320,7 +328,7 @@ const DefaultDashboard: React.FC = () => {
           delay={0.3}
           format="currency"
         >
-          <p className="text-xs text-muted-foreground mt-1">Valor actual en almacenes</p>
+          <p className="text-xs text-muted-foreground mt-1">Valor actual en almacenes en relación al mercado</p>
         </StatCard>
         <StatCard
           title="Productos con Stock Bajo"
@@ -356,19 +364,24 @@ const DefaultDashboard: React.FC = () => {
                   <XAxis
                     dataKey="month"
                     stroke={chartTheme.axis.stroke}
-                    tick={chartTheme.axis.tick}
+                    tick={{ ...chartTheme.axis.tick }}
+                    style={{ fontSize: chartTheme.axis.tick.fontSize }}
                   />
                   <YAxis
                     stroke={chartTheme.axis.stroke}
-                    tick={chartTheme.axis.tick}
-                    tickFormatter={(value) => `$${value / 1000}k`}
+                    tick={{ ...chartTheme.axis.tick }}
+                    tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                    style={{ fontSize: chartTheme.axis.tick.fontSize }}
                   />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: chartTheme.tooltip.background,
                       border: `1px solid ${chartTheme.tooltip.border}`,
+                      padding: chartTheme.tooltip.padding,
+                      fontSize: chartTheme.tooltip.fontSize,
+                      borderRadius: chartTheme.tooltip.borderRadius,
                     }}
-                    formatter={(value: number) => `$${value.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`}
+                    formatter={(value: number) => [`$${value.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`, 'Valor Total']}
                   />
                   <Legend />
                   <Line
@@ -397,16 +410,21 @@ const DefaultDashboard: React.FC = () => {
                   <XAxis
                     dataKey="name"
                     stroke={chartTheme.axis.stroke}
-                    tick={chartTheme.axis.tick}
+                    tick={{ ...chartTheme.axis.tick }}
+                    style={{ fontSize: chartTheme.axis.tick.fontSize }}
                   />
                   <YAxis
                     stroke={chartTheme.axis.stroke}
-                    tick={chartTheme.axis.tick}
+                    tick={{ ...chartTheme.axis.tick }}
+                    style={{ fontSize: chartTheme.axis.tick.fontSize }}
                   />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: chartTheme.tooltip.background,
                       border: `1px solid ${chartTheme.tooltip.border}`,
+                      padding: chartTheme.tooltip.padding,
+                      fontSize: chartTheme.tooltip.fontSize,
+                      borderRadius: chartTheme.tooltip.borderRadius,
                     }}
                   />
                   <Bar dataKey="count" name="Productos" fill="hsl(0 84% 60%)" />
@@ -432,20 +450,25 @@ const DefaultDashboard: React.FC = () => {
                   <XAxis
                     type="number"
                     stroke={chartTheme.axis.stroke}
-                    tick={chartTheme.axis.tick}
-                    tickFormatter={(value) => `$${value / 1000}k`}
+                    tick={{ ...chartTheme.axis.tick }}
+                    tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                    style={{ fontSize: chartTheme.axis.tick.fontSize }}
                   />
                   <YAxis
                     dataKey="name"
                     type="category"
-                    width={120}
+                    width={140}
                     stroke={chartTheme.axis.stroke}
-                    tick={chartTheme.axis.tick}
+                    tick={{ ...chartTheme.axis.tick }}
+                    style={{ fontSize: chartTheme.axis.tick.fontSize }}
                   />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: chartTheme.tooltip.background,
                       border: `1px solid ${chartTheme.tooltip.border}`,
+                      padding: chartTheme.tooltip.padding,
+                      fontSize: chartTheme.tooltip.fontSize,
+                      borderRadius: chartTheme.tooltip.borderRadius,
                     }}
                     formatter={(value: number, _: any, props: any) => [
                       `$${value.toLocaleString('es-ES', { minimumFractionDigits: 2 })} (${props.payload.count} donaciones)`,
@@ -471,19 +494,24 @@ const DefaultDashboard: React.FC = () => {
                   <XAxis
                     type="number"
                     stroke={chartTheme.axis.stroke}
-                    tick={chartTheme.axis.tick}
+                    tick={{ ...chartTheme.axis.tick }}
+                    style={{ fontSize: chartTheme.axis.tick.fontSize }}
                   />
                   <YAxis
                     dataKey="name"
                     type="category"
-                    width={120}
+                    width={140}
                     stroke={chartTheme.axis.stroke}
-                    tick={chartTheme.axis.tick}
+                    tick={{ ...chartTheme.axis.tick }}
+                    style={{ fontSize: chartTheme.axis.tick.fontSize }}
                   />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: chartTheme.tooltip.background,
                       border: `1px solid ${chartTheme.tooltip.border}`,
+                      padding: chartTheme.tooltip.padding,
+                      fontSize: chartTheme.tooltip.fontSize,
+                      borderRadius: chartTheme.tooltip.borderRadius,
                     }}
                   />
                   <Bar dataKey="quantity" name="Cantidad" fill="hsl(217 91% 60%)" />
@@ -505,20 +533,25 @@ const DefaultDashboard: React.FC = () => {
                   <XAxis
                     dataKey="name"
                     stroke={chartTheme.axis.stroke}
-                    tick={chartTheme.axis.tick}
+                    tick={{ ...chartTheme.axis.tick }}
                     angle={-45}
                     textAnchor="end"
-                    height={80}
+                    height={100}
+                    style={{ fontSize: chartTheme.axis.tick.fontSize }}
                   />
                   <YAxis
                     stroke={chartTheme.axis.stroke}
-                    tick={chartTheme.axis.tick}
-                    tickFormatter={(value) => `$${value / 1000}k`}
+                    tick={{ ...chartTheme.axis.tick }}
+                    tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                    style={{ fontSize: chartTheme.axis.tick.fontSize }}
                   />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: chartTheme.tooltip.background,
                       border: `1px solid ${chartTheme.tooltip.border}`,
+                      padding: chartTheme.tooltip.padding,
+                      fontSize: chartTheme.tooltip.fontSize,
+                      borderRadius: chartTheme.tooltip.borderRadius,
                     }}
                     formatter={(value: number, _: any, props: any) => [
                       `$${value.toLocaleString('es-ES', { minimumFractionDigits: 2 })} (${props.payload.items.toLocaleString()} items)`,

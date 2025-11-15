@@ -79,13 +79,13 @@ GRANT EXECUTE ON FUNCTIONS TO service_role;
 GRANT EXECUTE ON FUNCTION public.create_profile_for_new_user() TO postgres, anon, authenticated, service_role;
 
 -- Función delete_user_complete (elimina usuario de auth.users y public.users)
-GRANT EXECUTE ON FUNCTION public.delete_user_complete(TEXT) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.delete_user_complete(UUID) TO authenticated, service_role;
 
 -- Función get_user_email (obtiene email desde auth.users)
-GRANT EXECUTE ON FUNCTION public.get_user_email(TEXT) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_user_email(UUID) TO authenticated, service_role;
 
 -- Función update_user_password_direct (actualiza contraseña directamente en auth.users)
-GRANT EXECUTE ON FUNCTION public.update_user_password_direct(TEXT, TEXT) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.update_user_password_direct(UUID, TEXT) TO authenticated, service_role;
 
 -- Funciones helper de RLS (creadas en rls_policies.sql)
 -- NOTA: Estas funciones ya tienen permisos otorgados en rls_policies.sql,
@@ -97,10 +97,12 @@ GRANT EXECUTE ON FUNCTION public.is_consultor() TO anon, authenticated, service_
 GRANT EXECUTE ON FUNCTION public.has_warehouse_access(BIGINT) TO anon, authenticated, service_role;
 
 -- Funciones de negocio (creadas en functions/*.sql)
--- NOTA: Estas funciones también tienen permisos otorgados en sus archivos respectivos,
--- pero los otorgamos aquí también para asegurar consistencia y como respaldo
-GRANT EXECUTE ON FUNCTION public.validate_stock_available(BIGINT, BIGINT, NUMERIC) TO anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.create_donation_atomic(BIGINT, BIGINT, JSONB, DATE) TO anon, authenticated, service_role;
+-- NOTA: Estas funciones ya otorgan permisos en sus archivos respectivos
+--       (validate_stock_available.sql y create_donation_atomic.sql)
+--       No es necesario otorgar permisos aquí nuevamente
+--       Si necesitas otorgar permisos manualmente, ejecuta:
+--       GRANT EXECUTE ON FUNCTION public.validate_stock_available(BIGINT, BIGINT, NUMERIC) TO anon, authenticated, service_role;
+--       GRANT EXECUTE ON FUNCTION public.create_donation_atomic(BIGINT, BIGINT, JSONB, DATE) TO anon, authenticated, service_role;
 -- Módulo de cocina removido - funciones de cocina ya no se usan
 -- GRANT EXECUTE ON FUNCTION public.create_kitchen_request_atomic(TEXT, BIGINT, JSONB, TEXT, TEXT) TO anon, authenticated, service_role;
 -- GRANT EXECUTE ON FUNCTION public.complete_kitchen_transaction(BIGINT, TEXT) TO anon, authenticated, service_role;

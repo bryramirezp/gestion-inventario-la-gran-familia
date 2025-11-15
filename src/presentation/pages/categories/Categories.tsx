@@ -30,6 +30,7 @@ import { useForm } from '@/infrastructure/hooks/useForm';
 import useTableState from '@/infrastructure/hooks/useTableState';
 import { ArchiveBoxIcon } from '@/presentation/components/icons/Icons';
 import { useAuth } from '@/app/providers/AuthProvider';
+import { validateCategoryName } from '@/infrastructure/utils/validation.util';
 
 const CategoryForm: React.FC<{
   category: Partial<NewCategory> | null;
@@ -40,8 +41,10 @@ const CategoryForm: React.FC<{
     (category || { category_name: '' }) as NewCategory,
     (formData) => {
       const tempErrors: Record<string, string> = {};
-      if (!formData.category_name)
-        tempErrors.category_name = 'El nombre de la categoría es requerido.';
+      const textValidation = validateCategoryName(formData.category_name);
+      if (!textValidation.isValid) {
+        tempErrors.category_name = textValidation.error || 'El nombre de la categoría no es válido.';
+      }
       return tempErrors;
     }
   );

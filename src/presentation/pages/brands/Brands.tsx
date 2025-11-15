@@ -30,6 +30,7 @@ import { useForm } from '@/infrastructure/hooks/useForm';
 import useTableState from '@/infrastructure/hooks/useTableState';
 import { TagIcon } from '@/presentation/components/icons/Icons';
 import { useAuth } from '@/app/providers/AuthProvider';
+import { validateBrandName } from '@/infrastructure/utils/validation.util';
 
 const BrandForm: React.FC<{
   brand: Partial<NewBrand> | null;
@@ -40,7 +41,10 @@ const BrandForm: React.FC<{
     (brand || { brand_name: '' }) as NewBrand,
     (formData) => {
       const tempErrors: Record<string, string> = {};
-      if (!formData.brand_name) tempErrors.brand_name = 'El nombre de la marca es requerido.';
+      const textValidation = validateBrandName(formData.brand_name);
+      if (!textValidation.isValid) {
+        tempErrors.brand_name = textValidation.error || 'El nombre de la marca no es válido.';
+      }
       return tempErrors;
     }
   );

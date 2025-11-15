@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronLeftIcon, ChevronRightIcon, CalendarIcon } from '@/presentation/components/icons/Icons';
 import { Button } from '@/presentation/components/ui/Button';
@@ -6,6 +6,7 @@ import { Button } from '@/presentation/components/ui/Button';
 interface DatePickerProps {
   selectedDate: string | null; // Expects YYYY-MM-DD
   onSelectDate: (date: string) => void;
+  minDate?: string; // YYYY-MM-DD format
 }
 
 const formatDate = (date: Date): string => {
@@ -24,7 +25,7 @@ const formatDisplayDate = (dateString: string | null): string => {
   });
 };
 
-export const DatePicker: React.FC<DatePickerProps> = ({ selectedDate, onSelectDate }) => {
+export const DatePicker: React.FC<DatePickerProps> = ({ selectedDate, onSelectDate, minDate }) => {
   const [isOpen, setIsOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null); // Ref for the input element
   const portalRef = useRef<HTMLDivElement>(null); // Ref for the portal content
@@ -47,16 +48,24 @@ export const DatePicker: React.FC<DatePickerProps> = ({ selectedDate, onSelectDa
       }
     };
 
-    // Attach listener after a delay to ensure the opening mousedown/click is processed first
-    // Using a small delay allows React to update the DOM and set the portal ref
-    const timer = setTimeout(() => {
-      // Use click event (not mousedown) and no capture phase to avoid conflicts
-      document.addEventListener('click', handleClickOutside);
-    }, 10);
+    // Use requestAnimationFrame to ensure the portal is mounted in the DOM
+    // before registering the click listener
+    let timer: NodeJS.Timeout | null = null;
+    const frameId = requestAnimationFrame(() => {
+      // Use a small additional delay to ensure React has finished rendering
+      timer = setTimeout(() => {
+        // Use mousedown instead of click to catch the event earlier
+        // and avoid conflicts with the input's click handler
+        document.addEventListener('mousedown', handleClickOutside, true);
+      }, 0);
+    });
 
     return () => {
-      clearTimeout(timer);
-      document.removeEventListener('click', handleClickOutside);
+      cancelAnimationFrame(frameId);
+      if (timer) {
+        clearTimeout(timer);
+      }
+      document.removeEventListener('mousedown', handleClickOutside, true);
     };
   }, [isOpen]);
 
@@ -82,7 +91,19 @@ export const DatePicker: React.FC<DatePickerProps> = ({ selectedDate, onSelectDa
 
   const handleDateClick = (day: number) => {
     const newDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
-    onSelectDate(formatDate(newDate));
+    const dateStr = formatDate(newDate);
+    
+    if (minDate) {
+      const min = new Date(minDate);
+      min.setHours(0, 0, 0, 0);
+      newDate.setHours(0, 0, 0, 0);
+      
+      if (newDate < min) {
+        return;
+      }
+    }
+    
+    onSelectDate(dateStr);
     setIsOpen(false);
   };
 
@@ -98,14 +119,25 @@ export const DatePicker: React.FC<DatePickerProps> = ({ selectedDate, onSelectDa
       const dateStr = formatDate(new Date(year, month, day));
       const isSelected = dateStr === selectedDate;
       const isToday = dateStr === formatDate(new Date());
+      
+      let isDisabled = false;
+      if (minDate) {
+        const dayDate = new Date(year, month, day);
+        dayDate.setHours(0, 0, 0, 0);
+        const min = new Date(minDate);
+        min.setHours(0, 0, 0, 0);
+        isDisabled = dayDate < min;
+      }
 
       return (
         <button
           key={day}
           onClick={() => handleDateClick(day)}
+          disabled={isDisabled}
           className={`w-10 h-10 flex items-center justify-center rounded-full text-sm transition-colors
             ${isSelected ? 'bg-primary text-primary-foreground' : 'hover:bg-muted dark:hover:bg-dark-muted'}
             ${!isSelected && isToday ? 'border border-primary' : ''}
+            ${isDisabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}
           `}
         >
           {day}
@@ -126,13 +158,34 @@ export const DatePicker: React.FC<DatePickerProps> = ({ selectedDate, onSelectDa
   const calculatePosition = () => {
     if (inputRef.current) {
       const rect = inputRef.current.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const calendarWidth = 280;
+      const calendarHeight = 320;
+      
+      let top = rect.bottom + window.scrollY + 8;
+      let left = rect.left + window.scrollX;
+      
+      if (top + calendarHeight > viewportHeight + window.scrollY) {
+        top = rect.top + window.scrollY - calendarHeight - 8;
+      }
+      
+      if (left + calendarWidth > viewportWidth) {
+        left = viewportWidth - calendarWidth - 16;
+      }
+      
+      if (left < 16) {
+        left = 16;
+      }
+      
       return {
-        top: rect.bottom + window.scrollY + 8, // 8px for mt-2
-        left: rect.left + window.scrollX,
-        width: rect.width,
+        top: Math.max(8, top),
+        left: Math.max(8, left),
+        width: Math.max(rect.width, calendarWidth),
+        position: 'fixed' as const,
       };
     }
-    return {};
+    return { position: 'fixed' as const };
   };
 
   return (
@@ -144,9 +197,10 @@ export const DatePicker: React.FC<DatePickerProps> = ({ selectedDate, onSelectDa
           readOnly
           value={formatDisplayDate(selectedDate)}
           onMouseDown={(e) => {
-            // Use onMouseDown and prevent default to handle the interaction
-            // This prevents the click event from firing immediately
+            // Prevent default to avoid losing focus
             e.preventDefault();
+            // Stop propagation to prevent the mousedown from reaching document listeners
+            e.stopPropagation();
             setIsOpen((prev) => !prev);
           }}
           onClick={(e) => {
@@ -155,8 +209,6 @@ export const DatePicker: React.FC<DatePickerProps> = ({ selectedDate, onSelectDa
           }}
           onFocus={(e) => {
             e.stopPropagation();
-            // Optional: open on focus for keyboard navigation
-            // setIsOpen(true);
           }}
           placeholder="Selecciona una fecha"
           className="flex h-10 w-full cursor-pointer rounded-md border border-input dark:border-dark-input bg-background dark:bg-dark-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
@@ -167,8 +219,12 @@ export const DatePicker: React.FC<DatePickerProps> = ({ selectedDate, onSelectDa
       {isOpen && portalTarget && createPortal(
         <div
           ref={portalRef} // Attach ref to the portal content
-          className="absolute z-[150] bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-lg shadow-lg p-4 animate-slide-up"
+          className="fixed z-[150] bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-lg shadow-xl p-4 animate-slide-up"
           style={calculatePosition()}
+          onMouseDown={(e) => {
+            // Prevent clicks inside the calendar from closing it
+            e.stopPropagation();
+          }}
         >
           <div className="flex items-center justify-between mb-2">
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => changeMonth(-1)}>

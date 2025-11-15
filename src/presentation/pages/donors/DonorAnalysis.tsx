@@ -341,6 +341,7 @@ const DonorAnalysis: React.FC = () => {
                     contentStyle={{
                       backgroundColor: chartTheme.tooltip.background,
                       border: `1px solid ${chartTheme.tooltip.border}`,
+                      color: 'hsl(var(--foreground))',
                     }}
                     formatter={(value: number) => `$${value.toLocaleString('es-MX')}`}
                   />
@@ -359,7 +360,7 @@ const DonorAnalysis: React.FC = () => {
             </CardHeader>
             <CardContent>
               <ResponsiveChart minHeight={300} maxHeight={400}>
-                <BarChart data={topDonorsData} margin={{ top: 5, right: 20, left: -10, bottom: 60 }}>
+                <BarChart data={topDonorsData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid.stroke} />
                   <XAxis
                     dataKey="name"
@@ -380,7 +381,7 @@ const DonorAnalysis: React.FC = () => {
                       props.payload.fullName,
                     ]}
                   />
-                  <Legend />
+                  <Legend wrapperStyle={{ paddingTop: '90px' }} />
                   <Bar dataKey="value" name="Total Donado" fill={chartColors[0]} />
                 </BarChart>
               </ResponsiveChart>
@@ -399,7 +400,7 @@ const DonorAnalysis: React.FC = () => {
             </CardHeader>
             <CardContent>
               <ResponsiveChart minHeight={300} maxHeight={400}>
-                <BarChart data={marketVsActualData} margin={{ top: 5, right: 20, left: -10, bottom: 60 }}>
+                <BarChart data={marketVsActualData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid.stroke} />
                   <XAxis
                     dataKey="name"
@@ -417,7 +418,7 @@ const DonorAnalysis: React.FC = () => {
                     }}
                     formatter={(value: number) => `$${value.toLocaleString('es-MX')}`}
                   />
-                  <Legend />
+                  <Legend wrapperStyle={{ paddingTop: '90px' }} />
                   <Bar dataKey="Valor Real" fill={chartColors[0]} />
                   <Bar dataKey="Valor Mercado" fill={chartColors[1]} />
                 </BarChart>

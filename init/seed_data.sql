@@ -33,6 +33,12 @@ INSERT INTO public.warehouses (warehouse_name, location_description, is_active) 
   ('Bodega Secundaria', 'Almacén auxiliar', TRUE)
 ON CONFLICT (warehouse_name) DO NOTHING;
 
+INSERT INTO public.warehouses (warehouse_id, warehouse_name, location_description, is_active) 
+OVERRIDING SYSTEM VALUE
+VALUES
+  (999, 'Almacén de Caducados', 'Almacén para productos caducados', TRUE)
+ON CONFLICT (warehouse_id) DO NOTHING;
+
 -- ============================================================================
 -- CATEGORÍAS
 -- ============================================================================

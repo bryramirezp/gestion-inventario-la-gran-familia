@@ -32,7 +32,7 @@ BEGIN
   SELECT r.role_name INTO v_role_name
   FROM public.users u
   LEFT JOIN public.roles r ON u.role_id = r.role_id
-  WHERE u.user_id = auth.uid()::TEXT
+  WHERE u.user_id = auth.uid()
   AND u.is_active = TRUE;
   
   RETURN v_role_name;
@@ -76,7 +76,7 @@ BEGIN
   RETURN EXISTS (
     SELECT 1 
     FROM public.user_warehouse_access uwa
-    WHERE uwa.user_id = auth.uid()::TEXT
+    WHERE uwa.user_id = auth.uid()
     AND uwa.warehouse_id = p_warehouse_id
   );
 END;
@@ -117,7 +117,7 @@ DROP POLICY IF EXISTS "users_select_admin_all" ON public.users;
 CREATE POLICY "users_select_own"
 ON public.users FOR SELECT
 TO authenticated
-USING (user_id = auth.uid()::TEXT);
+USING (user_id = auth.uid());
 
 CREATE POLICY "users_select_admin_all"
 ON public.users FOR SELECT
@@ -133,8 +133,8 @@ DROP POLICY IF EXISTS "users_update_admin_all" ON public.users;
 CREATE POLICY "users_update_own"
 ON public.users FOR UPDATE
 TO authenticated
-USING (user_id = auth.uid()::TEXT)
-WITH CHECK (user_id = auth.uid()::TEXT);
+USING (user_id = auth.uid())
+WITH CHECK (user_id = auth.uid());
 
 CREATE POLICY "users_update_admin"
 ON public.users FOR UPDATE
@@ -181,7 +181,7 @@ DROP POLICY IF EXISTS "user_warehouse_access_modify_admin" ON public.user_wareho
 CREATE POLICY "user_warehouse_access_select"
 ON public.user_warehouse_access FOR SELECT
 TO authenticated
-USING (user_id = auth.uid()::TEXT OR public.is_admin());
+USING (user_id = auth.uid() OR public.is_admin());
 
 CREATE POLICY "user_warehouse_access_modify_admin"
 ON public.user_warehouse_access FOR ALL

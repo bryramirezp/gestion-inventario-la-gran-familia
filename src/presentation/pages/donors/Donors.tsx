@@ -75,7 +75,7 @@ const DonorCard: React.FC<DonorCardProps> = React.memo(({ donor, donorTypeName }
             Total Donado
           </span>
           <p className="text-3xl font-bold text-foreground dark:text-dark-foreground tracking-tight leading-tight">
-            ${donor.total_value_donated.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+            ${(donor.total_market_value || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
           </p>
         </div>
 

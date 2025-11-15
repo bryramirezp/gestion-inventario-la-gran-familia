@@ -62,7 +62,7 @@ export const AlertContainer: React.FC = () => {
   }
 
   return (
-    <div className="fixed top-5 right-5 z-[100] space-y-3 w-full max-w-sm">
+    <div className="fixed bottom-5 right-5 z-[100] space-y-3 w-full max-w-sm">
       {alerts.map((alert) => (
         <AlertItem key={`${alert.id}-${alert.message}-${alert.type}`} alert={alert} onDismiss={removeAlert} />
       ))}

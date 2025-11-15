@@ -69,7 +69,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Función para obtener el email de un usuario desde auth.users
-CREATE OR REPLACE FUNCTION public.get_user_email(p_user_id TEXT)
+CREATE OR REPLACE FUNCTION public.get_user_email(p_user_id UUID)
 RETURNS TEXT
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -81,7 +81,7 @@ BEGIN
   -- Obtener el email desde auth.users
   SELECT email INTO v_email
   FROM auth.users
-  WHERE id::TEXT = p_user_id;
+  WHERE id = p_user_id;
   
   IF v_email IS NULL THEN
     RAISE EXCEPTION 'Usuario no encontrado en auth.users: %', p_user_id;
@@ -105,7 +105,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 -- que impiden actualizar encrypted_password directamente), necesitarás crear una
 -- Edge Function de Supabase que use supabase.auth.admin.updateUserById con el
 -- service_role key.
-CREATE OR REPLACE FUNCTION public.update_user_password_direct(p_user_id TEXT, p_new_password TEXT)
+CREATE OR REPLACE FUNCTION public.update_user_password_direct(p_user_id UUID, p_new_password TEXT)
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -117,7 +117,7 @@ DECLARE
   v_updated_rows INTEGER;
 BEGIN
   -- Verificar que el usuario existe en auth.users
-  SELECT EXISTS(SELECT 1 FROM auth.users WHERE id::TEXT = p_user_id) INTO v_user_exists;
+  SELECT EXISTS(SELECT 1 FROM auth.users WHERE id = p_user_id) INTO v_user_exists;
   
   IF NOT v_user_exists THEN
     RAISE EXCEPTION 'Usuario no encontrado en auth.users: %', p_user_id;
@@ -165,7 +165,7 @@ BEGIN
   SET 
     encrypted_password = v_encrypted_password,
     updated_at = NOW()
-  WHERE id::TEXT = p_user_id;
+  WHERE id = p_user_id;
   
   GET DIAGNOSTICS v_updated_rows = ROW_COUNT;
   
@@ -176,7 +176,7 @@ END;
 $$;
 
 -- Función para eliminar usuario completamente (de auth.users y public.users)
-CREATE OR REPLACE FUNCTION public.delete_user_complete(p_user_id TEXT)
+CREATE OR REPLACE FUNCTION public.delete_user_complete(p_user_id UUID)
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -200,7 +200,7 @@ BEGIN
   DELETE FROM public.users WHERE user_id = p_user_id;
   
   -- 3. Eliminar de auth.users (requiere permisos especiales)
-  DELETE FROM auth.users WHERE id::TEXT = p_user_id;
+  DELETE FROM auth.users WHERE id = p_user_id;
   GET DIAGNOSTICS v_auth_user_deleted = ROW_COUNT;
   
   -- Verificar que se eliminó de auth.users
@@ -209,6 +209,17 @@ BEGIN
   END IF;
 END;
 $$;
+
+-- Función para prevenir la eliminación del Almacén de Caducados (ID: 999)
+CREATE OR REPLACE FUNCTION public.prevent_delete_expired_warehouse()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF OLD.warehouse_id = 999 THEN
+    RAISE EXCEPTION 'No se puede eliminar el Almacén de Caducados (ID: 999)';
+  END IF;
+  RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
 
 -- ============================================================================
 -- TABLAS DE CONFIGURACIÓN
@@ -308,9 +319,9 @@ CREATE TABLE public.transaction_types (
 -- TABLAS DE USUARIOS
 -- ============================================================================
 
--- Tabla de usuarios (user_id es TEXT/UUID de Supabase Auth)
+-- Tabla de usuarios (user_id es UUID de Supabase Auth)
 CREATE TABLE public.users (
-  user_id TEXT PRIMARY KEY, -- UUID de Supabase Auth
+  user_id UUID PRIMARY KEY, -- UUID de Supabase Auth
   full_name VARCHAR(100), -- Nullable: se establece durante onboarding
   role_id BIGINT REFERENCES public.roles(role_id), -- Nullable: se asigna después de crear el usuario
   is_active BOOLEAN DEFAULT TRUE,
@@ -323,7 +334,7 @@ CREATE TABLE public.users (
 
 -- Tabla de acceso de usuarios a almacenes
 CREATE TABLE public.user_warehouse_access (
-  user_id TEXT NOT NULL REFERENCES public.users(user_id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES public.users(user_id) ON DELETE CASCADE,
   warehouse_id BIGINT NOT NULL REFERENCES public.warehouses(warehouse_id) ON DELETE CASCADE,
   PRIMARY KEY (user_id, warehouse_id)
 );
@@ -515,6 +526,14 @@ AFTER INSERT ON auth.users
 FOR EACH ROW
 EXECUTE FUNCTION public.create_profile_for_new_user();
 
+-- Trigger para prevenir la eliminación del Almacén de Caducados (ID: 999)
+DROP TRIGGER IF EXISTS trigger_prevent_delete_expired_warehouse ON public.warehouses;
+
+CREATE TRIGGER trigger_prevent_delete_expired_warehouse
+BEFORE DELETE ON public.warehouses
+FOR EACH ROW
+EXECUTE FUNCTION public.prevent_delete_expired_warehouse();
+
 -- ============================================================================
 -- ÍNDICES
 -- ============================================================================
@@ -581,8 +600,8 @@ COMMENT ON COLUMN public.stock_lots.donation_item_id IS 'ID del item de donació
 COMMENT ON TABLE public.donation_transactions IS 'Transacciones de donación';
 COMMENT ON TABLE public.donation_items IS 'Items de cada donación';
 
-COMMENT ON TABLE public.users IS 'Usuarios del sistema. user_id es TEXT (UUID de Supabase Auth), no bigint.';
-COMMENT ON COLUMN public.users.user_id IS 'UUID de Supabase Auth (TEXT)';
+COMMENT ON TABLE public.users IS 'Usuarios del sistema. user_id es UUID (de Supabase Auth), no bigint.';
+COMMENT ON COLUMN public.users.user_id IS 'UUID de Supabase Auth';
 
 COMMENT ON TABLE public.products IS 'Productos del inventario. Usa official_unit_id (no unit_id).';
 COMMENT ON COLUMN public.products.official_unit_id IS 'ID de la unidad oficial del producto (antes unit_id)';

@@ -48,6 +48,7 @@ import { useApiQuery, useApiMutation } from '@/infrastructure/hooks/useApiQuery'
 import { Label } from '@/presentation/components/forms';
 import { DatePicker } from '@/presentation/features/shared/DatePicker';
 import { PencilIcon, CheckIcon, XMarkIcon, TrashIcon } from '@/presentation/components/icons/Icons';
+import { validateNumericInput } from '@/infrastructure/utils/validation.util';
 
 type DonationItem = Donation['items'][0];
 
@@ -277,14 +278,24 @@ const DonationItemsModal: React.FC<{ donation: Donation; onClose: () => void }> 
                                   <Input
                                     type="number"
                                     value={editingValues.quantity}
-                                    onChange={(e) =>
-                                      setEditingValues({
-                                        ...editingValues,
-                                        quantity: parseFloat(e.target.value) || 0,
-                                      })
-                                    }
-                                    min="0.01"
-                                    step="0.01"
+                                    onChange={(e) => {
+                                      const validation = validateNumericInput(e.target.value, {
+                                        min: 1,
+                                        max: 1000000,
+                                        allowZero: false,
+                                        allowNegative: false,
+                                        defaultValue: 1,
+                                      });
+                                      if (validation.isValid) {
+                                        setEditingValues({
+                                          ...editingValues,
+                                          quantity: validation.value,
+                                        });
+                                      }
+                                    }}
+                                    min="1"
+                                    max="1000000"
+                                    step="1"
                                     className="h-8 text-sm"
                                     onFocus={(e) => e.target.select()}
                                   />
@@ -294,13 +305,23 @@ const DonationItemsModal: React.FC<{ donation: Donation; onClose: () => void }> 
                                   <Input
                                     type="number"
                                     value={editingValues.market_unit_price}
-                                    onChange={(e) =>
-                                      setEditingValues({
-                                        ...editingValues,
-                                        market_unit_price: parseFloat(e.target.value) || 0,
-                                      })
-                                    }
+                                    onChange={(e) => {
+                                      const validation = validateNumericInput(e.target.value, {
+                                        min: 0,
+                                        max: 1000000000,
+                                        allowZero: true,
+                                        allowNegative: false,
+                                        defaultValue: 0,
+                                      });
+                                      if (validation.isValid) {
+                                        setEditingValues({
+                                          ...editingValues,
+                                          market_unit_price: validation.value,
+                                        });
+                                      }
+                                    }}
                                     min="0"
+                                    max="1000000000"
                                     step="0.01"
                                     className="h-8 text-sm"
                                     onFocus={(e) => e.target.select()}
@@ -311,13 +332,23 @@ const DonationItemsModal: React.FC<{ donation: Donation; onClose: () => void }> 
                                   <Input
                                     type="number"
                                     value={editingValues.actual_unit_price}
-                                    onChange={(e) =>
-                                      setEditingValues({
-                                        ...editingValues,
-                                        actual_unit_price: parseFloat(e.target.value) || 0,
-                                      })
-                                    }
+                                    onChange={(e) => {
+                                      const validation = validateNumericInput(e.target.value, {
+                                        min: 0,
+                                        max: 1000000000,
+                                        allowZero: true,
+                                        allowNegative: false,
+                                        defaultValue: 0,
+                                      });
+                                      if (validation.isValid) {
+                                        setEditingValues({
+                                          ...editingValues,
+                                          actual_unit_price: validation.value,
+                                        });
+                                      }
+                                    }}
                                     min="0"
+                                    max="1000000000"
                                     step="0.01"
                                     className="h-8 text-sm"
                                     onFocus={(e) => e.target.select()}
@@ -505,7 +536,7 @@ const DonationHistoryCard: React.FC<DonationHistoryCardProps> = React.memo(
       <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0 w-full sm:w-auto">
         <div className="text-right flex-grow sm:flex-grow-0">
           <p className="font-bold text-base sm:text-lg text-foreground">
-            ${donation.total_actual_value?.toFixed(2)}
+            ${donation.total_market_value?.toFixed(2) || '0.00'}
           </p>
           <p className="text-xs text-muted-foreground">{donation.items.length} artículos</p>
         </div>
@@ -520,7 +551,7 @@ const DonationHistoryCard: React.FC<DonationHistoryCardProps> = React.memo(
             disabled={isDeleting}
             className="flex-shrink-0 h-8 w-8 p-1 text-destructive hover:text-destructive hover:bg-destructive/10"
           >
-            <TrashIcon className="h-full w-full" />
+            <TrashIcon className="h-4 w-4" />
           </Button>
         </div>
       </div>

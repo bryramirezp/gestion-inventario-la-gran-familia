@@ -21,17 +21,29 @@ export const Dialog: React.FC<DialogProps> = ({ isOpen, onClose, children }) => 
   );
 };
 
-export const DialogContent: React.FC<{ children: ReactNode; className?: string }> = ({
+export const DialogContent: React.FC<{ children: ReactNode; className?: string; maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '4xl' }> = ({
   children,
   className,
-}) => (
-  <div
-    className={`relative bg-card rounded-lg shadow-xl w-full max-w-2xl m-4 animate-content-show max-h-[90vh] z-[100] flex flex-col overflow-hidden ${className || ''}`}
-    onClick={(e) => e.stopPropagation()}
-  >
-    {children}
-  </div>
-);
+  maxWidth = '2xl',
+}) => {
+  const maxWidthClasses = {
+    sm: 'max-w-sm',
+    md: 'max-w-md',
+    lg: 'max-w-lg',
+    xl: 'max-w-xl',
+    '2xl': 'max-w-2xl',
+    '4xl': 'max-w-4xl',
+  };
+  
+  return (
+    <div
+      className={`relative bg-card rounded-lg shadow-xl w-full ${maxWidthClasses[maxWidth]} m-4 animate-content-show max-h-[90vh] z-[100] flex flex-col overflow-hidden ${className || ''}`}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {children}
+    </div>
+  );
+};
 
 export const DialogHeader: React.FC< { children: ReactNode; className?: string }> = ({
   children,

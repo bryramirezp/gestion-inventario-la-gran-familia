@@ -49,10 +49,16 @@ const ExpiryReport: React.FC = () => {
   const fetchReportData = useCallback(async () => {
     try {
       setLoading(true);
+      const token = getToken();
+      if (!token) {
+        addAlert('No se pudo obtener el token de autenticación.', 'error');
+        setLoading(false);
+        return;
+      }
       const [lots, products, whs] = await Promise.all([
-        stockLotApi.getAll(''),
-        productApi.getAll(''),
-        warehouseApi.getAll(''),
+        stockLotApi.getAll(token),
+        productApi.getAll(token),
+        warehouseApi.getAll(token),
       ]);
       setWarehouses(whs);
 
