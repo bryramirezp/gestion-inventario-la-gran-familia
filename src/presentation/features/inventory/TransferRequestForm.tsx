@@ -49,7 +49,7 @@ export const TransferRequestForm: React.FC<TransferRequestFormProps> = ({
       }
 
       const quantityValidation = validateNumericInput(formData.quantity, {
-        min: 0.01,
+        min: 1,
         max: 1000000,
         allowZero: false,
         allowNegative: false,
@@ -128,8 +128,8 @@ export const TransferRequestForm: React.FC<TransferRequestFormProps> = ({
               id="quantity"
               name="quantity"
               type="number"
-              step="0.01"
-              min="0.01"
+              step="1"
+              min="1"
               max={lot.current_quantity}
               value={values.quantity}
               onChange={handleChange}

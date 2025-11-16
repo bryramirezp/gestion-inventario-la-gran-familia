@@ -915,16 +915,18 @@ const Products: React.FC = () => {
           <DialogHeader>
             <DialogTitle>Registrar Movimiento de Salida</DialogTitle>
           </DialogHeader>
-          {selectedLotForMovement && selectedProductForMovement && (
-            <MovementForm
-              onSave={handleSaveMovement}
-              onCancel={handleCloseMovementModal}
-              isSubmitting={createMovementMutation.isLoading}
-              category="SALIDA"
-              initialProductId={selectedProductForMovement.product_id}
-              initialWarehouseId={selectedLotForMovement.warehouse_id}
-            />
-          )}
+          <div className="overflow-y-auto flex-1 min-h-0 max-h-[calc(90vh-180px)]">
+            {selectedLotForMovement && selectedProductForMovement && (
+              <MovementForm
+                onSave={handleSaveMovement}
+                onCancel={handleCloseMovementModal}
+                isSubmitting={createMovementMutation.isLoading}
+                category="SALIDA"
+                initialProductId={selectedProductForMovement.product_id}
+                initialWarehouseId={selectedLotForMovement.warehouse_id}
+              />
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -939,14 +941,16 @@ const Products: React.FC = () => {
           <DialogHeader>
             <DialogTitle>Crear Ajuste de Inventario</DialogTitle>
           </DialogHeader>
-          {selectedLotForAdjustment && (
-            <AdjustmentForm
-              onSave={handleSaveAdjustment}
-              onCancel={handleCloseAdjustmentModal}
-              isSubmitting={createAdjustmentMutation.isLoading}
-              initialLotId={selectedLotForAdjustment.lot_id}
-            />
-          )}
+          <div className="overflow-y-auto flex-1 min-h-0 max-h-[calc(90vh-180px)]">
+            {selectedLotForAdjustment && (
+              <AdjustmentForm
+                onSave={handleSaveAdjustment}
+                onCancel={handleCloseAdjustmentModal}
+                isSubmitting={createAdjustmentMutation.isLoading}
+                initialLotId={selectedLotForAdjustment.lot_id}
+              />
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </AnimatedWrapper>

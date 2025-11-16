@@ -59,7 +59,7 @@ export const MovementForm: React.FC<MovementFormProps> = ({
       if (!formData.movement_type_id) tempErrors.movement_type_id = 'Se debe seleccionar un tipo de movimiento.';
       
       const quantityValidation = validateNumericInput(formData.quantity, {
-        min: 0.01,
+        min: 1,
         max: 1000000,
         allowZero: false,
         allowNegative: false,
@@ -235,13 +235,13 @@ export const MovementForm: React.FC<MovementFormProps> = ({
               id="quantity"
               name="quantity"
               type="number"
-              step="0.01"
-              min="0.01"
+              step="1"
+              min="1"
               value={values.quantity}
               onChange={handleChange}
               onBlur={(e) => {
                 const validation = validateNumericInput(e.target.value, {
-                  min: 0.01,
+                  min: 1,
                   max: 1000000,
                   allowZero: false,
                   allowNegative: false,

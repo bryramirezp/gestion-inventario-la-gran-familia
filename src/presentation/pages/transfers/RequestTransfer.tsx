@@ -64,7 +64,7 @@ const RequestTransferForm: React.FC<{
       }
 
       const quantityValidation = validateNumericInput(formData.quantity, {
-        min: 0.01,
+        min: 1,
         max: 1000000,
         allowZero: false,
         allowNegative: false,
@@ -209,13 +209,13 @@ const RequestTransferForm: React.FC<{
               id="quantity"
               name="quantity"
               type="number"
-              step="0.01"
-              min="0.01"
+              step="1"
+              min="1"
               value={values.quantity}
               onChange={handleChange}
               onBlur={(e) => {
                 const validation = validateNumericInput(e.target.value, {
-                  min: 0.01,
+                  min: 1,
                   max: 1000000,
                   allowZero: false,
                   allowNegative: false,
@@ -453,11 +453,13 @@ const RequestTransfer: React.FC = () => {
           <DialogHeader>
             <DialogTitle>Solicitar Traspaso entre Almacenes</DialogTitle>
           </DialogHeader>
-          <RequestTransferForm
-            onSave={handleSaveTransfer}
-            onCancel={() => setIsFormOpen(false)}
-            isSubmitting={requestTransferMutation.isPending}
-          />
+          <div className="overflow-y-auto flex-1 min-h-0 max-h-[calc(90vh-180px)]">
+            <RequestTransferForm
+              onSave={handleSaveTransfer}
+              onCancel={() => setIsFormOpen(false)}
+              isSubmitting={requestTransferMutation.isPending}
+            />
+          </div>
         </DialogContent>
       </Dialog>
     </AnimatedWrapper>

@@ -282,8 +282,9 @@ const ApproveAdjustments: React.FC = () => {
           <DialogHeader>
             <DialogTitle>Aprobar Ajuste de Inventario</DialogTitle>
           </DialogHeader>
-          {selectedAdjustment && (
-            <div className="space-y-4">
+          <div className="overflow-y-auto flex-1 min-h-0 max-h-[calc(90vh-180px)] px-6">
+            {selectedAdjustment && (
+              <div className="space-y-4">
               <div className="p-4 bg-muted dark:bg-dark-muted rounded-lg space-y-2">
                 <div>
                   <strong>ID de Ajuste:</strong> #{selectedAdjustment.adjustment_id}
@@ -330,7 +331,8 @@ const ApproveAdjustments: React.FC = () => {
                 <FormError message={approveErrors.notes} />
               </div>
             </div>
-          )}
+            )}
+          </div>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={handleCloseDialog}>
               Cancelar
@@ -356,8 +358,9 @@ const ApproveAdjustments: React.FC = () => {
           <DialogHeader>
             <DialogTitle>Rechazar Ajuste de Inventario</DialogTitle>
           </DialogHeader>
-          {selectedAdjustment && (
-            <div className="space-y-4">
+          <div className="overflow-y-auto flex-1 min-h-0 max-h-[calc(90vh-180px)] px-6">
+            {selectedAdjustment && (
+              <div className="space-y-4">
               <div className="p-4 bg-muted dark:bg-dark-muted rounded-lg space-y-2">
                 <div>
                   <strong>ID de Ajuste:</strong> #{selectedAdjustment.adjustment_id}
@@ -392,7 +395,8 @@ const ApproveAdjustments: React.FC = () => {
                 </div>
               </div>
             </div>
-          )}
+            )}
+          </div>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={handleCloseDialog}>
               Cancelar

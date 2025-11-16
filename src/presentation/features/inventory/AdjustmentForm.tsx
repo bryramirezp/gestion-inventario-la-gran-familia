@@ -187,9 +187,8 @@ export const AdjustmentForm: React.FC<AdjustmentFormProps> = ({
   }
 
   return (
-    <form onSubmit={(e) => handleSubmit(e, handleFormSubmit)} className="p-6">
-      <FormContainer id="adjustment-form">
-        <div className="space-y-4">
+    <FormContainer id="adjustment-form" onSubmit={(e) => handleSubmit(e, handleFormSubmit)} className="p-6">
+      <div className="space-y-4">
           {!initialLotId && (
             <>
               <FormField error={undefined} errorId="product_id-error">
@@ -341,7 +340,7 @@ export const AdjustmentForm: React.FC<AdjustmentFormProps> = ({
                   id="quantity_after"
                   name="quantity_after"
                   type="number"
-                  step="0.01"
+                  step="1"
                   min="0"
                   value={values.quantity_after}
                   onChange={handleChange}
@@ -397,19 +396,18 @@ export const AdjustmentForm: React.FC<AdjustmentFormProps> = ({
 
           {errors.form && <FormError message={errors.form} />}
         </div>
+        <DialogFooter>
+          <Button type="button" variant="ghost" onClick={onCancel} disabled={isSubmitting}>
+            Cancelar
+          </Button>
+          <Button
+            type="submit"
+            disabled={isSubmitting || !selectedLot || !values.reason || values.reason.trim().length <= 10}
+          >
+            {isSubmitting ? 'Creando...' : 'Crear Ajuste'}
+          </Button>
+        </DialogFooter>
       </FormContainer>
-      <DialogFooter>
-        <Button type="button" variant="ghost" onClick={onCancel} disabled={isSubmitting}>
-          Cancelar
-        </Button>
-        <Button
-          type="submit"
-          disabled={isSubmitting || !selectedLot || !values.reason || values.reason.trim().length <= 10}
-        >
-          {isSubmitting ? 'Creando...' : 'Crear Ajuste'}
-        </Button>
-      </DialogFooter>
-    </form>
   );
 };
 

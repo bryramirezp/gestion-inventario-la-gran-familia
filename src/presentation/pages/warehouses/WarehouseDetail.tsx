@@ -549,7 +549,7 @@ const WarehouseDetail: React.FC = () => {
                         {movement.quantity.toFixed(2)}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        Stock: {movement.quantity_after.toFixed(2)}
+                        Stock: {lot?.current_quantity?.toFixed(2) || 'N/A'}
                       </div>
                     </div>
                   </div>
@@ -566,16 +566,18 @@ const WarehouseDetail: React.FC = () => {
           <DialogHeader>
             <DialogTitle>Registrar Movimiento de Salida</DialogTitle>
           </DialogHeader>
-          {selectedLotForMovement && selectedProductForMovement && (
-            <MovementForm
-              onSave={handleSaveMovement}
-              onCancel={handleCloseMovementModal}
-              isSubmitting={createMovementMutation.isLoading}
-              category="SALIDA"
-              initialProductId={selectedProductForMovement.product_id}
-              initialWarehouseId={selectedLotForMovement.warehouse_id}
-            />
-          )}
+          <div className="overflow-y-auto flex-1 min-h-0 max-h-[calc(90vh-180px)]">
+            {selectedLotForMovement && selectedProductForMovement && (
+              <MovementForm
+                onSave={handleSaveMovement}
+                onCancel={handleCloseMovementModal}
+                isSubmitting={createMovementMutation.isLoading}
+                category="SALIDA"
+                initialProductId={selectedProductForMovement.product_id}
+                initialWarehouseId={selectedLotForMovement.warehouse_id}
+              />
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -590,14 +592,16 @@ const WarehouseDetail: React.FC = () => {
           <DialogHeader>
             <DialogTitle>Solicitar Traspaso de Stock</DialogTitle>
           </DialogHeader>
-          {selectedLotForTransfer && (
-            <TransferRequestForm
-              lot={selectedLotForTransfer}
-              onSave={handleSaveTransfer}
-              onCancel={handleCloseTransferModal}
-              isSubmitting={createTransferMutation.isLoading}
-            />
-          )}
+          <div className="overflow-y-auto flex-1 min-h-0 max-h-[calc(90vh-180px)]">
+            {selectedLotForTransfer && (
+              <TransferRequestForm
+                lot={selectedLotForTransfer}
+                onSave={handleSaveTransfer}
+                onCancel={handleCloseTransferModal}
+                isSubmitting={createTransferMutation.isLoading}
+              />
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -607,14 +611,16 @@ const WarehouseDetail: React.FC = () => {
           <DialogHeader>
             <DialogTitle>Crear Ajuste de Inventario</DialogTitle>
           </DialogHeader>
-          {selectedLotForAdjustment && (
-            <AdjustmentForm
-              onSave={handleSaveAdjustment}
-              onCancel={handleCloseAdjustmentModal}
-              isSubmitting={createAdjustmentMutation.isLoading}
-              initialLotId={selectedLotForAdjustment.lot_id}
-            />
-          )}
+          <div className="overflow-y-auto flex-1 min-h-0 max-h-[calc(90vh-180px)]">
+            {selectedLotForAdjustment && (
+              <AdjustmentForm
+                onSave={handleSaveAdjustment}
+                onCancel={handleCloseAdjustmentModal}
+                isSubmitting={createAdjustmentMutation.isLoading}
+                initialLotId={selectedLotForAdjustment.lot_id}
+              />
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </AnimatedWrapper>

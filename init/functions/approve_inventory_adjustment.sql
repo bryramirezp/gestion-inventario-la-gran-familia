@@ -85,7 +85,7 @@ BEGIN
   VALUES (
     v_adjustment.lot_id,
     v_ajuste_type_id,
-    ABS(v_quantity_difference),
+    (v_quantity_difference),
     COALESCE(p_notes, v_adjustment.reason),
     'ADJUSTMENT-' || p_adjustment_id::TEXT,
     v_user_id

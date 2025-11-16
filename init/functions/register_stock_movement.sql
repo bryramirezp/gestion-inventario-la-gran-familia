@@ -51,17 +51,20 @@ BEGIN
   IF v_movement_type.category = 'ENTRADA' OR v_movement_type.category = 'TRASPASO' THEN
     -- Entradas y traspasos aumentan el stock
     v_new_quantity := v_lot.current_quantity + p_quantity;
-  ELSIF v_movement_type.category = 'SALIDA' OR v_movement_type.category = 'AJUSTE' THEN
-    -- Salidas y ajustes pueden aumentar o disminuir
-    -- Para salidas, validar que haya stock suficiente
-    IF v_movement_type.category = 'SALIDA' AND v_lot.current_quantity < p_quantity THEN
+  ELSIF v_movement_type.category = 'SALIDA' THEN
+    -- Salidas restan del stock
+    IF v_lot.current_quantity < p_quantity THEN
       RAISE EXCEPTION 'Stock insuficiente. Disponible: %, Solicitado: %', v_lot.current_quantity, p_quantity;
     END IF;
+    v_new_quantity := v_lot.current_quantity - p_quantity;
+  ELSIF v_movement_type.category = 'AJUSTE' THEN
     -- Para ajustes, permitir cualquier cantidad (puede ser negativa para correcciones)
     v_new_quantity := v_lot.current_quantity + p_quantity;
     IF v_new_quantity < 0 THEN
       RAISE EXCEPTION 'La cantidad resultante no puede ser negativa. Actual: %, Ajuste: %', v_lot.current_quantity, p_quantity;
     END IF;
+  ELSE
+    RAISE EXCEPTION 'Categoría de movimiento no válida: %', v_movement_type.category;
   END IF;
 
   -- Registrar el movimiento

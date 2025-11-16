@@ -403,6 +403,7 @@ const DonationForm: React.FC<DonationFormProps> = ({
                           }}
                           onFocus={(e) => handleNumberInputFocus(index, 'quantity', item.quantity, e)}
                           onBlur={(e) => handleNumberInputBlur(index, 'quantity', e)}
+                          step="1"
                           min="1"
                           max="1000000"
                           placeholder="10"

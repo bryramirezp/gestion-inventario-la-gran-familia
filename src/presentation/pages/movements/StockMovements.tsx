@@ -270,11 +270,13 @@ const StockMovements: React.FC = () => {
           <DialogHeader>
             <DialogTitle>Registrar Nuevo Movimiento</DialogTitle>
           </DialogHeader>
-          <MovementForm
-            onSave={handleSaveMovement}
-            onCancel={() => setIsFormOpen(false)}
-            isSubmitting={createMovementMutation.isPending}
-          />
+          <div className="overflow-y-auto flex-1 min-h-0 max-h-[calc(90vh-180px)]">
+            <MovementForm
+              onSave={handleSaveMovement}
+              onCancel={() => setIsFormOpen(false)}
+              isSubmitting={createMovementMutation.isPending}
+            />
+          </div>
         </DialogContent>
       </Dialog>
     </AnimatedWrapper>

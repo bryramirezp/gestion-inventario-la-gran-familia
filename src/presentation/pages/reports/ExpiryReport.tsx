@@ -393,16 +393,18 @@ const ExpiryReport: React.FC = () => {
           <DialogHeader>
             <DialogTitle>Registrar Salida de Stock</DialogTitle>
           </DialogHeader>
-          {selectedLotForMovement && selectedProductForMovement && (
-            <MovementForm
-              lot={selectedLotForMovement}
-              product={selectedProductForMovement}
-              onSave={handleSaveMovement}
-              onCancel={handleCloseMovementModal}
-              isSubmitting={createMovementMutation.isLoading}
-              movementTypes={exitMovementTypes}
-            />
-          )}
+          <div className="overflow-y-auto flex-1 min-h-0 max-h-[calc(90vh-180px)]">
+            {selectedLotForMovement && selectedProductForMovement && (
+              <MovementForm
+                lot={selectedLotForMovement}
+                product={selectedProductForMovement}
+                onSave={handleSaveMovement}
+                onCancel={handleCloseMovementModal}
+                isSubmitting={createMovementMutation.isLoading}
+                movementTypes={exitMovementTypes}
+              />
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </AnimatedWrapper>
