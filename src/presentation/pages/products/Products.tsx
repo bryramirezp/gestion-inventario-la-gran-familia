@@ -26,10 +26,9 @@ import {
   brandApi,
   getUnits,
   warehouseApi,
-  stockLotApi,
   GetFullProductDetailsFilters,
 } from '@/data/api';
-import { Product, NewProduct, Category, Brand, Unit, Warehouse, NewStockLot } from '@/domain/types';
+import { Product, NewProduct, Category, Brand, Unit, Warehouse } from '@/domain/types';
 import { useNotifications } from '@/app/providers/NotificationProvider';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/presentation/components/ui/Card';
 import { Label, Input, Textarea, Select, FormError } from '@/presentation/components/forms';
@@ -39,10 +38,9 @@ import { AnimatedWrapper } from '@/presentation/components/animated/Animated';
 import { useAlerts } from '@/app/providers/AlertProvider';
 import useTableState from '@/infrastructure/hooks/useTableState';
 import { useForm } from '@/infrastructure/hooks/useForm';
-import { DatePicker } from '@/presentation/features/shared/DatePicker';
 import Pagination from '@/presentation/components/ui/Pagination';
 import { useApiQuery, useApiMutation } from '@/infrastructure/hooks/useApiQuery';
-import { validateNumericInput, validateDate } from '@/infrastructure/utils/validation.util';
+import { validateNumericInput } from '@/infrastructure/utils/validation.util';
 // import { PlusCircleIcon } from '@/presentation/components/icons/Icons';
 
 type ProductDetail = Awaited<ReturnType<typeof getFullProductDetails>>[0];
@@ -254,242 +252,7 @@ const ProductForm: React.FC<{
   );
 };
 
-type RestockFormData = Omit<NewStockLot, 'product_id' | 'received_date'>;
-
-interface RestockFormProps {
-  warehouses: Warehouse[];
-  onSave: (data: RestockFormData) => Promise<void>;
-  onCancel: () => void;
-  isSubmitting?: boolean;
-}
-
-const RestockForm: React.FC<RestockFormProps> = ({ warehouses, onSave, onCancel, isSubmitting = false }) => {
-  const { values, errors, handleChange, handleSubmit, setErrors, setValues } =
-    useForm<RestockFormData & { expiry_date?: string | null }>(
-      {
-        warehouse_id: 0,
-        current_quantity: 1,
-        expiry_date: null,
-        unit_price: 0,
-      },
-      (formData) => {
-        const tempErrors: Record<string, string> = {};
-        if (!formData.warehouse_id) tempErrors.warehouse_id = 'Se debe seleccionar un almacén.';
-        
-        const quantityValidation = validateNumericInput(formData.current_quantity, {
-          min: 1,
-          max: 1000000,
-          allowZero: false,
-          allowNegative: false,
-          defaultValue: 1,
-        });
-        if (!quantityValidation.isValid) {
-          tempErrors.current_quantity = quantityValidation.error || 'La cantidad debe ser mayor a cero.';
-        }
-        
-        const priceValidation = validateNumericInput(formData.unit_price, {
-          min: 0,
-          max: 1000000000,
-          allowZero: true,
-          allowNegative: false,
-          defaultValue: 0,
-        });
-        if (!priceValidation.isValid) {
-          tempErrors.unit_price = priceValidation.error || 'El precio unitario es requerido.';
-        }
-        
-        if (formData.expiry_date) {
-          const today = new Date().toISOString().split('T')[0];
-          const dateValidation = validateDate(formData.expiry_date, today);
-          if (!dateValidation.isValid) {
-            tempErrors.expiry_date = dateValidation.error || 'La fecha de caducidad no puede ser anterior a hoy.';
-          }
-        }
-        
-        return tempErrors;
-      }
-    );
-
-  const handleFormSubmit = async () => {
-    try {
-      await onSave(values);
-    } catch (error: unknown) {
-      setErrors({ form: error instanceof Error ? error.message : 'An unexpected error occurred.' });
-    }
-  };
-
-  const handleDateChange = (date: string | null) => {
-    setValues((prev) => ({ ...prev, expiry_date: date }));
-  };
-
-  return (
-    <form onSubmit={(e) => handleSubmit(e, handleFormSubmit)} className="p-6">
-      <div className="space-y-4">
-        <div>
-          <Label htmlFor="warehouse_id">Almacén</Label>
-          <Select
-            id="warehouse_id"
-            name="warehouse_id"
-            value={values.warehouse_id || ''}
-            onChange={handleChange}
-            required
-            error={!!errors.warehouse_id}
-          >
-            <option value="">Selecciona un Almacén</option>
-            {warehouses
-              .filter((w) => w.is_active)
-              .map((w) => (
-                <option key={w.warehouse_id} value={w.warehouse_id}>
-                  {w.warehouse_name}
-                </option>
-              ))}
-          </Select>
-          <FormError message={errors.warehouse_id} />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="current_quantity">Cantidad</Label>
-            <Input
-              id="current_quantity"
-              name="current_quantity"
-              type="number"
-              value={values.current_quantity || ''}
-              onChange={(e) => {
-                const inputValue = e.target.value;
-                if (inputValue === '' || inputValue === '-') {
-                  handleChange(e);
-                  return;
-                }
-                const numValue = Number(inputValue);
-                if (isNaN(numValue) || (numValue < 0 && inputValue !== '')) {
-                  setErrors({ ...errors, current_quantity: 'No se permiten valores negativos.' });
-                  return;
-                }
-                handleChange(e);
-                if (errors.current_quantity) {
-                  setErrors({ ...errors, current_quantity: undefined });
-                }
-              }}
-              onBlur={(e) => {
-                const validation = validateNumericInput(e.target.value, {
-                  min: 1,
-                  max: 1000000,
-                  allowZero: false,
-                  allowNegative: false,
-                  defaultValue: 1,
-                });
-                if (!validation.isValid) {
-                  setErrors({ ...errors, current_quantity: validation.error });
-                  handleChange({
-                    ...e,
-                    target: { ...e.target, value: String(validation.value) },
-                  });
-                } else {
-                  const numValue = Number(e.target.value);
-                  if (numValue > 1000000) {
-                    setErrors({ ...errors, current_quantity: 'El valor debe ser menor o igual a 1000000.' });
-                    handleChange({
-                      ...e,
-                      target: { ...e.target, value: '1000000' },
-                    });
-                  } else if (numValue < 1) {
-                    setErrors({ ...errors, current_quantity: 'La cantidad debe ser mayor a cero.' });
-                    handleChange({
-                      ...e,
-                      target: { ...e.target, value: '1' },
-                    });
-                  } else if (errors.current_quantity) {
-                    setErrors({ ...errors, current_quantity: undefined });
-                  }
-                }
-              }}
-              required
-              min="1"
-              max="1000000"
-              error={!!errors.current_quantity}
-            />
-            <FormError message={errors.current_quantity} />
-          </div>
-          <div>
-            <Label htmlFor="unit_price">Precio Unitario</Label>
-            <Input
-              id="unit_price"
-              name="unit_price"
-              type="number"
-              value={values.unit_price ?? '0'}
-              onChange={(e) => {
-                const inputValue = e.target.value;
-                if (inputValue === '' || inputValue === '-' || inputValue === '.') {
-                  handleChange(e);
-                  return;
-                }
-                const numValue = Number(inputValue);
-                if (isNaN(numValue) || (numValue < 0 && inputValue !== '')) {
-                  setErrors({ ...errors, unit_price: 'No se permiten valores negativos.' });
-                  return;
-                }
-                handleChange(e);
-                if (errors.unit_price) {
-                  setErrors({ ...errors, unit_price: undefined });
-                }
-              }}
-              onBlur={(e) => {
-                const validation = validateNumericInput(e.target.value, {
-                  min: 0,
-                  max: 1000000000,
-                  allowZero: true,
-                  allowNegative: false,
-                  defaultValue: 0,
-                });
-                if (!validation.isValid) {
-                  setErrors({ ...errors, unit_price: validation.error });
-                  handleChange({
-                    ...e,
-                    target: { ...e.target, value: String(validation.value) },
-                  });
-                } else {
-                  const numValue = Number(e.target.value);
-                  if (numValue > 1000000000) {
-                    setErrors({ ...errors, unit_price: 'El valor debe ser menor o igual a 1000000000.' });
-                    handleChange({
-                      ...e,
-                      target: { ...e.target, value: '1000000000' },
-                    });
-                  } else if (errors.unit_price) {
-                    setErrors({ ...errors, unit_price: undefined });
-                  }
-                }
-              }}
-              required
-              min="0"
-              max="1000000000"
-              step="0.01"
-              error={!!errors.unit_price}
-            />
-            <FormError message={errors.unit_price} />
-          </div>
-        </div>
-        <div>
-          <Label>Fecha de Caducidad (Opcional)</Label>
-          <DatePicker
-            selectedDate={values.expiry_date}
-            onSelectDate={handleDateChange}
-            minDate={new Date().toISOString().split('T')[0]}
-          />
-        </div>
-        <FormError message={errors.form} />
-      </div>
-      <DialogFooter>
-        <Button type="button" variant="ghost" onClick={onCancel} disabled={isSubmitting}>
-          Cancelar
-        </Button>
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Agregando...' : 'Agregar Stock'}
-        </Button>
-      </DialogFooter>
-    </form>
-  );
-};
+// RestockForm eliminado - Para agregar stock, usar el sistema de donaciones que crea movimientos ENTRADA automáticamente
 
 const Products: React.FC = () => {
   const { addAlert } = useAlerts();
@@ -499,7 +262,6 @@ const Products: React.FC = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
-  const [restockingProduct, setRestockingProduct] = useState<ProductDetail | null>(null);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -623,13 +385,6 @@ const Products: React.FC = () => {
     setIsModalOpen(false);
   }, []);
 
-  const handleOpenRestockModal = useCallback((product: ProductDetail) => {
-    setRestockingProduct(product);
-  }, []);
-
-  const handleCloseRestockModal = useCallback(() => {
-    setRestockingProduct(null);
-  }, []);
 
   const handleSearchChange = useCallback((value: string) => {
     setSearchTerm(value);
@@ -694,42 +449,7 @@ const Products: React.FC = () => {
     }
   };
 
-  // React Query Mutation: Crear stock lot
-  const createStockLotMutation = useApiMutation<unknown, { data: RestockFormData; productId: number }>(
-    async ({ data, productId }, token) => {
-      const newStockLot: NewStockLot = {
-        ...data,
-        product_id: productId,
-      };
-      return await stockLotApi.create(token, newStockLot);
-    },
-    {
-      onSuccess: () => {
-        addAlert('¡Stock agregado con éxito!', 'success');
-        refreshNotifications();
-        handleCloseRestockModal();
-      },
-      onError: (error) => {
-        addAlert(`Error al agregar stock: ${error.message}`, 'error');
-      },
-      invalidateQueries: [
-        ['products'], // Invalidar queries de productos (afecta el stock)
-      ],
-    }
-  );
-
-  const handleSaveRestock = async (data: RestockFormData) => {
-    if (!restockingProduct) return;
-    try {
-      await createStockLotMutation.mutateAsync({
-        data,
-        productId: restockingProduct.product_id,
-      });
-    } catch (error) {
-      // Error ya manejado en onError del mutation
-      throw error;
-    }
-  };
+  // Funcionalidad de Restock eliminada - Para agregar stock, usar el sistema de donaciones
 
   const handleOpenAlert = (product: Product) => {
     setProductToDelete(product);
@@ -950,7 +670,6 @@ const Products: React.FC = () => {
             <ResponsiveTable
               columns={orderedColumns}
               data={paginatedProducts}
-              onRestock={handleOpenRestockModal}
               onEdit={handleOpenModal}
               onDelete={handleOpenAlert}
               getKey={(p) => p.product_id}
@@ -1002,21 +721,6 @@ const Products: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog isOpen={!!restockingProduct} onClose={handleCloseRestockModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Agregar Stock para: {restockingProduct?.product_name}</DialogTitle>
-          </DialogHeader>
-          {restockingProduct && (
-            <RestockForm
-              warehouses={warehouses}
-              onSave={handleSaveRestock}
-              onCancel={handleCloseRestockModal}
-              isSubmitting={createStockLotMutation.isPending}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
 
       <AlertDialog isOpen={isAlertOpen} onClose={() => setIsAlertOpen(false)}>
         <AlertDialogContent>
