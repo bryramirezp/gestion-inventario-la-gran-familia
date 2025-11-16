@@ -83,6 +83,21 @@ const baseStockLotApi = {
 
 export const stockLotApi = {
   ...baseStockLotApi,
+  getByProductAndWarehouse: async (
+    _token: string,
+    productId: number,
+    warehouseId: number
+  ): Promise<StockLot[]> => {
+    const { data, error } = await supabase
+      .from('stock_lots')
+      .select('*')
+      .eq('product_id', productId)
+      .eq('warehouse_id', warehouseId)
+      .order('expiry_date', { ascending: true, nullsFirst: false })
+      .order('received_date', { ascending: true });
+    if (error) throw new Error(error.message);
+    return data || [];
+  },
   processExpired: async (_token: string): Promise<{ movedCount: number }> => {
     const { data: lots, error } = await supabase.from('stock_lots').select('*');
     if (error) throw new Error(error.message);

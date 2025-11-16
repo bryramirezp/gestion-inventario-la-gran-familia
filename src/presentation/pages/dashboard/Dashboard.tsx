@@ -8,6 +8,9 @@ import {
   donorApi,
   donationApi,
   stockLotApi,
+  transferApi,
+  stockMovementApi,
+  adjustmentApi,
 } from '@/data/api';
 import {
   CubeIcon,
@@ -16,8 +19,10 @@ import {
   ExclamationTriangleIcon,
   CalendarIcon,
   ClipboardListIcon,
+  ArrowsRightLeftIcon,
 } from '@/presentation/components/icons/Icons';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/presentation/components/ui/Card';
+import { Badge } from '@/presentation/components/ui/Badge';
 import { AnimatedWrapper, AnimatedCounter } from '@/presentation/components/animated/Animated';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { useUserProfile } from '@/infrastructure/hooks/useUserProfile';
@@ -25,6 +30,8 @@ import { useUserProfile } from '@/infrastructure/hooks/useUserProfile';
 import { Button } from '@/presentation/components/ui/Button';
 import { Link } from 'react-router-dom';
 import { useTheme } from '@/app/providers/ThemeProvider';
+import { StockTransferWithDetails, StockMovementWithType, InventoryAdjustmentWithDetails } from '@/domain/types';
+import { ROUTES } from '@/shared/constants';
 // Importar componentes de recharts directamente para evitar problemas de dependencias circulares
 import {
   LineChart,
@@ -115,6 +122,37 @@ const DefaultDashboard: React.FC = () => {
     (token) => donorApi.getAnalysis(token)
   );
 
+  // Obtener traspasos pendientes (solo para Admin)
+  const { data: pendingTransfers = [] } = useApiQuery<StockTransferWithDetails[]>(
+    ['transfers', 'pending'],
+    (token) => transferApi.getPending(token),
+    {
+      enabled: userProfile?.role_name === 'Administrador',
+      staleTime: 30 * 1000,
+      refetchInterval: 60 * 1000, // Refrescar cada minuto
+    }
+  );
+
+  // Obtener ajustes pendientes (solo para Admin)
+  const { data: pendingAdjustments = [] } = useApiQuery<InventoryAdjustmentWithDetails[]>(
+    ['adjustments', 'pending'],
+    (token) => adjustmentApi.getPending(token),
+    {
+      enabled: userProfile?.role_name === 'Administrador',
+      staleTime: 30 * 1000,
+      refetchInterval: 60 * 1000, // Refrescar cada minuto
+    }
+  );
+
+  // Obtener movimientos recientes
+  const { data: recentMovements = [] } = useApiQuery<StockMovementWithType[]>(
+    ['movements', 'recent'],
+    (token) => stockMovementApi.getAll(token, { limit: 20 }),
+    {
+      staleTime: 30 * 1000,
+    }
+  );
+
   const loading =
     productsLoading ||
     warehousesLoading ||
@@ -169,7 +207,7 @@ const DefaultDashboard: React.FC = () => {
       const year = donationDate.getFullYear();
       const monthData = last6Months.find((m) => m.monthNum === month && m.year === year);
       if (monthData) {
-        monthData.total += donation.total_actual_value || 0;
+        monthData.total += donation.actual_value || 0;
       }
     });
     return last6Months;
@@ -346,6 +384,20 @@ const DefaultDashboard: React.FC = () => {
         >
           <p className="text-xs text-muted-foreground mt-1">Total registrados</p>
         </StatCard>
+        {userProfile?.role_name === 'Administrador' && (
+          <StatCard
+            title="Traspasos Pendientes"
+            value={pendingTransfers.length}
+            icon={ArrowsRightLeftIcon}
+            delay={0.6}
+          >
+            <p className="text-xs text-muted-foreground mt-1">
+              <Link to={ROUTES.TRANSFERS_APPROVE} className="text-primary hover:underline">
+                Requieren aprobación
+              </Link>
+            </p>
+          </StatCard>
+        )}
       </div>
       {/* Gráficos principales */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
@@ -564,6 +616,199 @@ const DefaultDashboard: React.FC = () => {
             </CardContent>
           </Card>
         </AnimatedWrapper>
+
+        {/* Widget de Traspasos Pendientes (Solo Admin) */}
+        {userProfile?.role_name === 'Administrador' && pendingTransfers.length > 0 && (
+          <AnimatedWrapper delay={0.8}>
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Traspasos Pendientes</CardTitle>
+                    <CardDescription>
+                      {pendingTransfers.length} traspaso(s) pendiente(s) de aprobación
+                    </CardDescription>
+                  </div>
+                  <Button as={Link} to={ROUTES.TRANSFERS_APPROVE} variant="outline" size="sm">
+                    Ver Todos
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {pendingTransfers.slice(0, 5).map((transfer) => (
+                    <div
+                      key={transfer.transfer_id}
+                      className="p-3 border rounded-lg hover:bg-muted dark:hover:bg-dark-muted transition-colors"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="font-semibold text-sm">
+                            Lote #{transfer.lot_id} - {transfer.quantity} unidades
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {transfer.from_warehouse?.warehouse_name} → {transfer.to_warehouse?.warehouse_name}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Solicitado por: {transfer.requested_by_user?.full_name || 'N/A'} -{' '}
+                            {new Date(transfer.created_at).toLocaleDateString()}
+                          </div>
+                        </div>
+                        <Badge variant="warning" className="ml-2">
+                          Pendiente
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {pendingTransfers.length > 5 && (
+                  <div className="mt-4 text-center">
+                    <Button as={Link} to={ROUTES.TRANSFERS_APPROVE} variant="outline" size="sm">
+                      Ver {pendingTransfers.length - 5} más...
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </AnimatedWrapper>
+        )}
+
+        {/* Widget de Ajustes Pendientes (Solo Admin) */}
+        {userProfile?.role_name === 'Administrador' && pendingAdjustments.length > 0 && (
+          <AnimatedWrapper delay={0.9}>
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Ajustes Pendientes</CardTitle>
+                    <CardDescription>
+                      {pendingAdjustments.length} ajuste(s) pendiente(s) de aprobación
+                    </CardDescription>
+                  </div>
+                  <Button as={Link} to={ROUTES.ADJUSTMENTS_APPROVE} variant="outline" size="sm">
+                    Ver Todos
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {pendingAdjustments.slice(0, 5).map((adjustment) => {
+                    const lot = adjustment.lot as any;
+                    return (
+                      <div
+                        key={adjustment.adjustment_id}
+                        className="p-3 border rounded-lg hover:bg-muted dark:hover:bg-dark-muted transition-colors"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="font-semibold text-sm">
+                              Lote #{adjustment.lot_id} - Ajuste de {adjustment.quantity_before?.toFixed(2) || 'N/A'} a{' '}
+                              {adjustment.quantity_after.toFixed(2)}
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              Diferencia:{' '}
+                              <span
+                                className={
+                                  (adjustment.quantity_after - (adjustment.quantity_before || 0)) >= 0
+                                    ? 'text-green-600 dark:text-green-400'
+                                    : 'text-red-600 dark:text-red-400'
+                                }
+                              >
+                                {(adjustment.quantity_after - (adjustment.quantity_before || 0)) >= 0 ? '+' : ''}
+                                {(adjustment.quantity_after - (adjustment.quantity_before || 0)).toFixed(2)}
+                              </span>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Solicitado por: {adjustment.created_by_user?.full_name || 'N/A'} -{' '}
+                              {new Date(adjustment.created_at).toLocaleDateString()}
+                            </div>
+                          </div>
+                          <Badge variant="warning" className="ml-2">
+                            Pendiente
+                          </Badge>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {pendingAdjustments.length > 5 && (
+                  <div className="mt-4 text-center">
+                    <Button as={Link} to={ROUTES.ADJUSTMENTS_APPROVE} variant="outline" size="sm">
+                      Ver {pendingAdjustments.length - 5} más...
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </AnimatedWrapper>
+        )}
+
+        {/* Widget de Movimientos Recientes */}
+        {recentMovements.length > 0 && (
+          <AnimatedWrapper delay={1.0}>
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Movimientos Recientes</CardTitle>
+                    <CardDescription>Últimos movimientos de stock registrados</CardDescription>
+                  </div>
+                  <Button as={Link} to={ROUTES.MOVEMENTS} variant="outline" size="sm">
+                    Ver Todos
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {recentMovements.slice(0, 10).map((movement) => {
+                    const lot = movement.lot as any;
+                    const product = lot?.product;
+                    return (
+                      <div
+                        key={movement.movement_id}
+                        className="p-3 border rounded-lg hover:bg-muted dark:hover:bg-dark-muted transition-colors"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="font-semibold text-sm">
+                              {product?.product_name || 'Producto desconocido'} - Lote #{movement.lot_id}
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {movement.movement_type?.type_name || 'N/A'} -{' '}
+                              {new Date(movement.created_at).toLocaleString('es-MX')}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div
+                              className={`font-semibold text-sm ${
+                                movement.movement_type?.category === 'ENTRADA'
+                                  ? 'text-green-600 dark:text-green-400'
+                                  : 'text-red-600 dark:text-red-400'
+                              }`}
+                            >
+                              {movement.movement_type?.category === 'ENTRADA' ? '+' : '-'}
+                              {movement.quantity.toFixed(2)}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Stock: {lot?.current_quantity?.toFixed(2) || 'N/A'}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {recentMovements.length > 10 && (
+                  <div className="mt-4 text-center">
+                    <Button as={Link} to={ROUTES.MOVEMENTS} variant="outline" size="sm">
+                      Ver {recentMovements.length - 10} más...
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </AnimatedWrapper>
+        )}
       </div>
     </AnimatedWrapper>
   );

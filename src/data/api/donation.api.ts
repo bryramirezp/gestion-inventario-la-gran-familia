@@ -81,7 +81,7 @@ export const donationApi = {
       search?: string; // Buscar en donor_name y warehouse_name
       limit?: number;
       offset?: number;
-      orderBy?: 'donation_date' | 'donation_id' | 'total_actual_value';
+      orderBy?: 'donation_date' | 'donation_id' | 'actual_value';
       orderDirection?: 'asc' | 'desc';
     }
   ): Promise<Donation[]> => {
@@ -220,11 +220,11 @@ export const donationApi = {
         });
 
         // Usar los totales de la base de datos si están disponibles, sino calcularlos
-        const total_market_value =
-          donation.total_market_value ||
+        const market_value =
+          donation.market_value ||
           items.reduce((acc, item) => acc + (item.market_unit_price || 0) * Number(item.quantity), 0);
-        const total_actual_value =
-          donation.total_actual_value ||
+        const actual_value =
+          donation.actual_value ||
           items.reduce((acc, item) => acc + (item.actual_unit_price || 0) * Number(item.quantity), 0);
 
         return {
@@ -237,8 +237,8 @@ export const donationApi = {
           donor_name: donor?.donor_name || 'Unknown Donor',
           warehouse_name: warehouse?.warehouse_name || 'Unknown Warehouse',
           items,
-          total_market_value,
-          total_actual_value,
+          market_value,
+          actual_value,
         } as Donation;
       });
 
@@ -336,17 +336,17 @@ export const donationApi = {
       }
 
       // Calcular nuevos totales
-      const total_market_value =
+      const market_value =
         allItems?.reduce((acc, item) => acc + (item.market_unit_price || 0) * Number(item.quantity || 0), 0) || 0;
-      const total_actual_value =
+      const actual_value =
         allItems?.reduce((acc, item) => acc + (item.actual_unit_price || 0) * Number(item.quantity || 0), 0) || 0;
 
       // Actualizar totales en la transacción de donación
       const { error: totalUpdateError } = await supabase
         .from('donation_transactions')
         .update({
-          total_market_value,
-          total_actual_value,
+          market_value,
+          actual_value,
           updated_at: new Date().toISOString(),
         })
         .eq('donation_id', updatedItem.donation_id);

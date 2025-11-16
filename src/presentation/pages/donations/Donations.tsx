@@ -122,11 +122,11 @@ const DonationItemsModal: React.FC<{ donation: Donation; onClose: () => void }> 
           });
           
           // Recalcular totales
-          const total_market_value = updatedItems.reduce(
+          const market_value = updatedItems.reduce(
             (acc, item) => acc + (item.market_unit_price || 0) * Number(item.current_quantity || 0),
             0
           );
-          const total_actual_value = updatedItems.reduce(
+          const actual_value = updatedItems.reduce(
             (acc, item) => acc + (item.actual_unit_price || 0) * Number(item.current_quantity || 0),
             0
           );
@@ -134,8 +134,8 @@ const DonationItemsModal: React.FC<{ donation: Donation; onClose: () => void }> 
           return {
             ...prevDonation,
             items: updatedItems,
-            total_market_value,
-            total_actual_value,
+            market_value,
+            actual_value,
           };
         });
         addAlert('Item de donación actualizado con éxito.', 'success');
@@ -536,7 +536,7 @@ const DonationHistoryCard: React.FC<DonationHistoryCardProps> = React.memo(
       <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0 w-full sm:w-auto">
         <div className="text-right flex-grow sm:flex-grow-0">
           <p className="font-bold text-base sm:text-lg text-foreground">
-            ${donation.total_market_value?.toFixed(2) || '0.00'}
+            ${donation.market_value?.toFixed(2) || '0.00'}
           </p>
           <p className="text-xs text-muted-foreground">{donation.items.length} artículos</p>
         </div>
@@ -585,7 +585,7 @@ const Donations: React.FC = () => {
     const filters: {
       limit?: number;
       offset?: number;
-      orderBy?: 'donation_date' | 'donation_id' | 'total_actual_value';
+      orderBy?: 'donation_date' | 'donation_id' | 'actual_value';
       orderDirection?: 'asc' | 'desc';
       search?: string;
     } = {

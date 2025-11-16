@@ -97,12 +97,16 @@ GRANT EXECUTE ON FUNCTION public.is_consultor() TO anon, authenticated, service_
 GRANT EXECUTE ON FUNCTION public.has_warehouse_access(BIGINT) TO anon, authenticated, service_role;
 
 -- Funciones de negocio (creadas en functions/*.sql)
--- NOTA: Estas funciones ya otorgan permisos en sus archivos respectivos
---       (validate_stock_available.sql y create_donation_atomic.sql)
---       No es necesario otorgar permisos aquí nuevamente
---       Si necesitas otorgar permisos manualmente, ejecuta:
---       GRANT EXECUTE ON FUNCTION public.validate_stock_available(BIGINT, BIGINT, NUMERIC) TO anon, authenticated, service_role;
---       GRANT EXECUTE ON FUNCTION public.create_donation_atomic(BIGINT, BIGINT, JSONB, DATE) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.validate_stock_available(BIGINT, BIGINT, NUMERIC) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.create_donation_atomic(BIGINT, BIGINT, JSONB, DATE) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.register_stock_movement(BIGINT, BIGINT, NUMERIC, TEXT, VARCHAR, VARCHAR, VARCHAR) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_lots_for_consumption(BIGINT, BIGINT, NUMERIC) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.request_stock_transfer(BIGINT, BIGINT, NUMERIC, TEXT) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.approve_stock_transfer(BIGINT, TEXT) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.reject_stock_transfer(BIGINT, TEXT) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.create_inventory_adjustment(BIGINT, NUMERIC, TEXT) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.approve_inventory_adjustment(BIGINT, TEXT) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.reject_inventory_adjustment(BIGINT, TEXT) TO anon, authenticated, service_role;
 -- Módulo de cocina removido - funciones de cocina ya no se usan
 -- GRANT EXECUTE ON FUNCTION public.create_kitchen_request_atomic(TEXT, BIGINT, JSONB, TEXT, TEXT) TO anon, authenticated, service_role;
 -- GRANT EXECUTE ON FUNCTION public.complete_kitchen_transaction(BIGINT, TEXT) TO anon, authenticated, service_role;
@@ -110,6 +114,8 @@ GRANT EXECUTE ON FUNCTION public.has_warehouse_access(BIGINT) TO anon, authentic
 -- Funciones de triggers
 GRANT EXECUTE ON FUNCTION public.update_updated_at_column() TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.check_expired_lots() TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.prevent_direct_stock_update() TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.prevent_delete_expired_warehouse() TO anon, authenticated, service_role;
 
 -- ============================================================================
 -- COMENTARIOS Y DOCUMENTACIÓN

@@ -27,6 +27,7 @@ import {
   getUnits,
   warehouseApi,
   GetFullProductDetailsFilters,
+  adjustmentApi,
 } from '@/data/api';
 import { Product, NewProduct, Category, Brand, Unit, Warehouse } from '@/domain/types';
 import { useNotifications } from '@/app/providers/NotificationProvider';
@@ -41,6 +42,11 @@ import { useForm } from '@/infrastructure/hooks/useForm';
 import Pagination from '@/presentation/components/ui/Pagination';
 import { useApiQuery, useApiMutation } from '@/infrastructure/hooks/useApiQuery';
 import { validateNumericInput } from '@/infrastructure/utils/validation.util';
+import { AdjustmentForm } from '@/presentation/features/inventory/AdjustmentForm';
+import { MovementForm } from '@/presentation/features/inventory/MovementForm';
+import MovementHistoryModal from '@/presentation/features/inventory/MovementHistoryModal';
+import { StockLot } from '@/domain/types';
+import { stockMovementApi } from '@/data/api';
 // import { PlusCircleIcon } from '@/presentation/components/icons/Icons';
 
 type ProductDetail = Awaited<ReturnType<typeof getFullProductDetails>>[0];
@@ -262,6 +268,13 @@ const Products: React.FC = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false);
+  const [selectedLotForAdjustment, setSelectedLotForAdjustment] = useState<StockLot | null>(null);
+  const [isMovementModalOpen, setIsMovementModalOpen] = useState(false);
+  const [selectedLotForMovement, setSelectedLotForMovement] = useState<StockLot | null>(null);
+  const [selectedProductForMovement, setSelectedProductForMovement] = useState<ProductDetail | null>(null);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [selectedLotForHistory, setSelectedLotForHistory] = useState<StockLot | null>(null);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -495,6 +508,128 @@ const Products: React.FC = () => {
     }
   };
 
+  // Funcionalidad de Ajustes
+  const createAdjustmentMutation = useApiMutation<
+    any,
+    { lotId: number; quantityAfter: number; reason: string }
+  >(
+    async ({ lotId, quantityAfter, reason }, token) => {
+      return await adjustmentApi.create(token, lotId, quantityAfter, reason);
+    },
+    {
+      onSuccess: () => {
+        addAlert('Ajuste de inventario creado con éxito. Pendiente de aprobación.', 'success');
+        setIsAdjustmentModalOpen(false);
+        setSelectedLotForAdjustment(null);
+      },
+      onError: (error) => {
+        addAlert(`Error al crear ajuste: ${error.message}`, 'error');
+      },
+      invalidateQueries: [['adjustments'], ['products']],
+    }
+  );
+
+  const handleOpenAdjustmentModal = (lot: StockLot) => {
+    setSelectedLotForAdjustment(lot);
+    setIsAdjustmentModalOpen(true);
+  };
+
+  const handleCloseAdjustmentModal = () => {
+    setIsAdjustmentModalOpen(false);
+    setSelectedLotForAdjustment(null);
+  };
+
+  const handleSaveAdjustment = async (data: { lot_id: number | null; quantity_after: number; reason: string }) => {
+    if (!data.lot_id) {
+      throw new Error('Se debe seleccionar un lote');
+    }
+    await createAdjustmentMutation.mutateAsync({
+      lotId: data.lot_id,
+      quantityAfter: data.quantity_after,
+      reason: data.reason,
+    });
+  };
+
+  // Funcionalidad de Movimientos
+  const createMovementMutation = useApiMutation<
+    any,
+    {
+      lotId: number;
+      movementTypeId: number;
+      quantity: number;
+      notes?: string;
+      requestingDepartment?: string;
+      recipientOrganization?: string;
+    }
+  >(
+    async ({ lotId, movementTypeId, quantity, notes, requestingDepartment, recipientOrganization }, token) => {
+      return await stockMovementApi.create(
+        token,
+        lotId,
+        movementTypeId,
+        quantity,
+        notes,
+        requestingDepartment,
+        recipientOrganization
+      );
+    },
+    {
+      onSuccess: () => {
+        addAlert('Movimiento de salida registrado con éxito', 'success');
+        setIsMovementModalOpen(false);
+        setSelectedLotForMovement(null);
+        setSelectedProductForMovement(null);
+      },
+      onError: (error) => {
+        addAlert(`Error al registrar movimiento: ${error.message}`, 'error');
+      },
+      invalidateQueries: [['movements'], ['products'], ['stockMovements']],
+    }
+  );
+
+  const handleOpenMovementModal = (lot: StockLot, product: ProductDetail) => {
+    setSelectedLotForMovement(lot);
+    setSelectedProductForMovement(product);
+    setIsMovementModalOpen(true);
+  };
+
+  const handleCloseMovementModal = () => {
+    setIsMovementModalOpen(false);
+    setSelectedLotForMovement(null);
+    setSelectedProductForMovement(null);
+  };
+
+  const handleSaveMovement = async (data: {
+    lot_id: number | null;
+    movement_type_id: number | null;
+    quantity: number;
+    notes: string;
+    requesting_department: string;
+    recipient_organization: string;
+  }) => {
+    if (!data.lot_id || !data.movement_type_id) {
+      throw new Error('Se deben completar todos los campos requeridos');
+    }
+    await createMovementMutation.mutateAsync({
+      lotId: data.lot_id,
+      movementTypeId: data.movement_type_id,
+      quantity: data.quantity,
+      notes: data.notes || undefined,
+      requestingDepartment: data.requesting_department || undefined,
+      recipientOrganization: data.recipient_organization || undefined,
+    });
+  };
+
+  const handleOpenHistoryModal = (lot: StockLot) => {
+    setSelectedLotForHistory(lot);
+    setIsHistoryModalOpen(true);
+  };
+
+  const handleCloseHistoryModal = () => {
+    setIsHistoryModalOpen(false);
+    setSelectedLotForHistory(null);
+  };
+
   const columns: Column<ProductDetail>[] = useMemo(
     () => [
       { header: 'Nombre', accessor: 'product_name' },
@@ -588,13 +723,41 @@ const Products: React.FC = () => {
                     </p>
                     <ul className="text-sm list-disc list-inside mt-1 space-y-1">
                       {lots.map((lot) => (
-                        <li key={lot.lot_id} className="text-muted-foreground">
-                          <span className="font-semibold text-foreground">
-                            {lot.current_quantity}
-                          </span>{' '}
-                          unidades | Recibido: {new Date(lot.received_date).toLocaleDateString()} |
-                          Caducidad:{' '}
-                          {lot.expiry_date ? new Date(lot.expiry_date).toLocaleDateString() : 'N/A'}
+                        <li key={lot.lot_id} className="text-muted-foreground flex items-center justify-between gap-2 flex-wrap">
+                          <span>
+                            <span className="font-semibold text-foreground">
+                              {lot.current_quantity}
+                            </span>{' '}
+                            unidades | Recibido: {new Date(lot.received_date).toLocaleDateString()} |
+                            Caducidad:{' '}
+                            {lot.expiry_date ? new Date(lot.expiry_date).toLocaleDateString() : 'N/A'}
+                          </span>
+                          <div className="flex gap-1 flex-wrap">
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={() => handleOpenMovementModal(lot, product)}
+                              className="text-xs"
+                            >
+                              Registrar Salida
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleOpenHistoryModal(lot)}
+                              className="text-xs"
+                            >
+                              Historial
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleOpenAdjustmentModal(lot)}
+                              className="text-xs"
+                            >
+                              Ajustar
+                            </Button>
+                          </div>
                         </li>
                       ))}
                     </ul>
@@ -745,6 +908,47 @@ const Products: React.FC = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Dialog de Movimiento de Salida */}
+      <Dialog isOpen={isMovementModalOpen} onClose={handleCloseMovementModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Registrar Movimiento de Salida</DialogTitle>
+          </DialogHeader>
+          {selectedLotForMovement && selectedProductForMovement && (
+            <MovementForm
+              onSave={handleSaveMovement}
+              onCancel={handleCloseMovementModal}
+              isSubmitting={createMovementMutation.isLoading}
+              category="SALIDA"
+              initialProductId={selectedProductForMovement.product_id}
+              initialWarehouseId={selectedLotForMovement.warehouse_id}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de Historial de Movimientos */}
+      {isHistoryModalOpen && selectedLotForHistory && (
+        <MovementHistoryModal lot={selectedLotForHistory} onClose={handleCloseHistoryModal} />
+      )}
+
+      {/* Dialog de Ajuste de Inventario */}
+      <Dialog isOpen={isAdjustmentModalOpen} onClose={handleCloseAdjustmentModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Crear Ajuste de Inventario</DialogTitle>
+          </DialogHeader>
+          {selectedLotForAdjustment && (
+            <AdjustmentForm
+              onSave={handleSaveAdjustment}
+              onCancel={handleCloseAdjustmentModal}
+              isSubmitting={createAdjustmentMutation.isLoading}
+              initialLotId={selectedLotForAdjustment.lot_id}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </AnimatedWrapper>
   );
 };

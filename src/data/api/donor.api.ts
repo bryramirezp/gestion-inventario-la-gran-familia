@@ -54,7 +54,7 @@ const getDonorAnalysisData = async (
   const categoryMap = new Map(categories.map((c) => [c.category_id, c.category_name]));
 
   const grandTotalValue = transactions.reduce(
-    (sum, t) => sum + (t.total_actual_value || 0),
+    (sum, t) => sum + (t.actual_value || 0),
     0
   );
 
@@ -70,7 +70,7 @@ const getDonorAnalysisData = async (
         ...donor,
         total_donations_count: 0,
         total_value_donated: 0,
-        total_market_value: 0,
+        market_value: 0,
         average_donation_value: 0,
         last_donation_date: null,
         first_donation_date: null,
@@ -94,12 +94,12 @@ const getDonorAnalysisData = async (
 
     // Calcular valores totales
     const total_value_donated = donorTransactions.reduce(
-      (sum, t) => sum + (t.total_actual_value || 0),
+      (sum, t) => sum + (t.actual_value || 0),
       0
     );
 
-    const total_market_value = donorTransactions.reduce(
-      (sum, t) => sum + (t.total_market_value || 0),
+    const market_value = donorTransactions.reduce(
+      (sum, t) => sum + (t.market_value || 0),
       0
     );
 
@@ -137,7 +137,7 @@ const getDonorAnalysisData = async (
 
     // Calcular ratio mercado vs real
     const market_vs_actual_ratio =
-      total_value_donated > 0 ? (total_market_value / total_value_donated) * 100 : 0;
+      total_value_donated > 0 ? (market_value / total_value_donated) * 100 : 0;
 
     // Calcular categoría principal
     const categoryCounts: Record<string, number> = {};
@@ -158,7 +158,7 @@ const getDonorAnalysisData = async (
       ...donor,
       total_donations_count: donorTransactions.length,
       total_value_donated,
-      total_market_value,
+      market_value,
       average_donation_value: total_value_donated / donorTransactions.length,
       last_donation_date: lastDonationDate,
       first_donation_date: firstDonationDate,

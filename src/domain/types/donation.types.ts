@@ -23,8 +23,8 @@ export interface Donation {
   // Enriched data
   donor_name?: string;
   warehouse_name?: string;
-  total_market_value?: number;
-  total_actual_value?: number;
+  market_value?: number;
+  actual_value?: number;
 }
 
 export interface NewDonation {

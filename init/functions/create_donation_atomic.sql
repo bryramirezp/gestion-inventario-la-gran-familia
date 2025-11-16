@@ -28,12 +28,29 @@ DECLARE
   v_donation_item_id BIGINT;
   v_stock_lot_id BIGINT;
   v_stock_lots_created INTEGER := 0;
-  v_total_market_value NUMERIC := 0;
-  v_total_actual_value NUMERIC := 0;
+  v_market_value NUMERIC := 0;
+  v_actual_value NUMERIC := 0;
   v_market_total NUMERIC;
   v_actual_total NUMERIC;
+  v_entrada_type_id BIGINT;
+  v_user_id UUID;
   v_result JSON;
 BEGIN
+  -- Obtener usuario actual
+  v_user_id := auth.uid();
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Usuario no autenticado';
+  END IF;
+
+  -- Obtener ID del tipo de movimiento ENTRADA
+  SELECT type_id INTO v_entrada_type_id
+  FROM public.movement_types
+  WHERE type_code = 'ENTRADA' AND is_active = TRUE;
+
+  IF v_entrada_type_id IS NULL THEN
+    RAISE EXCEPTION 'Tipo de movimiento ENTRADA no encontrado. Asegúrese de ejecutar seed_data.sql';
+  END IF;
+
   -- Validar que el donante existe
   IF NOT EXISTS (SELECT 1 FROM public.donors WHERE donor_id = p_donor_id) THEN
     RAISE EXCEPTION 'Donor not found: %', p_donor_id;
@@ -54,8 +71,8 @@ BEGIN
     donor_id,
     warehouse_id,
     donation_date,
-    total_market_value,
-    total_actual_value
+    market_value,
+    actual_value
   )
   VALUES (
     p_donor_id,
@@ -83,8 +100,8 @@ BEGIN
     v_market_total := (v_item->>'quantity')::NUMERIC * (v_item->>'market_unit_price')::NUMERIC;
     v_actual_total := (v_item->>'quantity')::NUMERIC * (v_item->>'actual_unit_price')::NUMERIC;
     
-    v_total_market_value := v_total_market_value + v_market_total;
-    v_total_actual_value := v_total_actual_value + v_actual_total;
+    v_market_value := v_market_value + v_market_total;
+    v_actual_value := v_actual_value + v_actual_total;
     
     -- Crear item de donación
     INSERT INTO public.donation_items (
@@ -136,13 +153,31 @@ BEGIN
     )
     RETURNING lot_id INTO v_stock_lot_id;
     
+    -- Crear movimiento ENTRADA automáticamente
+    INSERT INTO public.stock_movements (
+      lot_id,
+      movement_type_id,
+      quantity,
+      notes,
+      reference_id,
+      created_by
+    )
+    VALUES (
+      v_stock_lot_id,
+      v_entrada_type_id,
+      (v_item->>'quantity')::NUMERIC,
+      'Entrada por donación #' || v_donation_id::TEXT,
+      'DONATION-' || v_donation_id::TEXT,
+      v_user_id
+    );
+    
     v_stock_lots_created := v_stock_lots_created + 1;
   END LOOP;
   
   -- Actualizar totales de la donación
   UPDATE public.donation_transactions
-  SET total_market_value = v_total_market_value,
-      total_actual_value = v_total_actual_value,
+  SET market_value = v_market_value,
+      actual_value = v_actual_value,
       updated_at = NOW()
   WHERE donation_id = v_donation_id;
   
@@ -151,8 +186,8 @@ BEGIN
     'success', true,
     'donation_id', v_donation_id,
     'stock_lots_created', v_stock_lots_created,
-    'total_market_value', v_total_market_value,
-    'total_actual_value', v_total_actual_value
+    'market_value', v_market_value,
+    'actual_value', v_actual_value
   );
   
   RETURN v_result;

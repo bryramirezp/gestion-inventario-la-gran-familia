@@ -33,6 +33,13 @@ const ExpiryReport = React.lazy(() => import('@/presentation/pages/reports/Expir
 const DonorAnalysis = React.lazy(() => import('@/presentation/pages/donors/DonorAnalysis'));
 const Backup = React.lazy(() => import('@/presentation/pages/backup/Backup'));
 const DonorDetail = React.lazy(() => import('@/presentation/pages/donors/DonorDetail'));
+const StockMovements = React.lazy(() => import('@/presentation/pages/movements/StockMovements'));
+const MovementTypes = React.lazy(() => import('@/presentation/pages/movements/MovementTypes'));
+const RequestTransfer = React.lazy(() => import('@/presentation/pages/transfers/RequestTransfer'));
+const ApproveTransfers = React.lazy(() => import('@/presentation/pages/transfers/ApproveTransfers'));
+const TransferHistory = React.lazy(() => import('@/presentation/pages/transfers/TransferHistory'));
+const ApproveAdjustments = React.lazy(() => import('@/presentation/pages/adjustments/ApproveAdjustments'));
+const AdjustmentHistory = React.lazy(() => import('@/presentation/pages/adjustments/AdjustmentHistory'));
 
 const MainLayout: React.FC = () => {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
@@ -137,6 +144,9 @@ const App: React.FC = () => {
                                           <Route path={ROUTES.WAREHOUSES} element={<Warehouses />} />
                                           <Route path={ROUTES.EXPIRY_REPORT} element={<ExpiryReport />} />
                                           <Route path={ROUTES.DONOR_ANALYSIS} element={<DonorAnalysis />} />
+                                          <Route path={ROUTES.MOVEMENTS} element={<StockMovements />} />
+                                          <Route path={ROUTES.TRANSFERS_REQUEST} element={<RequestTransfer />} />
+                                          <Route path={ROUTES.TRANSFERS_HISTORY} element={<TransferHistory />} />
                                       </Route>
 
                                       {/* Routes accessible only by Administrador */}
@@ -144,6 +154,10 @@ const App: React.FC = () => {
                                           <Route path={ROUTES.CATEGORIES} element={<Categories />} />
                                           <Route path={ROUTES.BRANDS} element={<Brands />} />
                                           <Route path={ROUTES.USERS} element={<Users />} />
+                                          <Route path={ROUTES.MOVEMENT_TYPES} element={<MovementTypes />} />
+                                          <Route path={ROUTES.TRANSFERS_APPROVE} element={<ApproveTransfers />} />
+                                          <Route path={ROUTES.ADJUSTMENTS_APPROVE} element={<ApproveAdjustments />} />
+                                          <Route path={ROUTES.ADJUSTMENTS_HISTORY} element={<AdjustmentHistory />} />
                                       </Route>
 
                                       {/* Backup route for specific admins */}

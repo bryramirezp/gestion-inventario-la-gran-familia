@@ -31,7 +31,7 @@ export const systemApi = {
       Donante: d.donor_name,
       Almacén: d.warehouse_name,
       Fecha: new Date(d.donation_date).toLocaleDateString(),
-      'Valor Total': d.total_actual_value,
+      'Valor Total': d.actual_value,
     }));
 
     const donationItems = filteredDonations.flatMap((d) =>

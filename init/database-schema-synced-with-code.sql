@@ -8,10 +8,25 @@
 -- Reemplaza el esquema anterior que tenía discrepancias.
 -- ============================================================================
 
+-- ============================================================================
+-- NOTA: Este script es IDEMPOTENTE
+-- ============================================================================
+-- Puede ejecutarse múltiples veces sin errores.
+-- Usa CREATE TABLE IF NOT EXISTS, CREATE OR REPLACE FUNCTION, etc.
+-- 
+-- Si necesitas eliminar todas las tablas (para desarrollo), descomenta las
+-- líneas DROP TABLE IF EXISTS a continuación:
+-- ============================================================================
+
 -- Eliminar tablas existentes si es necesario (para desarrollo)
+-- DESCOMENTAR SOLO SI NECESITAS REINICIAR LA BASE DE DATOS COMPLETAMENTE
 -- Módulo de cocina removido - transactions y transaction_details ya no se usan
--- DROP TABLE IF EXISTS public.transaction_details CASCADE;
--- DROP TABLE IF EXISTS public.transactions CASCADE;
+DROP TABLE IF EXISTS public.transaction_details CASCADE;
+DROP TABLE IF EXISTS public.transactions CASCADE;
+DROP TABLE IF EXISTS public.inventory_adjustments CASCADE;
+DROP TABLE IF EXISTS public.stock_transfers CASCADE;
+DROP TABLE IF EXISTS public.stock_movements CASCADE;
+DROP TABLE IF EXISTS public.movement_types CASCADE;
 DROP TABLE IF EXISTS public.donation_items CASCADE;
 DROP TABLE IF EXISTS public.donation_transactions CASCADE;
 DROP TABLE IF EXISTS public.stock_lots CASCADE;
@@ -25,7 +40,7 @@ DROP TABLE IF EXISTS public.units CASCADE;
 DROP TABLE IF EXISTS public.categories CASCADE;
 DROP TABLE IF EXISTS public.warehouses CASCADE;
 DROP TABLE IF EXISTS public.roles CASCADE;
-DROP TABLE IF EXISTS public.transaction_types CASCADE;
+
 
 -- ============================================================================
 -- FUNCIONES AUXILIARES
@@ -221,12 +236,38 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Función para prevenir actualizaciones directas de current_quantity
+-- Solo permite cambios vía register_stock_movement
+CREATE OR REPLACE FUNCTION public.prevent_direct_stock_update()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Permitir cambios si current_quantity no cambió (actualizaciones de otros campos)
+  IF OLD.current_quantity = NEW.current_quantity THEN
+    RETURN NEW;
+  END IF;
+  
+  -- Si current_quantity cambió, verificar que haya un movimiento asociado
+  -- Esto se verifica mediante la existencia de un movimiento reciente (últimos 5 segundos)
+  -- para el mismo lote
+  IF NOT EXISTS (
+    SELECT 1 
+    FROM public.stock_movements 
+    WHERE lot_id = NEW.lot_id 
+      AND created_at > NOW() - INTERVAL '5 seconds'
+  ) THEN
+    RAISE EXCEPTION 'No se puede actualizar current_quantity directamente. Use register_stock_movement() para registrar movimientos de stock.';
+  END IF;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 -- ============================================================================
 -- TABLAS DE CONFIGURACIÓN
 -- ============================================================================
 
 -- Tabla de roles
-CREATE TABLE public.roles (
+CREATE TABLE IF NOT EXISTS public.roles (
   role_id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   role_name VARCHAR(50) UNIQUE NOT NULL,
   is_active BOOLEAN DEFAULT TRUE,
@@ -238,7 +279,7 @@ CREATE TABLE public.roles (
 );
 
 -- Tabla de almacenes
-CREATE TABLE public.warehouses (
+CREATE TABLE IF NOT EXISTS public.warehouses (
   warehouse_id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   warehouse_name VARCHAR(100) UNIQUE NOT NULL,
   location_description TEXT,
@@ -251,7 +292,7 @@ CREATE TABLE public.warehouses (
 );
 
 -- Tabla de categorías
-CREATE TABLE public.categories (
+CREATE TABLE IF NOT EXISTS public.categories (
   category_id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   category_name VARCHAR(100) UNIQUE NOT NULL,
   is_active BOOLEAN DEFAULT TRUE,
@@ -263,7 +304,7 @@ CREATE TABLE public.categories (
 );
 
 -- Tabla de unidades de medida
-CREATE TABLE public.units (
+CREATE TABLE IF NOT EXISTS public.units (
   unit_id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   unit_name VARCHAR(50) UNIQUE NOT NULL,
   abbreviation VARCHAR(10) UNIQUE NOT NULL,
@@ -279,7 +320,7 @@ CREATE TABLE public.units (
 );
 
 -- Tabla de tipos de donantes
-CREATE TABLE public.donor_types (
+CREATE TABLE IF NOT EXISTS public.donor_types (
   donor_type_id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   type_name VARCHAR(100) UNIQUE NOT NULL,
   description TEXT,
@@ -292,7 +333,7 @@ CREATE TABLE public.donor_types (
 );
 
 -- Tabla de marcas
-CREATE TABLE public.brands (
+CREATE TABLE IF NOT EXISTS public.brands (
   brand_id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   brand_name VARCHAR(100) UNIQUE NOT NULL,
   is_active BOOLEAN DEFAULT TRUE,
@@ -303,24 +344,14 @@ CREATE TABLE public.brands (
   )
 );
 
--- Tabla de tipos de transacción (mantenida por compatibilidad, pero no se usa en el código actual)
-CREATE TABLE public.transaction_types (
-  type_id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-  type_name VARCHAR(50) UNIQUE NOT NULL,
-  is_active BOOLEAN DEFAULT TRUE,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  CONSTRAINT chk_type_name_tx CHECK (
-    LENGTH(TRIM(BOTH FROM type_name)) > 0
-  )
-);
+-- Tabla de tipos de transacción ELIMINADA (módulo de cocina removido, no se usa)
 
 -- ============================================================================
 -- TABLAS DE USUARIOS
 -- ============================================================================
 
 -- Tabla de usuarios (user_id es UUID de Supabase Auth)
-CREATE TABLE public.users (
+CREATE TABLE IF NOT EXISTS public.users (
   user_id UUID PRIMARY KEY, -- UUID de Supabase Auth
   full_name VARCHAR(100), -- Nullable: se establece durante onboarding
   role_id BIGINT REFERENCES public.roles(role_id), -- Nullable: se asigna después de crear el usuario
@@ -333,7 +364,7 @@ CREATE TABLE public.users (
 );
 
 -- Tabla de acceso de usuarios a almacenes
-CREATE TABLE public.user_warehouse_access (
+CREATE TABLE IF NOT EXISTS public.user_warehouse_access (
   user_id UUID NOT NULL REFERENCES public.users(user_id) ON DELETE CASCADE,
   warehouse_id BIGINT NOT NULL REFERENCES public.warehouses(warehouse_id) ON DELETE CASCADE,
   PRIMARY KEY (user_id, warehouse_id)
@@ -344,7 +375,7 @@ CREATE TABLE public.user_warehouse_access (
 -- ============================================================================
 
 -- Tabla de donantes
-CREATE TABLE public.donors (
+CREATE TABLE IF NOT EXISTS public.donors (
   donor_id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   donor_name VARCHAR(255) NOT NULL,
   donor_type_id BIGINT NOT NULL REFERENCES public.donor_types(donor_type_id),
@@ -367,7 +398,7 @@ CREATE TABLE public.donors (
 -- ============================================================================
 
 -- Tabla de productos
-CREATE TABLE public.products (
+CREATE TABLE IF NOT EXISTS public.products (
   product_id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   product_name VARCHAR(200) NOT NULL,
   sku VARCHAR(100), -- Nullable, único cuando no es NULL
@@ -392,19 +423,19 @@ CREATE UNIQUE INDEX products_sku_unique ON public.products(sku) WHERE sku IS NOT
 -- ============================================================================
 
 -- Tabla de transacciones de donación
-CREATE TABLE public.donation_transactions (
+CREATE TABLE IF NOT EXISTS public.donation_transactions (
   donation_id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   donor_id BIGINT NOT NULL REFERENCES public.donors(donor_id),
   warehouse_id BIGINT NOT NULL REFERENCES public.warehouses(warehouse_id),
   donation_date DATE NOT NULL DEFAULT CURRENT_DATE,
-  total_market_value NUMERIC(10, 2) DEFAULT 0.00,
-  total_actual_value NUMERIC(10, 2) DEFAULT 0.00,
+  market_value NUMERIC(10, 2) DEFAULT 0.00,
+  actual_value NUMERIC(10, 2) DEFAULT 0.00,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Tabla de items de donación
-CREATE TABLE public.donation_items (
+CREATE TABLE IF NOT EXISTS public.donation_items (
   item_id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   donation_id BIGINT NOT NULL REFERENCES public.donation_transactions(donation_id) ON DELETE CASCADE,
   product_id BIGINT NOT NULL REFERENCES public.products(product_id),
@@ -419,8 +450,8 @@ CREATE TABLE public.donation_items (
 -- TABLAS DE INVENTARIO
 -- ============================================================================
 
--- Tabla de lotes de stock
-CREATE TABLE public.stock_lots (
+-- Tabla de lotes de stock (DEBE CREARSE ANTES de stock_movements, stock_transfers, inventory_adjustments)
+CREATE TABLE IF NOT EXISTS public.stock_lots (
   lot_id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   product_id BIGINT NOT NULL REFERENCES public.products(product_id),
   warehouse_id BIGINT NOT NULL REFERENCES public.warehouses(warehouse_id),
@@ -434,45 +465,92 @@ CREATE TABLE public.stock_lots (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- NOTA: No hay constraint restrictivo en expiry_date para permitir productos ya vencidos
--- El campo is_expired se actualiza automáticamente por trigger
-
 -- ============================================================================
--- TABLAS DE TRANSACCIONES DE COCINA (MÓDULO REMOVIDO)
+-- TABLAS DE MOVIMIENTOS DE STOCK
 -- ============================================================================
--- NOTA: El módulo de cocina fue removido del sistema.
--- Las tablas se mantienen en la base de datos pero ya no se utilizan.
--- Si deseas eliminarlas completamente, ejecuta:
---   DROP TABLE IF EXISTS public.transaction_details CASCADE;
---   DROP TABLE IF EXISTS public.transactions CASCADE;
 
--- Tabla de transacciones (solicitudes de cocina) - DESHABILITADA
--- CREATE TABLE public.transactions (
---   transaction_id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
---   requester_id TEXT NOT NULL REFERENCES public.users(user_id),
---   approver_id TEXT REFERENCES public.users(user_id),
---   transaction_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
---   status VARCHAR(20) NOT NULL DEFAULT 'Pending' 
---     CHECK (status IN ('Pending', 'Approved', 'Completed', 'Rejected')),
---   notes TEXT,
---   source_warehouse_id BIGINT NOT NULL REFERENCES public.warehouses(warehouse_id),
---   requester_signature TEXT,
---   created_at TIMESTAMPTZ DEFAULT NOW(),
---   updated_at TIMESTAMPTZ DEFAULT NOW()
--- );
+-- Tabla de tipos de movimiento (catálogo extensible)
+CREATE TABLE IF NOT EXISTS public.movement_types (
+  type_id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  type_code VARCHAR(50) UNIQUE NOT NULL,
+  type_name VARCHAR(100) NOT NULL,
+  category VARCHAR(20) NOT NULL CHECK (category IN ('ENTRADA', 'SALIDA', 'TRASPASO', 'AJUSTE')),
+  is_active BOOLEAN DEFAULT TRUE,
+  description TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT chk_type_code CHECK (
+    LENGTH(TRIM(BOTH FROM type_code)) > 0
+  ),
+  CONSTRAINT chk_type_name_mt CHECK (
+    LENGTH(TRIM(BOTH FROM type_name)) > 0
+  )
+);
 
--- Tabla de detalles de transacciones - DESHABILITADA
--- CREATE TABLE public.transaction_details (
---   detail_id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
---   transaction_id BIGINT NOT NULL REFERENCES public.transactions(transaction_id) ON DELETE CASCADE,
---   product_id BIGINT NOT NULL REFERENCES public.products(product_id),
---   quantity NUMERIC(10, 2) NOT NULL CHECK (quantity > 0),
---   created_at TIMESTAMPTZ DEFAULT NOW()
--- );
+-- Tabla de movimientos de stock (Kardex)
+CREATE TABLE IF NOT EXISTS public.stock_movements (
+  movement_id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  lot_id BIGINT NOT NULL REFERENCES public.stock_lots(lot_id) ON DELETE CASCADE,
+  movement_type_id BIGINT NOT NULL REFERENCES public.movement_types(type_id),
+  quantity NUMERIC(10, 2) NOT NULL CHECK (quantity > 0),
+  notes TEXT,
+  requesting_department VARCHAR(100),
+  recipient_organization VARCHAR(255),
+  reference_id VARCHAR(100),
+  created_by UUID NOT NULL REFERENCES public.users(user_id),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
--- ============================================================================
--- TRIGGERS
--- ============================================================================
+-- Índices para stock_movements
+CREATE INDEX IF NOT EXISTS idx_stock_movements_lot ON public.stock_movements(lot_id);
+CREATE INDEX IF NOT EXISTS idx_stock_movements_type ON public.stock_movements(movement_type_id);
+CREATE INDEX IF NOT EXISTS idx_stock_movements_created_at ON public.stock_movements(created_at);
+
+-- Tabla de traspasos entre almacenes
+CREATE TABLE IF NOT EXISTS public.stock_transfers (
+  transfer_id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  lot_id BIGINT NOT NULL REFERENCES public.stock_lots(lot_id) ON DELETE CASCADE,
+  from_warehouse_id BIGINT NOT NULL REFERENCES public.warehouses(warehouse_id),
+  to_warehouse_id BIGINT NOT NULL REFERENCES public.warehouses(warehouse_id),
+  quantity NUMERIC(10, 2) NOT NULL CHECK (quantity > 0),
+  status VARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED', 'COMPLETED')),
+  requested_by UUID NOT NULL REFERENCES public.users(user_id),
+  approved_by UUID REFERENCES public.users(user_id),
+  rejection_reason TEXT,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT chk_different_warehouses CHECK (from_warehouse_id != to_warehouse_id)
+);
+
+-- Índices para stock_transfers
+CREATE INDEX IF NOT EXISTS idx_stock_transfers_lot ON public.stock_transfers(lot_id);
+CREATE INDEX IF NOT EXISTS idx_stock_transfers_status ON public.stock_transfers(status);
+CREATE INDEX IF NOT EXISTS idx_stock_transfers_requested_by ON public.stock_transfers(requested_by);
+CREATE INDEX IF NOT EXISTS idx_stock_transfers_created_at ON public.stock_transfers(created_at);
+
+-- Tabla de ajustes de inventario
+CREATE TABLE IF NOT EXISTS public.inventory_adjustments (
+  adjustment_id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  lot_id BIGINT NOT NULL REFERENCES public.stock_lots(lot_id) ON DELETE CASCADE,
+  quantity_before NUMERIC(10, 2) NOT NULL CHECK (quantity_before >= 0),
+  quantity_after NUMERIC(10, 2) NOT NULL CHECK (quantity_after >= 0),
+  reason TEXT NOT NULL CHECK (LENGTH(TRIM(BOTH FROM reason)) > 10),
+  status VARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED')),
+  approved_by UUID REFERENCES public.users(user_id),
+  rejected_by UUID REFERENCES public.users(user_id),
+  rejection_reason TEXT,
+  created_by UUID NOT NULL REFERENCES public.users(user_id),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT chk_quantity_change CHECK (quantity_before != quantity_after)
+);
+
+-- Índices para inventory_adjustments
+CREATE INDEX IF NOT EXISTS idx_inventory_adjustments_lot ON public.inventory_adjustments(lot_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_adjustments_status ON public.inventory_adjustments(status);
+CREATE INDEX IF NOT EXISTS idx_inventory_adjustments_created_by ON public.inventory_adjustments(created_by);
+CREATE INDEX IF NOT EXISTS idx_inventory_adjustments_created_at ON public.inventory_adjustments(created_at);
 
 -- Trigger para actualizar updated_at en users
 DROP TRIGGER IF EXISTS trigger_update_users_updated_at ON public.users;
@@ -509,12 +587,40 @@ BEFORE UPDATE ON public.donation_transactions
 FOR EACH ROW
 EXECUTE FUNCTION public.update_updated_at_column();
 
+-- Trigger para actualizar updated_at en movement_types
+DROP TRIGGER IF EXISTS trigger_update_movement_types_updated_at ON public.movement_types;
+CREATE TRIGGER trigger_update_movement_types_updated_at
+BEFORE UPDATE ON public.movement_types
+FOR EACH ROW
+EXECUTE FUNCTION public.update_updated_at_column();
+
+-- Trigger para actualizar updated_at en stock_transfers
+DROP TRIGGER IF EXISTS trigger_update_stock_transfers_updated_at ON public.stock_transfers;
+CREATE TRIGGER trigger_update_stock_transfers_updated_at
+BEFORE UPDATE ON public.stock_transfers
+FOR EACH ROW
+EXECUTE FUNCTION public.update_updated_at_column();
+
+-- Trigger para actualizar updated_at en inventory_adjustments
+DROP TRIGGER IF EXISTS trigger_update_inventory_adjustments_updated_at ON public.inventory_adjustments;
+CREATE TRIGGER trigger_update_inventory_adjustments_updated_at
+BEFORE UPDATE ON public.inventory_adjustments
+FOR EACH ROW
+EXECUTE FUNCTION public.update_updated_at_column();
+
 -- Trigger para marcar productos vencidos
 DROP TRIGGER IF EXISTS trigger_check_expired_lots ON public.stock_lots;
 CREATE TRIGGER trigger_check_expired_lots
 BEFORE INSERT OR UPDATE ON public.stock_lots
 FOR EACH ROW
 EXECUTE FUNCTION public.check_expired_lots();
+
+-- Trigger para prevenir actualizaciones directas de current_quantity
+DROP TRIGGER IF EXISTS trigger_prevent_direct_stock_update ON public.stock_lots;
+CREATE TRIGGER trigger_prevent_direct_stock_update
+BEFORE UPDATE ON public.stock_lots
+FOR EACH ROW
+EXECUTE FUNCTION public.prevent_direct_stock_update();
 
 -- Trigger para crear perfil de usuario automáticamente cuando se crea un usuario en Supabase Auth
 -- Este trigger se ejecuta en la tabla auth.users de Supabase
@@ -550,16 +656,6 @@ CREATE INDEX IF NOT EXISTS idx_stock_lots_expiry ON public.stock_lots(expiry_dat
 CREATE INDEX IF NOT EXISTS idx_stock_lots_expired ON public.stock_lots(is_expired) WHERE is_expired = TRUE;
 CREATE INDEX IF NOT EXISTS idx_stock_lots_donation_item ON public.stock_lots(donation_item_id) WHERE donation_item_id IS NOT NULL;
 
--- Índices para transactions - DESHABILITADOS (módulo de cocina removido)
--- CREATE INDEX IF NOT EXISTS idx_transactions_requester ON public.transactions(requester_id);
--- CREATE INDEX IF NOT EXISTS idx_transactions_approver ON public.transactions(approver_id);
--- CREATE INDEX IF NOT EXISTS idx_transactions_status ON public.transactions(status);
--- CREATE INDEX IF NOT EXISTS idx_transactions_warehouse ON public.transactions(source_warehouse_id);
--- CREATE INDEX IF NOT EXISTS idx_transactions_date ON public.transactions(transaction_date);
-
--- Índices para transaction_details - DESHABILITADOS (módulo de cocina removido)
--- CREATE INDEX IF NOT EXISTS idx_transaction_details_transaction ON public.transaction_details(transaction_id);
--- CREATE INDEX IF NOT EXISTS idx_transaction_details_product ON public.transaction_details(product_id);
 
 -- Índices para donation_transactions
 CREATE INDEX IF NOT EXISTS idx_donation_transactions_donor ON public.donation_transactions(donor_id);

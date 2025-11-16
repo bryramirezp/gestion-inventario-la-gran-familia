@@ -148,7 +148,7 @@ const DonorDetail: React.FC = () => {
       { header: 'Almacén', accessor: 'warehouse_name' },
       { header: 'Fecha', accessor: (item) => new Date(item.donation_date).toLocaleDateString() },
       { header: 'Artículos', accessor: (item) => item.items.length },
-      { header: 'Valor', accessor: (item) => `$${item.total_market_value?.toFixed(2) || '0.00'}` },
+      { header: 'Valor', accessor: (item) => `$${item.market_value?.toFixed(2) || '0.00'}` },
       {
         header: 'Acciones',
         accessor: (item) => (
@@ -226,7 +226,7 @@ const DonorDetail: React.FC = () => {
               <div>
                 <span className="text-sm font-medium text-muted-foreground">Total Donado</span>
                 <div className="text-3xl font-bold text-foreground">
-                  $<AnimatedCounter value={analysis.total_market_value || 0} />
+                  $<AnimatedCounter value={analysis.market_value || 0} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4 pt-2">
@@ -289,7 +289,7 @@ const DonorDetail: React.FC = () => {
                       <div>Almacén: {donation.warehouse_name}</div>
                       <div>Fecha: {new Date(donation.donation_date).toLocaleDateString()}</div>
                       <div className="font-semibold text-foreground">
-                        Valor: ${donation.total_market_value?.toFixed(2) || '0.00'}
+                        Valor: ${donation.market_value?.toFixed(2) || '0.00'}
                       </div>
                       <div className="text-xs">{donation.items.length} artículos</div>
                     </div>

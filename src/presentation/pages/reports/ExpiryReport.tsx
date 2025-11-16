@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { stockLotApi, productApi, warehouseApi } from '@/data/api';
-import { StockLot, Warehouse } from '@/domain/types';
+import { stockLotApi, productApi, warehouseApi, stockMovementApi, movementTypeApi } from '@/data/api';
+import { StockLot, Warehouse, Product } from '@/domain/types';
 import Header from '@/presentation/components/layout/Header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/presentation/components/ui/Card';
 import { Column } from '@/presentation/components/ui/Table';
@@ -9,7 +9,12 @@ import { AnimatedWrapper } from '@/presentation/components/animated/Animated';
 import { Input, Select } from '@/presentation/components/forms';
 import useTableState from '@/infrastructure/hooks/useTableState';
 import { Badge } from '@/presentation/components/ui/Badge';
+import { Button } from '@/presentation/components/ui/Button';
 import { useAuth } from '@/app/providers/AuthProvider';
+import { MovementForm } from '@/presentation/features/inventory/MovementForm';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/presentation/components/ui/Dialog';
+import { useAlerts } from '@/app/providers/AlertProvider';
+import { useApiMutation, useApiQuery } from '@/infrastructure/hooks/useApiQuery';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,7 +25,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/presentation/components/ui/AlertDialog';
-import { useAlerts } from '@/app/providers/AlertProvider';
 import LoadingSpinner from '@/presentation/components/ui/LoadingSpinner';
 
 type ReportLot = StockLot & {
@@ -34,9 +38,13 @@ const ExpiryReport: React.FC = () => {
   const { addAlert } = useAlerts();
   const [reportLots, setReportLots] = useState<ReportLot[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [isMovementModalOpen, setIsMovementModalOpen] = useState(false);
+  const [selectedLotForMovement, setSelectedLotForMovement] = useState<ReportLot | null>(null);
+  const [selectedProductForMovement, setSelectedProductForMovement] = useState<Product | null>(null);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [warehouseFilter, setWarehouseFilter] = useState('');
@@ -55,14 +63,15 @@ const ExpiryReport: React.FC = () => {
         setLoading(false);
         return;
       }
-      const [lots, products, whs] = await Promise.all([
+      const [lots, prods, whs] = await Promise.all([
         stockLotApi.getAll(token),
         productApi.getAll(token),
         warehouseApi.getAll(token),
       ]);
       setWarehouses(whs);
+      setProducts(prods);
 
-      const productMap = new Map(products.map((p) => [p.product_id, p.product_name]));
+      const productMap = new Map(prods.map((p) => [p.product_id, p.product_name]));
       const warehouseMap = new Map(whs.map((w) => [w.warehouse_id, w.warehouse_name]));
 
       const EXPIRED_WAREHOUSE_ID = 4; // Corresponds to 'Almacén de Caducados'
@@ -145,19 +154,19 @@ const ExpiryReport: React.FC = () => {
       return matchesSearch && matchesWarehouse && matchesStatus;
     });
 
-    if (sortConfig !== null) {
-      filtered.sort((a, b) => {
-        const aValue = new Date(a.expiry_date!).getTime();
-        const bValue = new Date(b.expiry_date!).getTime();
-        if (aValue < bValue) {
-          return sortConfig.direction === 'asc' ? -1 : 1;
-        }
-        if (aValue > bValue) {
-          return sortConfig.direction === 'asc' ? 1 : -1;
-        }
-        return 0;
-      });
-    }
+    // Ordenar usando FEFO/FIFO: primero por fecha de caducidad, luego por fecha de recepción
+    filtered.sort((a, b) => {
+      // Primero ordenar por fecha de caducidad (FEFO)
+      const aExpiry = new Date(a.expiry_date!).getTime();
+      const bExpiry = new Date(b.expiry_date!).getTime();
+      if (aExpiry !== bExpiry) {
+        return sortConfig?.direction === 'asc' ? aExpiry - bExpiry : bExpiry - aExpiry;
+      }
+      // Si las fechas de caducidad son iguales, ordenar por fecha de recepción (FIFO)
+      const aReceived = new Date(a.received_date).getTime();
+      const bReceived = new Date(b.received_date).getTime();
+      return sortConfig?.direction === 'asc' ? aReceived - bReceived : bReceived - aReceived;
+    });
 
     return filtered;
   }, [reportLots, searchTerm, warehouseFilter, statusFilter, sortConfig]);
@@ -173,6 +182,62 @@ const ExpiryReport: React.FC = () => {
     }
   };
 
+  // Obtener tipos de movimiento SALIDA
+  const { data: exitMovementTypes = [] } = useApiQuery(
+    ['movement-types', 'exit'],
+    async (token) => {
+      const allTypes = await movementTypeApi.getAll(token);
+      return allTypes.filter((t) => t.category === 'SALIDA');
+    },
+    { staleTime: 5 * 60 * 1000 }
+  );
+
+  const createMovementMutation = useApiMutation(
+    async (data: { lotId: number; movementTypeId: number; quantity: number; notes?: string }, token) => {
+      return await stockMovementApi.create(token, {
+        lot_id: data.lotId,
+        movement_type_id: data.movementTypeId,
+        quantity: data.quantity,
+        notes: data.notes,
+      });
+    },
+    {
+      onSuccess: () => {
+        addAlert('Salida registrada con éxito', 'success');
+        setIsMovementModalOpen(false);
+        setSelectedLotForMovement(null);
+        setSelectedProductForMovement(null);
+        fetchReportData();
+      },
+      onError: (error) => {
+        addAlert(`Error al registrar salida: ${error.message}`, 'error');
+      },
+      invalidateQueries: [['movements'], ['stockLots']],
+    }
+  );
+
+  const handleOpenMovementModal = (lot: ReportLot) => {
+    const product = products.find((p) => p.product_id === lot.product_id);
+    setSelectedLotForMovement(lot);
+    setSelectedProductForMovement(product || null);
+    setIsMovementModalOpen(true);
+  };
+
+  const handleCloseMovementModal = () => {
+    setIsMovementModalOpen(false);
+    setSelectedLotForMovement(null);
+    setSelectedProductForMovement(null);
+  };
+
+  const handleSaveMovement = async (data: {
+    lotId: number;
+    movementTypeId: number;
+    quantity: number;
+    notes?: string;
+  }) => {
+    await createMovementMutation.mutateAsync(data);
+  };
+
   const columns: Column<ReportLot>[] = useMemo(
     () => [
       { header: 'Producto', accessor: 'product_name' },
@@ -183,9 +248,27 @@ const ExpiryReport: React.FC = () => {
         accessor: (item) => new Date(item.expiry_date!).toLocaleDateString(),
         sortable: true,
       },
+      {
+        header: 'Fecha de Recepción',
+        accessor: (item) => new Date(item.received_date).toLocaleDateString(),
+        sortable: true,
+      },
       { header: 'Estado', accessor: (item) => getStatusBadge(item.status) },
+      {
+        header: 'Acciones',
+        accessor: (item) => (
+          <Button
+            size="sm"
+            variant="default"
+            onClick={() => handleOpenMovementModal(item)}
+            disabled={item.current_quantity <= 0}
+          >
+            Registrar Salida
+          </Button>
+        ),
+      },
     ],
-    []
+    [exitMovementTypes]
   );
 
   const { orderedColumns, ...tableState } = useTableState<ReportLot>(
@@ -263,7 +346,21 @@ const ExpiryReport: React.FC = () => {
                   <div>
                     Fecha de Caducidad: {lot.expiry_date ? new Date(lot.expiry_date).toLocaleDateString() : 'N/A'}
                   </div>
+                  <div>
+                    Fecha de Recepción: {new Date(lot.received_date).toLocaleDateString()}
+                  </div>
                   <div>{getStatusBadge(lot.status)}</div>
+                  <div>
+                    <Button
+                      size="sm"
+                      variant="default"
+                      onClick={() => handleOpenMovementModal(lot)}
+                      disabled={lot.current_quantity <= 0}
+                      className="mt-2"
+                    >
+                      Registrar Salida
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
@@ -289,6 +386,25 @@ const ExpiryReport: React.FC = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Dialog de Registro de Salida */}
+      <Dialog isOpen={isMovementModalOpen} onClose={handleCloseMovementModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Registrar Salida de Stock</DialogTitle>
+          </DialogHeader>
+          {selectedLotForMovement && selectedProductForMovement && (
+            <MovementForm
+              lot={selectedLotForMovement}
+              product={selectedProductForMovement}
+              onSave={handleSaveMovement}
+              onCancel={handleCloseMovementModal}
+              isSubmitting={createMovementMutation.isLoading}
+              movementTypes={exitMovementTypes}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </AnimatedWrapper>
   );
 };

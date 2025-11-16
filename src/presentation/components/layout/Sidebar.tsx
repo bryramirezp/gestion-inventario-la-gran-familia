@@ -13,6 +13,9 @@ import {
   ExclamationTriangleIcon,
   TrendingUpIcon,
   DatabaseBackupIcon,
+  ArrowPathIcon,
+  ArrowsRightLeftIcon,
+  AdjustmentsHorizontalIcon,
 } from '@/presentation/components/icons/Icons';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { useUserProfile } from '@/infrastructure/hooks/useUserProfile';
@@ -64,6 +67,35 @@ const Sidebar: React.FC<{
           href: ROUTES.WAREHOUSES,
           icon: BuildingStorefrontIcon,
           roles: ROLE_PERMISSIONS.INVENTORY_ACCESS,
+        },
+      ],
+    },
+    {
+      title: 'Movimientos y Traspasos',
+      items: [
+        {
+          name: 'Movimientos',
+          href: ROUTES.MOVEMENTS,
+          icon: ArrowPathIcon,
+          roles: ROLE_PERMISSIONS.INVENTORY_ACCESS,
+        },
+        {
+          name: 'Traspasos',
+          href: ROUTES.TRANSFERS_REQUEST,
+          icon: ArrowsRightLeftIcon,
+          roles: ROLE_PERMISSIONS.INVENTORY_ACCESS,
+        },
+        {
+          name: 'Ajustes',
+          href: ROUTES.ADJUSTMENTS_APPROVE,
+          icon: AdjustmentsHorizontalIcon,
+          roles: ROLE_PERMISSIONS.ADMIN_ACCESS,
+        },
+        {
+          name: 'Tipos de Movimiento',
+          href: ROUTES.MOVEMENT_TYPES,
+          icon: TagIcon,
+          roles: ROLE_PERMISSIONS.ADMIN_ACCESS,
         },
       ],
     },

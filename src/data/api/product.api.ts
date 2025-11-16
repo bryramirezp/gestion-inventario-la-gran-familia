@@ -335,3 +335,18 @@ export const getFullProductDetails = async (
     throw new Error(errorMessage);
   }
 };
+
+export const getLotsForConsumption = async (
+  token: string,
+  productId: number,
+  warehouseId: number,
+  quantity?: number
+): Promise<StockLot[]> => {
+  const { data, error } = await supabase.rpc('get_lots_for_consumption', {
+    p_product_id: productId,
+    p_warehouse_id: warehouseId,
+    p_quantity: quantity || null,
+  });
+  if (error) throw new Error(error.message);
+  return data || [];
+};

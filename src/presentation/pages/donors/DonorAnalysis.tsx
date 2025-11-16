@@ -96,7 +96,7 @@ const DonorAnalysis: React.FC = () => {
     return analysisData.slice(0, 10).map((d) => ({
       name: d.donor_name.length > 15 ? d.donor_name.substring(0, 15) + '...' : d.donor_name,
       'Valor Real': d.total_value_donated,
-      'Valor Mercado': d.total_market_value,
+      'Valor Mercado': d.market_value,
       fullName: d.donor_name,
     }));
   }, [analysisData]);
@@ -113,8 +113,8 @@ const DonorAnalysis: React.FC = () => {
       const current = monthlyData.get(monthKey) || { count: 0, value: 0, marketValue: 0 };
       monthlyData.set(monthKey, {
         count: current.count + 1,
-        value: current.value + (donation.total_actual_value || 0),
-        marketValue: current.marketValue + (donation.total_market_value || 0),
+        value: current.value + (donation.actual_value || 0),
+        marketValue: current.marketValue + (donation.market_value || 0),
       });
     });
 
@@ -135,7 +135,7 @@ const DonorAnalysis: React.FC = () => {
     const totalDonors = analysisData.length;
     const activeDonors = analysisData.filter((d) => d.recent_donations_count > 0).length;
     const totalValue = analysisData.reduce((sum, d) => sum + d.total_value_donated, 0);
-    const totalMarketValue = analysisData.reduce((sum, d) => sum + d.total_market_value, 0);
+    const totalMarketValue = analysisData.reduce((sum, d) => sum + d.market_value, 0);
     const avgFrequency =
       analysisData
         .filter((d) => d.donation_frequency_days !== null)
@@ -171,7 +171,7 @@ const DonorAnalysis: React.FC = () => {
       {
         header: 'Valor Mercado',
         accessor: (item) =>
-          `$${item.total_market_value.toLocaleString('es-MX', {
+          `$${item.market_value.toLocaleString('es-MX', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
           })}`,

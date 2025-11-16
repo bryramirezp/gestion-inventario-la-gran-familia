@@ -8,7 +8,7 @@
 -- Este script configura las políticas RLS para todos los roles del sistema:
 -- - Administrador: Acceso completo
 -- - Operador: Gestión de inventario (limitado a sus almacenes)
--- - Consultor: Solo lectura + creación de solicitudes de cocina
+-- - Consultor: Solo lectura
 -- 
 -- IMPORTANTE: Ejecutar después de seed_data.sql (los roles deben existir)
 -- 
@@ -16,6 +16,7 @@
 --       - Usa DROP POLICY IF EXISTS antes de crear políticas
 --       - Usa CREATE OR REPLACE FUNCTION para funciones helper
 --       - ALTER TABLE ... ENABLE ROW LEVEL SECURITY es idempotente
+--       - Todos los DROP están activos (no comentados)
 --       Puede ejecutarse múltiples veces sin errores.
 -- ============================================================================
 
@@ -94,15 +95,15 @@ ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.brands ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.units ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.donor_types ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.transaction_types ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.stock_lots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.donors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.donation_transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.donation_items ENABLE ROW LEVEL SECURITY;
--- Módulo de cocina removido - transactions y transaction_details ya no se usan
--- ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE public.transaction_details ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.movement_types ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.stock_movements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.stock_transfers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.inventory_adjustments ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================================
 -- POLÍTICAS PARA: public.users
@@ -298,15 +299,142 @@ TO authenticated
 USING (true);
 
 -- ============================================================================
--- POLÍTICAS PARA: public.transaction_types
+-- POLÍTICAS PARA: public.movement_types
 -- ============================================================================
 
-DROP POLICY IF EXISTS "transaction_types_select_authenticated" ON public.transaction_types;
-
-CREATE POLICY "transaction_types_select_authenticated"
-ON public.transaction_types FOR SELECT
+DROP POLICY IF EXISTS "movement_types_select_authenticated" ON public.movement_types;
+CREATE POLICY "movement_types_select_authenticated"
+ON public.movement_types FOR SELECT
 TO authenticated
-USING (true);
+USING (is_active = TRUE);
+
+DROP POLICY IF EXISTS "movement_types_insert_admin" ON public.movement_types;
+CREATE POLICY "movement_types_insert_admin"
+ON public.movement_types FOR INSERT
+TO authenticated
+WITH CHECK (public.is_admin());
+
+DROP POLICY IF EXISTS "movement_types_update_admin" ON public.movement_types;
+CREATE POLICY "movement_types_update_admin"
+ON public.movement_types FOR UPDATE
+TO authenticated
+USING (public.is_admin())
+WITH CHECK (public.is_admin());
+
+DROP POLICY IF EXISTS "movement_types_delete_admin" ON public.movement_types;
+CREATE POLICY "movement_types_delete_admin"
+ON public.movement_types FOR DELETE
+TO authenticated
+USING (public.is_admin());
+
+-- ============================================================================
+-- POLÍTICAS PARA: public.stock_movements
+-- ============================================================================
+
+DROP POLICY IF EXISTS "stock_movements_select" ON public.stock_movements;
+CREATE POLICY "stock_movements_select"
+ON public.stock_movements FOR SELECT
+TO authenticated
+USING (
+  public.is_admin() OR
+  public.has_warehouse_access(
+    (SELECT warehouse_id FROM public.stock_lots WHERE lot_id = stock_movements.lot_id)
+  )
+);
+
+DROP POLICY IF EXISTS "stock_movements_insert" ON public.stock_movements;
+CREATE POLICY "stock_movements_insert"
+ON public.stock_movements FOR INSERT
+TO authenticated
+WITH CHECK (
+  public.is_admin() OR
+  public.is_operator()
+);
+
+DROP POLICY IF EXISTS "stock_movements_update_admin" ON public.stock_movements;
+CREATE POLICY "stock_movements_update_admin"
+ON public.stock_movements FOR UPDATE
+TO authenticated
+USING (public.is_admin())
+WITH CHECK (public.is_admin());
+
+DROP POLICY IF EXISTS "stock_movements_delete_admin" ON public.stock_movements;
+CREATE POLICY "stock_movements_delete_admin"
+ON public.stock_movements FOR DELETE
+TO authenticated
+USING (public.is_admin());
+
+-- ============================================================================
+-- POLÍTICAS PARA: public.stock_transfers
+-- ============================================================================
+
+DROP POLICY IF EXISTS "stock_transfers_select" ON public.stock_transfers;
+CREATE POLICY "stock_transfers_select"
+ON public.stock_transfers FOR SELECT
+TO authenticated
+USING (
+  public.is_admin() OR
+  requested_by = auth.uid()
+);
+
+DROP POLICY IF EXISTS "stock_transfers_insert" ON public.stock_transfers;
+CREATE POLICY "stock_transfers_insert"
+ON public.stock_transfers FOR INSERT
+TO authenticated
+WITH CHECK (
+  (public.is_operator() AND status = 'PENDING') OR
+  (public.is_admin())
+);
+
+DROP POLICY IF EXISTS "stock_transfers_update_admin" ON public.stock_transfers;
+CREATE POLICY "stock_transfers_update_admin"
+ON public.stock_transfers FOR UPDATE
+TO authenticated
+USING (public.is_admin())
+WITH CHECK (public.is_admin());
+
+DROP POLICY IF EXISTS "stock_transfers_delete_admin" ON public.stock_transfers;
+CREATE POLICY "stock_transfers_delete_admin"
+ON public.stock_transfers FOR DELETE
+TO authenticated
+USING (public.is_admin());
+
+-- ============================================================================
+-- POLÍTICAS PARA: public.inventory_adjustments
+-- ============================================================================
+
+DROP POLICY IF EXISTS "inventory_adjustments_select" ON public.inventory_adjustments;
+CREATE POLICY "inventory_adjustments_select"
+ON public.inventory_adjustments FOR SELECT
+TO authenticated
+USING (
+  public.is_admin() OR
+  public.has_warehouse_access(
+    (SELECT warehouse_id FROM public.stock_lots WHERE lot_id = inventory_adjustments.lot_id)
+  )
+);
+
+DROP POLICY IF EXISTS "inventory_adjustments_insert" ON public.inventory_adjustments;
+CREATE POLICY "inventory_adjustments_insert"
+ON public.inventory_adjustments FOR INSERT
+TO authenticated
+WITH CHECK (
+  (public.is_admin() OR public.is_operator()) AND
+  status = 'PENDING'
+);
+
+DROP POLICY IF EXISTS "inventory_adjustments_update_admin" ON public.inventory_adjustments;
+CREATE POLICY "inventory_adjustments_update_admin"
+ON public.inventory_adjustments FOR UPDATE
+TO authenticated
+USING (public.is_admin())
+WITH CHECK (public.is_admin());
+
+DROP POLICY IF EXISTS "inventory_adjustments_delete_admin" ON public.inventory_adjustments;
+CREATE POLICY "inventory_adjustments_delete_admin"
+ON public.inventory_adjustments FOR DELETE
+TO authenticated
+USING (public.is_admin());
 
 -- ============================================================================
 -- POLÍTICAS PARA: public.products
@@ -460,103 +588,6 @@ TO authenticated
 USING (public.is_admin());
 
 -- ============================================================================
--- POLÍTICAS PARA: public.transactions (MÓDULO REMOVIDO)
--- ============================================================================
--- NOTA: El módulo de cocina fue removido del sistema.
--- Las políticas RLS para transactions y transaction_details ya no son necesarias.
--- Si deseas restaurar el módulo de cocina, descomenta estas políticas.
-
--- DROP POLICY IF EXISTS "transactions_select" ON public.transactions;
--- DROP POLICY IF EXISTS "transactions_insert" ON public.transactions;
--- DROP POLICY IF EXISTS "transactions_update_admin_operator" ON public.transactions;
--- DROP POLICY IF EXISTS "transactions_delete_admin" ON public.transactions;
-
--- CREATE POLICY "transactions_select"
--- ON public.transactions FOR SELECT
--- TO authenticated
--- USING (
---   requester_id = auth.uid()::TEXT
---   OR public.is_admin()
---   OR public.is_operator()
---   OR public.is_consultor()
--- );
-
--- CREATE POLICY "transactions_insert"
--- ON public.transactions FOR INSERT
--- TO authenticated
--- WITH CHECK (
---   (public.is_consultor() AND status = 'Pending')
---   OR
---   (public.is_admin() OR public.is_operator())
--- );
-
--- CREATE POLICY "transactions_update_admin_operator"
--- ON public.transactions FOR UPDATE
--- TO authenticated
--- USING (public.is_admin() OR public.is_operator())
--- WITH CHECK (public.is_admin() OR public.is_operator());
-
--- CREATE POLICY "transactions_delete_admin"
--- ON public.transactions FOR DELETE
--- TO authenticated
--- USING (public.is_admin());
-
--- ============================================================================
--- POLÍTICAS PARA: public.transaction_details (MÓDULO REMOVIDO)
--- ============================================================================
--- NOTA: El módulo de cocina fue removido del sistema.
--- Las políticas RLS para transaction_details ya no son necesarias.
-
--- DROP POLICY IF EXISTS "transaction_details_select" ON public.transaction_details;
--- DROP POLICY IF EXISTS "transaction_details_insert" ON public.transaction_details;
--- DROP POLICY IF EXISTS "transaction_details_update_admin_operator" ON public.transaction_details;
--- DROP POLICY IF EXISTS "transaction_details_delete_admin" ON public.transaction_details;
-
--- CREATE POLICY "transaction_details_select"
--- ON public.transaction_details FOR SELECT
--- TO authenticated
--- USING (
---   EXISTS (
---     SELECT 1 FROM public.transactions t
---     WHERE t.transaction_id = transaction_details.transaction_id
---     AND (
---       t.requester_id = auth.uid()::TEXT
---       OR
---       public.is_admin()
---       OR public.is_operator()
---       OR public.is_consultor()
---     )
---   )
--- );
-
--- CREATE POLICY "transaction_details_insert"
--- ON public.transaction_details FOR INSERT
--- TO authenticated
--- WITH CHECK (
---   EXISTS (
---     SELECT 1 FROM public.transactions t
---     WHERE t.transaction_id = transaction_details.transaction_id
---     AND (
---       t.requester_id = auth.uid()::TEXT
---       OR
---       public.is_admin()
---       OR public.is_operator()
---     )
---   )
--- );
-
--- CREATE POLICY "transaction_details_update_admin_operator"
--- ON public.transaction_details FOR UPDATE
--- TO authenticated
--- USING (public.is_admin() OR public.is_operator())
--- WITH CHECK (public.is_admin() OR public.is_operator());
-
--- CREATE POLICY "transaction_details_delete_admin"
--- ON public.transaction_details FOR DELETE
--- TO authenticated
--- USING (public.is_admin());
-
--- ============================================================================
 -- PERMISOS DE FUNCIONES HELPER
 -- ============================================================================
 
@@ -591,13 +622,6 @@ COMMENT ON POLICY "warehouses_select_authenticated" ON public.warehouses IS
 COMMENT ON POLICY "stock_lots_select" ON public.stock_lots IS 
 'Admin puede ver todos los stock_lots. Operador y Consultor solo pueden ver los de sus almacenes asignados.';
 
--- Comentarios de políticas de cocina - DESHABILITADOS (módulo removido)
--- COMMENT ON POLICY "transactions_insert" ON public.transactions IS 
--- 'Todos pueden crear solicitudes. Consultor solo puede crear con status=''Pending''. Admin y Operador pueden crear con cualquier status.';
-
--- COMMENT ON POLICY "transactions_update_admin_operator" ON public.transactions IS 
--- 'Solo Admin y Operador pueden actualizar transacciones (aprobar, completar, rechazar). Consultor NO puede modificar.';
-
 -- ============================================================================
 -- NOTAS IMPORTANTES
 -- ============================================================================
@@ -608,17 +632,14 @@ COMMENT ON POLICY "stock_lots_select" ON public.stock_lots IS
 -- 2. Las políticas de warehouses y stock_lots filtran por user_warehouse_access
 --    para Operadores y Consultores, permitiendo que solo vean y modifiquen almacenes asignados.
 --
--- 3. El módulo de cocina fue removido. Las políticas de transactions y transaction_details
---    están comentadas pero pueden restaurarse si se necesita el módulo en el futuro.
---
--- 4. Las funciones PostgreSQL (create_donation_atomic)
+-- 3. Las funciones PostgreSQL (create_donation_atomic)
 --    deben ejecutarse con permisos del usuario autenticado, no con SECURITY DEFINER,
 --    para que las políticas RLS se apliquen correctamente.
 --
--- 5. El trigger create_profile_for_new_user tiene SECURITY DEFINER y puede
+-- 4. El trigger create_profile_for_new_user tiene SECURITY DEFINER y puede
 --    insertar en public.users desde auth.users sin necesidad de política RLS.
 --
--- 6. La política users_select_own es CRÍTICA y debe funcionar siempre para
+-- 5. La política users_select_own es CRÍTICA y debe funcionar siempre para
 --    que los usuarios puedan leer su propio perfil, incluso sin role_id.
 --
 -- ============================================================================

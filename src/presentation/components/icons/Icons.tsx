@@ -477,3 +477,48 @@ export const GripVerticalIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props)
     <circle cx="15" cy="19" r="1" />
   </svg>
 );
+
+export const ArrowPathIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg
+    {...baseProps}
+    {...props}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.3" />
+  </svg>
+);
+
+export const ArrowsRightLeftIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg
+    {...baseProps}
+    {...props}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="m16 3 4 4-4 4M20 7H4M4 17l4 4 4-4M20 17H4" />
+  </svg>
+);
+
+export const AdjustmentsHorizontalIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg
+    {...baseProps}
+    {...props}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M3 6h18M7 12h10M11 18h2" />
+    <circle cx="5" cy="6" r="2" />
+    <circle cx="12" cy="12" r="2" />
+    <circle cx="19" cy="18" r="2" />
+  </svg>
+);

@@ -1,119 +1,331 @@
-# Sistema de Gestión de Inventario para "La Gran Familia"
+# Sistema de Gestión de Inventario - La Gran Familia
 
-Este proyecto es una aplicación web moderna diseñada para gestionar el inventario de donaciones (entradas y salidas) de la ONG "La Gran Familia".
+Sistema web para la gestión integral de inventario de donaciones, diseñado para la ONG "La Gran Familia". Permite registrar productos, gestionar donaciones, controlar almacenes y generar reportes, optimizando la administración de recursos donados.
 
-El sistema utiliza un backend serverless a través de Supabase y un frontend reactivo que puede ser desplegado fácilmente en plataformas como Vercel o GitHub Pages.
+## Descripción
 
-## 🛠️ Tecnologías Utilizadas
+Solución full-stack que centraliza la gestión de inventario mediante un frontend React moderno y un backend serverless con Supabase. El sistema gestiona productos, donaciones, donantes, almacenes y usuarios con control de acceso basado en roles. Incluye funcionalidades de trazabilidad, reportes de expiración, análisis de donantes y exportación de datos.
 
-![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB) ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white) ![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white) ![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white) ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white) ![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white) ![TanStack Query](https://img.shields.io/badge/TanStack_Query-FF4154?style=for-the-badge&logo=react-query&logoColor=white) ![React Router](https://img.shields.io/badge/React_Router-CA4245?style=for-the-badge&logo=react-router&logoColor=white) ![Recharts](https://img.shields.io/badge/Recharts-22B5BF?style=for-the-badge&logo=recharts&logoColor=white) ![ESLint](https://img.shields.io/badge/ESLint-4B32C3?style=for-the-badge&logo=eslint&logoColor=white) ![Prettier](https://img.shields.io/badge/Prettier-F7B93E?style=for-the-badge&logo=prettier&logoColor=black) ![Husky](https://img.shields.io/badge/Husky-4E4E4E?style=for-the-badge&logo=husky&logoColor=white) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
+## Stack Tecnológico
 
-### **Descripción del Stack Tecnológico**
+### Frontend
+- **React 18.3.1** - Biblioteca para interfaces de usuario
+- **TypeScript 5.9.3** - Tipado estático
+- **Vite 7.1.12** - Build tool y dev server
+- **Tailwind CSS 3.4.18** - Framework CSS utilitario
+- **React Router DOM 6.30.1** - Enrutamiento
+- **TanStack React Query 5.59.16** - Gestión de estado del servidor y caché
+- **Recharts 2.15.4** - Gráficos y visualizaciones
+- **Zod 4.1.12** - Validación de esquemas
+- **ExcelJS 4.4.0** - Exportación a Excel
+- **React Window 2.2.3** - Virtualización de listas
 
-- **Frontend: React 18.3.1 + TypeScript** - Biblioteca para construir interfaces de usuario con componentes reutilizables y tipado fuerte para mayor robustez.
-- **Build Tool: Vite 7.1.12** - Herramienta de construcción rápida y moderna para desarrollo y empaquetado de aplicaciones web.
-- **Styling: Tailwind CSS 3.4.18 + componentes SVG personalizados** - Framework CSS utilitario para estilos rápidos y consistentes, complementado con iconos SVG personalizados.
-- **State Management: TanStack React Query 5.59.16 + Context API** - Gestión de estado del servidor y caché de datos, combinado con Context API para estado global de la aplicación.
-- **Backend: Supabase 2.76.1 (PostgreSQL + Auth + Realtime)** - Plataforma backend-as-a-service con base de datos PostgreSQL, autenticación y actualizaciones en tiempo real.
-- **Routing: React Router DOM 6.30.1** - Manejo de navegación y rutas en la aplicación de una sola página.
-- **Charts: Recharts 2.15.4** - Biblioteca para crear gráficos interactivos y responsivos en React.
-- **Development: ESLint, Prettier, Husky** - Herramientas para linting de código, formateo automático y hooks de Git.
+### Backend
+- **Supabase 2.76.1** - Backend-as-a-Service
+  - PostgreSQL - Base de datos relacional
+  - Supabase Auth - Autenticación y autorización
+  - Row Level Security (RLS) - Seguridad a nivel de fila
+  - Funciones PostgreSQL - Lógica de negocio en base de datos
 
-## **Acerca de La Gran Familia**
+### Desarrollo
+- **ESLint** - Linter de código
+- **Prettier** - Formateo automático
+- **Husky** - Git hooks
+- **Vitest 4.0.8** - Framework de testing
+- **Testing Library** - Utilidades para testing de componentes
 
-### **Historia**
+## Instalación
 
-La Gran Familia nació en la década de los ochenta como un esfuerzo conjunto de empresarios, encabezados por Don Alberto Santos de Hoyos, y el gobierno de Nuevo León, para asegurar que no hubiera niños en situación de calle en el estado. Hoy en día, la organización acoge a niños cuyas familias no les han ofrecido la protección que merecen, habiendo albergado a aproximadamente 2200 menores de edad a lo largo de su historia.
+### Prerrequisitos
+- Node.js 18+ y npm
+- Cuenta de Supabase (para base de datos)
 
-### **Misión**
+### Pasos
 
-Brindar a menores de edad privados de cuidados parentales, un acogimiento residencial inspirado por valores y habilidades familiares que encienda en ellos la esperanza y les prepare para un proyecto de vida en familia.
+1. **Clonar el repositorio:**
+```bash
+git clone <url-del-repositorio>
+cd gestion-inventario-la-gran-familia
+```
 
-### **Visión**
+2. **Instalar dependencias:**
+```bash
+npm install
+```
 
-A niñas, niños y adolescentes privados de cuidados parentales, se les incorpora en una familia que promueve su desarrollo integral como hombres y mujeres capaces de formar familias en armonía.
+3. **Configurar variables de entorno:**
+Crear archivo `.env` en la raíz del proyecto:
+```env
+VITE_SUPABASE_URL=https://tu-proyecto.supabase.co
+VITE_SUPABASE_ANON_KEY=tu-clave-anonima-de-supabase
+```
 
-### **Sitio Web Oficial**
+4. **Configurar la base de datos:**
+Ejecutar los scripts SQL en el orden indicado (ubicados en `init/`):
+- `database-schema-synced-with-code.sql` - Estructura de tablas
+- `auth.sql` - Configuración de autenticación
+- `rls_policies.sql` - Políticas de seguridad
+- `grant_permissions.sql` - Permisos de usuarios
+- `functions/create_donation_atomic.sql` - Función para donaciones
+- `functions/validate_stock_available.sql` - Validación de stock
+- `seed_data.sql` - Datos iniciales (opcional)
 
-https://www.lagranfamilia.org.mx/
+5. **Iniciar el servidor de desarrollo:**
+```bash
+npm run dev
+```
 
-## **Contexto del Proyecto**
+La aplicación estará disponible en `http://localhost:3000`
 
-### **1. La Necesidad (El porqué del proyecto)**
+## Uso
 
-La necesidad principal es la **falta de control y la ineficiencia en la gestión del almacén**. El problema de raíz es que los procesos actuales están desconectados y son manuales:
+### Comandos Disponibles
 
-* Las entradas de donativos se registran en Excel.
-* Las salidas de productos del almacén se apuntan a mano.
+```bash
+# Desarrollo
+npm run dev              # Inicia servidor de desarrollo (puerto 3000)
 
-Esta falta de un sistema unificado provoca que sea muy difícil saber con exactitud qué tienen, cuánto les queda y cómo se están utilizando los recursos. Esto es crítico para una organización que debe garantizar la alimentación e higiene de los niños a su cargo.
+# Construcción
+npm run build            # Genera build de producción
+npm run build:analyze    # Build con análisis de bundle
 
-### **2. Lo que Justifica el Proyecto**
+# Preview
+npm run preview          # Preview del build de producción
 
-El proyecto se justifica por el deseo de **profesionalizar y estandarizar la operación del almacén**. La gestión actual, al ser manual y desorganizada, no es sostenible ni fiable. La justificación se basa en alcanzar objetivos concretos que resolverán los problemas actuales:
+# Calidad de código
+npm run lint             # Ejecuta ESLint
+npm run lint:fix         # Corrige errores de ESLint automáticamente
+npm run format           # Formatea código con Prettier
+npm run format:check     # Verifica formato sin modificar
 
-* **Centralizar la Información:** Crear una única base de datos para saber exactamente qué hay en el inventario.
-* **Mejorar la Organización:** Clasificar todos los productos por categorías (alimentación, limpieza, ropa, etc.) para facilitar la búsqueda y el control.
-* **Aumentar la Trazabilidad:** Implementar un sistema de validación, como una firma digital, para tener un registro claro de quién retira los materiales y cuándo.
-* **Control Financiero:** Añadir una función para monitorear los gastos de la organización.
+# Testing
+npm run test             # Ejecuta tests en modo watch
+npm run test:ui          # Interfaz visual de tests
+npm run test:coverage    # Tests con cobertura
+npm run test:run         # Ejecuta tests una vez
+npm run test:report      # Genera reporte completo de tests
+```
 
-### **3. La Razón del Proyecto (El Objetivo Final)**
+## Lógica y Funcionamiento
 
-La razón fundamental del proyecto es implementar una solución que sea **sencilla, intuitiva y gratuita**. El objetivo no es simplemente digitalizar, sino hacerlo de una manera que se adapte a las necesidades y limitaciones de la ONG. La filosofía es clara: **"que el sistema trabaje para ellos, no ellos para el sistema"**.
+### Frontend
 
-En resumen, no quieren un sistema complejo y caro como un ERP. Buscan una herramienta inteligente y de bajo mantenimiento que les dé el control que necesitan sobre sus recursos para que puedan enfocarse en su misión principal: cuidar a los niños.
+**Arquitectura:**
+El proyecto sigue una arquitectura limpia (Clean Architecture) con separación de capas:
 
-## **Cronograma del Proyecto**
+- **`/app`** - Configuración de la aplicación, providers y componentes de inicialización
+- **`/presentation`** - Componentes UI, páginas y features
+- **`/domain`** - Tipos TypeScript y esquemas de validación (Zod)
+- **`/data`** - Capa de acceso a datos (APIs de Supabase)
+- **`/infrastructure`** - Hooks personalizados, utilidades y configuración
+- **`/shared`** - Constantes y tipos compartidos
 
-**Duración Total:** 26 de agosto - 11 de noviembre (2024)
+**Gestión de Estado:**
+- **TanStack React Query**: Caché de datos del servidor, sincronización automática y gestión de estados de carga/error
+- **Context API**: Estado global para autenticación, tema, alertas y notificaciones
+- **React Router**: Navegación con rutas protegidas basadas en roles
 
-Este cronograma refleja las actividades realmente ejecutadas en el proyecto, divididas en tres fases principales que incluyen todos los entregables académicos requeridos.
+**Componentes Principales:**
+- **Layout**: Sidebar colapsable, TopBar con notificaciones y tema
+- **Formularios**: Validación con Zod y React Hook Form
+- **Tablas**: Virtualización para grandes volúmenes de datos
+- **Gráficos**: Visualizaciones responsivas con Recharts
 
-### **Fase 1: Diagnóstico y Planificación Inicial** *(26 de agosto - 9 de septiembre)*
+**Control de Acceso:**
+- Rutas protegidas con componente `ProtectedRoute`
+- Tres roles: Administrador, Operador, Consultor
+- Permisos granulares por funcionalidad
 
-Esta fase se enfocó en establecer el contacto con la ONG, realizar el diagnóstico de necesidades y formalizar la colaboración.
+### Backend
 
-| N° | Actividad | Responsable | Fecha de Inicio | Fecha de Fin | Entregable |
-|----|-----------|-------------|-----------------|--------------|------------|
-| **1.1** | Detallar la documentación inicial | Equipo | 26/ago | 02/sep | Diagnóstico completado |
-| **1.2** | Realizar diagnóstico con la ONG | Equipo | 26/ago | 09/sep | Definición final de tablas y políticas de seguridad |
-| **1.3** | Entregar formato de acuerdo | Equipo | 02/sep | 09/sep | 📋 **Formato de acuerdo de colaboración firmado** |
+**Base de Datos (PostgreSQL):**
+- **Tablas principales**: `products`, `donation_transactions`, `donation_items`, `stock_lots`, `donors`, `warehouses`, `categories`, `brands`, `users`
+- **Relaciones**: Foreign keys con integridad referencial
+- **Triggers**: Cálculo automático de totales en donaciones
 
-### **Fase 2: Desarrollo y Configuración del Sistema** *(10 de septiembre - 21 de octubre)*
+**Seguridad (RLS):**
+- Políticas Row Level Security por tabla
+- Acceso basado en roles de usuario
+- Validación de permisos en cada operación
 
-Con el diagnóstico completado, el equipo se enfocó en construir la infraestructura técnica del sistema y desarrollar las funcionalidades principales.
+**Funciones PostgreSQL:**
+- `create_donation_atomic`: Crea donación y lotes de stock de forma transaccional
+- `validate_stock_available`: Valida disponibilidad de stock antes de operaciones
 
-| N° | Actividad | Responsable | Fecha de Inicio | Fecha de Fin | Entregable |
-|----|-----------|-------------|-----------------|--------------|------------|
-| **2.1** | Configurar entorno de desarrollo | Equipo | 10/sep | 16/sep | Repositorio en GitHub y entorno local |
-| **2.2** | Crear y configurar proyecto en Supabase | Equipo | 10/sep | 23/sep | Proyecto en Supabase creado |
-| **2.3** | Conectar frontend con Supabase | Equipo | 17/sep | 30/sep | Conexión exitosa a la API |
-| **2.4** | Diseñar e implementar base de datos | Equipo | 24/sep | 07/oct | Estructura de la base de datos finalizada |
-| **2.5** | Desarrollar componentes UI | Equipo | 01/oct | 14/oct | Vistas para registrar y ver inventario |
-| **2.6** | Implementar Seguridad (RLS) | Equipo | 08/oct | 21/oct | Políticas de acceso implementadas |
-| **2.7** | Preparar Project Charter | Equipo | 15/oct | 21/oct | Project Charter |
-| **2.8** | Entregar Project Charter | Equipo | 21/oct | 21/oct | 📋 **Project Charter (21 de octubre)** |
+**Flujos de Datos:**
+1. **Registro de Donación:**
+   - Usuario completa formulario con items
+   - Se llama a `create_donation_atomic` (función PostgreSQL)
+   - Se crea registro en `donation_transactions`
+   - Se crean registros en `donation_items`
+   - Se generan `stock_lots` automáticamente
+   - Se calculan totales (market_value, actual_value)
 
-### **Fase 3: Pruebas, Despliegue y Cierre** *(22 de octubre - 11 de noviembre)*
+2. **Consulta de Productos:**
+   - Query optimizado con JOINs a categorías, marcas, unidades
+   - Carga de `stock_lots` filtrados por almacén
+   - Cálculo de `total_stock` y `days_to_expiry` en memoria
+   - Soporte para filtros, búsqueda y paginación
 
-La fase final se centró en validar el sistema, desplegarlo en producción y completar toda la documentación de cierre del proyecto.
+3. **Gestión de Stock:**
+   - Cada producto puede tener múltiples lotes (`stock_lots`)
+   - Lotes vinculados a donaciones mediante `donation_item_id`
+   - Control de fechas de expiración y estado `is_expired`
+   - Cálculo de stock disponible excluyendo lotes vencidos
 
-| N° | Actividad | Responsable | Fecha de Inicio | Fecha de Fin | Entregable |
-|----|-----------|-------------|-----------------|--------------|------------|
-| **3.1** | Realizar pruebas funcionales | Equipo | 22/oct | 28/oct | Funcionalidades validadas |
-| **3.2** | Preparar reporte de avance | Equipo | 29/oct | 04/nov | Reporte de estado del proyecto |
-| **3.3** | Desplegar la aplicación | Equipo | 22/oct | 11/nov | Aplicación en URL pública |
-| **3.4** | Elaborar documentación final | Equipo | 05/nov | 11/nov | 📋 **Evaluación del servicio y Lecciones aprendidas (11 de noviembre)** |
-| **3.5** | Preparar informe de cierre | Equipo | 05/nov | 11/nov | Informe de cierre del proyecto |
-| **3.6** | Preparar la presentación final | Equipo | 05/nov | 11/nov | 🎯 **Presentación de resultados (Fecha examen final)** |
+## Endpoints de la API
 
-### **Hitos Clave del Proyecto**
+El sistema utiliza Supabase como backend, accediendo directamente a las tablas mediante el cliente JavaScript. Las operaciones se realizan mediante queries de Supabase:
 
-| Hito | Fecha | Estado |
-|------|-------|--------|
-| ⭐ Inicio de contacto con la ONG | 26 de agosto | ✅ Completado |
-| 📋 Formato de acuerdo de colaboración | 9 de septiembre | ✅ Entregado |
-| 📋 Project Charter | 21 de octubre | 🔄 En ejecución |
-| 🚀 Despliegue del proyecto | 22 octubre - 9 noviembre | 📅 Programado |
-| 📋 Evaluación del servicio | 11 de noviembre | 📅 Programado |
-| 🎯 Presentación final | Fecha examen final | 📅 Programado |
+### Productos
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `GET` | `products` | Obtiene todos los productos |
+| `GET` | `products?product_id=eq.{id}` | Obtiene producto por ID |
+| `POST` | `products` | Crea nuevo producto |
+| `PATCH` | `products?product_id=eq.{id}` | Actualiza producto |
+| `DELETE` | `products?product_id=eq.{id}` | Elimina producto |
+| `RPC` | `get_full_product_details` | Obtiene productos con información relacionada (JOINs) |
+
+### Donaciones
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `RPC` | `create_donation_atomic` | Crea donación con items y lotes de forma atómica |
+| `GET` | `donation_transactions` | Obtiene historial de donaciones con filtros |
+| `PATCH` | `donation_items?item_id=eq.{id}` | Actualiza item de donación |
+| `DELETE` | `donation_transactions?donation_id=eq.{id}` | Elimina donación |
+
+### Donantes
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `GET` | `donors` | Obtiene todos los donantes |
+| `GET` | `donors?donor_id=eq.{id}` | Obtiene donante por ID |
+| `POST` | `donors` | Crea nuevo donante |
+| `PATCH` | `donors?donor_id=eq.{id}` | Actualiza donante |
+| `DELETE` | `donors?donor_id=eq.{id}` | Elimina donante |
+
+### Almacenes
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `GET` | `warehouses` | Obtiene todos los almacenes |
+| `GET` | `warehouses?warehouse_id=eq.{id}` | Obtiene almacén por ID |
+| `POST` | `warehouses` | Crea nuevo almacén |
+| `PATCH` | `warehouses?warehouse_id=eq.{id}` | Actualiza almacén |
+| `DELETE` | `warehouses?warehouse_id=eq.{id}` | Elimina almacén |
+
+### Categorías y Marcas
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `GET` | `categories` | Obtiene todas las categorías |
+| `POST` | `categories` | Crea nueva categoría |
+| `PATCH` | `categories?category_id=eq.{id}` | Actualiza categoría |
+| `DELETE` | `categories?category_id=eq.{id}` | Elimina categoría |
+| `GET` | `brands` | Obtiene todas las marcas |
+| `POST` | `brands` | Crea nueva marca |
+| `PATCH` | `brands?brand_id=eq.{id}` | Actualiza marca |
+| `DELETE` | `brands?brand_id=eq.{id}` | Elimina marca |
+
+### Usuarios
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `GET` | `users` | Obtiene todos los usuarios (solo Administrador) |
+| `POST` | `users` | Crea nuevo usuario |
+| `PATCH` | `users?user_id=eq.{id}` | Actualiza usuario |
+| `DELETE` | `users?user_id=eq.{id}` | Elimina usuario |
+
+### Autenticación (Supabase Auth)
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `POST` | `auth/v1/signup` | Registro de usuario |
+| `POST` | `auth/v1/token` | Inicio de sesión |
+| `POST` | `auth/v1/logout` | Cerrar sesión |
+| `POST` | `auth/v1/recover` | Recuperación de contraseña |
+| `GET` | `auth/v1/user` | Obtiene usuario actual |
+
+**Nota:** Todas las operaciones requieren autenticación mediante token JWT y están sujetas a políticas RLS según el rol del usuario.
+
+## Estructura del Proyecto
+
+```
+gestion-inventario-la-gran-familia/
+├── src/
+│   ├── app/                    # Configuración de aplicación
+│   │   ├── components/         # ErrorBoundary, EnvChecker, AppInitializer
+│   │   └── providers/          # AuthProvider, QueryProvider, ThemeProvider, etc.
+│   ├── data/                   # Capa de acceso a datos
+│   │   ├── api/                # Clientes de API (Supabase)
+│   │   └── validation/         # Validaciones de datos
+│   ├── domain/                 # Lógica de dominio
+│   │   ├── types/              # Tipos TypeScript
+│   │   └── validations/         # Esquemas Zod
+│   ├── infrastructure/         # Infraestructura
+│   │   ├── config/              # Configuraciones (Supabase, Query, App)
+│   │   ├── hooks/               # Hooks personalizados
+│   │   └── utils/               # Utilidades (fechas, formato, tema)
+│   ├── presentation/           # Capa de presentación
+│   │   ├── components/          # Componentes UI reutilizables
+│   │   ├── features/            # Features específicos (formularios)
+│   │   ├── pages/               # Páginas de la aplicación
+│   │   └── styles/              # Estilos globales
+│   └── shared/                 # Código compartido
+│       ├── constants/           # Constantes (rutas, roles)
+│       └── types/               # Tipos compartidos
+├── init/                       # Scripts SQL de inicialización
+│   ├── database-schema-synced-with-code.sql
+│   ├── auth.sql
+│   ├── rls_policies.sql
+│   └── functions/              # Funciones PostgreSQL
+├── tests/                      # Tests unitarios e integración
+├── public/                     # Assets estáticos
+├── package.json
+├── vite.config.ts
+├── tsconfig.json
+└── README.md
+```
+
+## Características Principales
+
+- **Gestión de Inventario**: Productos con categorías, marcas, unidades y control de stock por lotes
+- **Sistema de Donaciones**: Registro de donaciones con trazabilidad completa
+- **Gestión de Donantes**: Base de datos de donantes con análisis de contribuciones
+- **Control de Almacenes**: Múltiples almacenes con stock independiente
+- **Reportes**: Reporte de productos próximos a expirar y análisis de donantes
+- **Exportación**: Exportación de datos a Excel
+- **Backup**: Funcionalidad de respaldo de datos
+- **Autenticación**: Sistema de usuarios con roles y permisos
+- **Tema**: Modo claro/oscuro con persistencia
+- **Responsive**: Diseño adaptativo para móviles y tablets
+
+## Despliegue
+
+El proyecto está configurado para desplegarse en **Vercel**:
+
+1. Conectar repositorio a Vercel
+2. Configurar variables de entorno en el dashboard de Vercel
+3. El build se ejecuta automáticamente con `npm run build`
+4. La aplicación se despliega en la URL proporcionada por Vercel
+
+**Configuración de Vercel** (`vercel.json`):
+- Headers de seguridad (CSP, HSTS, X-Frame-Options)
+- Rewrites para SPA (Single Page Application)
+- Configuración de caché para assets estáticos
+
+## Contribución
+
+Este proyecto fue desarrollado como parte de un servicio social para la ONG "La Gran Familia". Para contribuciones:
+
+1. Crear una rama desde `main`
+2. Realizar cambios y commits descriptivos
+3. Ejecutar `npm run lint` y `npm run test` antes de commitear
+4. Crear Pull Request con descripción detallada
+
+## Licencia
+
+Este proyecto es de uso interno para la ONG "La Gran Familia".

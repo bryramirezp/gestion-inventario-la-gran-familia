@@ -118,4 +118,20 @@ module.exports = {
     require('@tailwindcss/container-queries'),
   ],
   darkMode: 'class',
+  safelist: [
+    // Badge variants - asegurar que se generen las clases dinámicas
+    'bg-success',
+    'text-success-foreground',
+    'bg-destructive',
+    'text-destructive-foreground',
+    'bg-primary',
+    'text-primary-foreground',
+    'bg-secondary',
+    'text-secondary-foreground',
+    'bg-warning',
+    'text-warning-foreground',
+    'bg-inventory-low',
+    'bg-inventory-medium',
+    'bg-inventory-high',
+  ],
 }

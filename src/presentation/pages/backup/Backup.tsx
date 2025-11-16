@@ -25,8 +25,8 @@ import LoadingSpinner from '@/presentation/components/ui/LoadingSpinner';
 type DonationData = {
   donation_id: number;
   donation_date: string;
-  total_market_value: number;
-  total_actual_value: number;
+  market_value: number;
+  actual_value: number;
   donor: {
     donor_id: number;
     donor_name: string;
@@ -170,8 +170,8 @@ const buildDonationSummarySheet = (
       donor_name: donor?.donor_name || '',
       donor_type: donorType?.type_name || '',
       warehouse: warehouse?.warehouse_name || '',
-      total_market: donation.total_market_value,
-      total_real: donation.total_actual_value,
+      total_market: donation.market_value,
+      total_real: donation.actual_value,
       items_count: itemsCountByDonation.get(donation.donation_id) || 0,
       avg_discount: (avgDiscountByDonation.get(donation.donation_id) || 0).toFixed(2),
       phone: donor?.phone || '',
@@ -296,8 +296,8 @@ const buildTotalsByDonorTypeSheet = (
     const current = totalsByType.get(typeName) || { count: 0, totalMarket: 0, totalReal: 0 };
     totalsByType.set(typeName, {
       count: current.count + 1,
-      totalMarket: current.totalMarket + donation.total_market_value,
-      totalReal: current.totalReal + donation.total_actual_value
+      totalMarket: current.totalMarket + donation.market_value,
+      totalReal: current.totalReal + donation.actual_value
     });
   });
 
@@ -444,8 +444,8 @@ const buildTotalsByWarehouseSheet = (
     const current = totalsByWarehouse.get(warehouseName) || { count: 0, totalMarket: 0, totalReal: 0 };
     totalsByWarehouse.set(warehouseName, {
       count: current.count + 1,
-      totalMarket: current.totalMarket + donation.total_market_value,
-      totalReal: current.totalReal + donation.total_actual_value
+      totalMarket: current.totalMarket + donation.market_value,
+      totalReal: current.totalReal + donation.actual_value
     });
   });
 
@@ -530,8 +530,8 @@ const handleBackup = async () => {
       .select(`
         donation_id,
         donation_date,
-        total_market_value,
-        total_actual_value,
+        market_value,
+        actual_value,
         donor:donors!inner (
           donor_id,
           donor_name,

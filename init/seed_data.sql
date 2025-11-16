@@ -107,15 +107,23 @@ ON CONFLICT (type_name) DO NOTHING;
 -- ============================================================================
 -- TIPOS DE TRANSACCIÓN
 -- ============================================================================
--- Nota: Esta tabla se mantiene para uso futuro. Actualmente no se utiliza
--- en el código, pero puede ser útil para categorizar diferentes tipos de transacciones.
+-- NOTA: La tabla transaction_types fue eliminada (módulo de cocina removido)
+-- Los tipos de movimiento ahora se gestionan mediante la tabla movement_types
 
-INSERT INTO public.transaction_types (type_name, is_active) VALUES
-  ('Entrada', TRUE),
-  ('Salida', TRUE),
-  ('Transferencia', TRUE),
-  ('Ajuste', TRUE)
-ON CONFLICT (type_name) DO NOTHING;
+-- ============================================================================
+-- TIPOS DE MOVIMIENTO
+-- ============================================================================
+
+INSERT INTO public.movement_types (type_code, type_name, category, is_active, description) VALUES
+  ('ENTRADA', 'Entrada de Inventario', 'ENTRADA', TRUE, 'Entrada de productos al inventario (donaciones, compras, etc.)'),
+  ('CONSUMO', 'Consumo', 'SALIDA', TRUE, 'Consumo interno de productos'),
+  ('MERMA', 'Merma', 'SALIDA', TRUE, 'Pérdida de productos por deterioro, rotura, etc.'),
+  ('BAZAR', 'Venta en Bazar', 'SALIDA', TRUE, 'Venta de productos en bazar'),
+  ('DONACION_ONG', 'Donación a Otra ONG', 'SALIDA', TRUE, 'Donación de productos a otra organización'),
+  ('TRASPASO_SALIDA', 'Traspaso - Salida', 'TRASPASO', TRUE, 'Salida de productos por traspaso entre almacenes'),
+  ('TRASPASO_ENTRADA', 'Traspaso - Entrada', 'TRASPASO', TRUE, 'Entrada de productos por traspaso entre almacenes'),
+  ('AJUSTE', 'Ajuste de Inventario', 'AJUSTE', TRUE, 'Ajuste manual de inventario (requiere aprobación)')
+ON CONFLICT (type_code) DO NOTHING;
 
 -- ============================================================================
 -- MARCAS
