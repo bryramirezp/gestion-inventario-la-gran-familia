@@ -138,13 +138,30 @@ const Login: React.FC = () => {
               Iniciar Sesión
             </Button>
           </form>
-          <div className="mt-4 text-center space-y-2">
-            <Button as={Link} to={ROUTES.FORGOT_PASSWORD} variant="link" className="text-sm">
-              ¿Olvidaste tu contraseña?
-            </Button>
-            <Button as={Link} to="/landing" variant="link" className="text-sm">
-              &laquo; Volver a la Página Principal
-            </Button>
+          <div className="mt-4 space-y-3">
+            <div className="bg-green-500/10 dark:bg-green-500/20 border border-green-500/30 dark:border-green-500/40 rounded-lg p-4">
+              <h3 className="text-sm font-semibold text-green-700 dark:text-green-400 mb-3 text-center">
+                Credenciales de prueba
+              </h3>
+              <div className="space-y-2 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Correo:</span>
+                  <p className="font-mono text-foreground mt-0.5">user@example.com</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Contraseña:</span>
+                  <p className="font-mono text-foreground mt-0.5">Usuario123.</p>
+                </div>
+              </div>
+            </div>
+            <div className="text-center space-y-2">
+              <Button as={Link} to={ROUTES.FORGOT_PASSWORD} variant="link" className="text-sm">
+                ¿Olvidaste tu contraseña?
+              </Button>
+              <Button as={Link} to="/landing" variant="link" className="text-sm">
+                &laquo; Volver a la Página Principal
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
