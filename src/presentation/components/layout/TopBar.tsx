@@ -47,7 +47,7 @@ const TopBar: React.FC<TopBarProps> = ({
     <header
       className={`sticky top-0 z-30 bg-card/90 dark:bg-dark-card/90 backdrop-blur-sm border-b border-border dark:border-dark-border transition-all duration-300`}
     >
-      <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
+      <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8 relative">
         {/* Left side: Mobile menu button & Desktop toggle */}
         <div className="flex items-center">
           {/* Mobile: Toggle mobile menu */}
@@ -76,6 +76,13 @@ const TopBar: React.FC<TopBarProps> = ({
               <PanelLeftIcon className="h-5 w-5" />
             )}
           </Button>
+        </div>
+
+        {/* Center: DEMO indicator */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+          <span className="text-xl font-black tracking-[0.5em] text-black dark:text-white select-none">
+            DEMO
+          </span>
         </div>
 
         {/* Right side: Actions */}

@@ -16,7 +16,7 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
 
   const { values, errors, handleChange, handleSubmit, setErrors } = useForm(
-    { email: '', password: '' },
+    { email: 'user@example.com', password: 'Usuario123.' },
     (formData) => {
       const tempErrors: Record<string, string> = {};
       if (!formData.email) tempErrors.email = 'El correo electrónico es requerido.';

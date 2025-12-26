@@ -30,6 +30,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const login = async (email: string, password: string) => {
+    // Bypass para credenciales de prueba
+    if (email === 'user@example.com' && password === 'Usuario123.') {
+      localStorage.setItem('DEMO_MODE', 'true');
+      // Recargar la página para que el cliente de Supabase se inicialice como mockSupabase
+      window.location.reload();
+      return;
+    }
+
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
   };
